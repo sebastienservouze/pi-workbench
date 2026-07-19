@@ -36,6 +36,10 @@ npm test
 
 Le test d’intégration attend une commande `pi` configurée et l’extension `/agent` disponible.
 
+## Documentation Pi
+
+La documentation de Pi est disponible localement dans `$(npm root -g)/@earendil-works/pi-coding-agent/docs/`.
+
 ## Conventions
 
 - Écrivez les identifiants, noms de fichiers et le code en anglais.
