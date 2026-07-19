@@ -13,6 +13,12 @@ interface AgentIntent {
   value?: string
 }
 
+interface Toast {
+  id: number
+  kind: 'notice' | 'error'
+  message: string
+}
+
 const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [] }
 
 function App() {
@@ -26,11 +32,23 @@ function App() {
   const [selectedAgents, setSelectedAgents] = useState<Record<string, string>>({})
   const [agentBusy, setAgentBusy] = useState<Record<string, boolean>>({})
   const [dialog, setDialog] = useState<UiDialog | null>(null)
-  const [notice, setNotice] = useState('')
-  const [error, setError] = useState('')
+  const [toast, setToast] = useState<Toast | null>(null)
   const selectedIdRef = useRef(selectedId)
+  const toastIdRef = useRef(0)
   const agentIntentsRef = useRef(new Map<string, AgentIntent>())
   selectedIdRef.current = selectedId
+
+  const showToast = useCallback((kind: Toast['kind'], message: string) => {
+    setToast({ id: ++toastIdRef.current, kind, message })
+  }, [])
+
+  useEffect(() => {
+    if (!toast) return
+    const timeout = window.setTimeout(() => {
+      setToast((current) => current?.id === toast.id ? null : current)
+    }, toast.kind === 'error' ? 6000 : 4000)
+    return () => window.clearTimeout(timeout)
+  }, [toast])
 
   const refreshSessions = useCallback(async () => {
     try {
@@ -41,11 +59,10 @@ function App() {
         session.pendingUi.map((request) => ({ sessionId: session.id, request })),
       )[0]
       if (pending) setDialog(pending)
-      setError('')
     } catch (cause) {
-      setError(messageOf(cause))
+      showToast('error', messageOf(cause))
     }
-  }, [])
+  }, [showToast])
 
   const refreshSnapshot = useCallback(async (sessionId: string) => {
     if (!sessionId) {
@@ -56,11 +73,10 @@ function App() {
     try {
       setSnapshot(await getSnapshot(sessionId))
       setSnapshotSessionId(sessionId)
-      setError('')
     } catch (cause) {
-      setError(messageOf(cause))
+      showToast('error', messageOf(cause))
     }
-  }, [])
+  }, [showToast])
 
   const requestAgent = useCallback((sessionId: string, value?: string) => {
     if (agentIntentsRef.current.has(sessionId)) return
@@ -69,10 +85,10 @@ function App() {
     void sendPiCommand(sessionId, { type: 'prompt', message: '/agent' })
       .catch((cause) => {
         agentIntentsRef.current.delete(sessionId)
-        setError(messageOf(cause))
+        showToast('error', messageOf(cause))
       })
       .finally(() => setAgentBusy((current) => ({ ...current, [sessionId]: false })))
-  }, [])
+  }, [showToast])
 
   useEffect(() => void refreshSessions(), [refreshSessions])
   useEffect(() => {
@@ -94,7 +110,7 @@ function App() {
       if (event.event !== 'pi' || !isObject(event.data)) return
       handlePiEvent(event.sessionId, event.data)
     }
-    events.onerror = () => setError('Connexion au backend interrompue; nouvelle tentative en cours.')
+    events.onerror = () => showToast('error', 'Connexion au backend interrompue; nouvelle tentative en cours.')
     return () => events.close()
 
     function handlePiEvent(sessionId: string, event: JsonObject): void {
@@ -102,7 +118,7 @@ function App() {
       if (event.type === 'agent_settled') updateSessionStatus(sessionId, 'idle')
 
       if (event.type === 'extension_ui_request') {
-        if (event.method === 'notify' && typeof event.message === 'string') setNotice(event.message)
+        if (event.method === 'notify' && typeof event.message === 'string') showToast('notice', event.message)
         const agentIntent = agentIntentsRef.current.get(sessionId)
         if (agentIntent && isAgentSelector(event)) {
           const options = event.options.filter((option): option is string => typeof option === 'string')
@@ -115,8 +131,8 @@ function App() {
             .then(() => {
               if (selectedAgent) setSelectedAgents((current) => ({ ...current, [sessionId]: selectedAgent }))
             })
-            .catch((cause) => setError(messageOf(cause)))
-          if (agentIntent.value && !selectedAgent) setError('L’agent sélectionné n’est plus disponible.')
+            .catch((cause) => showToast('error', messageOf(cause)))
+          if (agentIntent.value && !selectedAgent) showToast('error', 'L’agent sélectionné n’est plus disponible.')
           return
         }
         if (isBlockingDialog(event)) setDialog({ sessionId, request: event })
@@ -145,7 +161,7 @@ function App() {
         void refreshSnapshot(sessionId)
       }
     }
-  }, [refreshSessions, refreshSnapshot])
+  }, [refreshSessions, refreshSnapshot, showToast])
 
   useEffect(() => {
     const exposesAgentCommand = snapshot.commands.some((command) => command.name === 'agent')
@@ -173,7 +189,7 @@ function App() {
             await refreshSessions()
             setSelectedId(session.id)
           }}
-          onError={(cause) => setError(messageOf(cause))}
+          onError={(cause) => showToast('error', messageOf(cause))}
         />
         <nav className="session-list" aria-label="Sessions Pi">
           {sessions.map((session) => (
@@ -194,8 +210,9 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <SessionHeader
-              session={selectedSession}
+            <SessionHeader session={selectedSession} />
+            <Conversation messages={snapshot.messages} liveText={liveText} activeTools={activeTools} />
+            <Composer
               snapshot={snapshot}
               agentBusy={Boolean(agentBusy[selectedSession.id])}
               agentOptions={agentOptions[selectedSession.id] ?? []}
@@ -206,10 +223,6 @@ function App() {
                 await refreshSnapshot(selectedSession.id)
                 return result
               }}
-              onError={(cause) => setError(messageOf(cause))}
-            />
-            <Conversation messages={snapshot.messages} liveText={liveText} activeTools={activeTools} />
-            <Composer
               commands={snapshot.commands}
               running={selectedSession.status === 'running'}
               onSend={async (message, behavior) => {
@@ -218,7 +231,7 @@ function App() {
                 await sendPiCommand(selectedSession.id, command)
               }}
               onAbort={() => sendPiCommand(selectedSession.id, { type: 'abort' })}
-              onError={(cause) => setError(messageOf(cause))}
+              onError={(cause) => showToast('error', messageOf(cause))}
             />
           </>
         ) : (
@@ -230,12 +243,13 @@ function App() {
         )}
       </main>
 
-      {(error || notice) && (
-        <button className={error ? 'toast error' : 'toast'} onClick={() => { setError(''); setNotice('') }} type="button">
-          {error || notice}
-        </button>
+      {toast && (
+        <div className={`toast ${toast.kind === 'error' ? 'error' : ''}`} role={toast.kind === 'error' ? 'alert' : 'status'}>
+          <span>{toast.message}</span>
+          <button aria-label="Fermer la notification" className="toast-close" onClick={() => setToast(null)} type="button">×</button>
+        </div>
       )}
-      {dialog && <ExtensionDialog dialog={dialog} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => setError(messageOf(cause))} />}
+      {dialog && <ExtensionDialog dialog={dialog} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
     </div>
   )
 }
@@ -257,38 +271,17 @@ function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>
   return <button className="new-session" disabled={busy} onClick={() => void create()} type="button">{busy ? 'Démarrage…' : '＋ Nouvelle session'}</button>
 }
 
-function SessionHeader({ session, snapshot, agentBusy, agentOptions, selectedAgent, onAgentChange, onCommand, onError }: {
-  session: SessionSummary
-  snapshot: SessionSnapshot
-  agentBusy: boolean
-  agentOptions: string[]
-  selectedAgent: string
-  onAgentChange: (agent: string) => void
-  onCommand: (command: JsonObject) => Promise<JsonObject>
-  onError: (cause: unknown) => void
-}) {
-  const model = isObject(snapshot.state?.model) ? snapshot.state.model : null
-  const currentModel = model && typeof model.id === 'string' && typeof model.provider === 'string' ? `${model.provider}/${model.id}` : ''
-  const thinking = typeof snapshot.state?.thinkingLevel === 'string' ? snapshot.state.thinkingLevel : 'off'
-
+function SessionHeader({ session }: { session: SessionSummary }) {
   return (
     <header className="session-header">
-      <div><h1>{session.name}</h1><p>{session.cwd}</p></div>
-      <div className="controls">
-        <label>Modèle<select value={currentModel} onChange={(event) => {
-          const selected = snapshot.models.find((item) => `${item.provider}/${item.id}` === event.target.value)
-          if (selected) void onCommand({ type: 'set_model', provider: selected.provider, modelId: selected.id }).catch(onError)
-        }}>
-          {snapshot.models.map((item) => <option key={`${item.provider}/${item.id}`} value={`${item.provider}/${item.id}`}>{String(item.name ?? item.id)}</option>)}
-        </select></label>
-        <label>Thinking<select value={thinking} onChange={(event) => void onCommand({ type: 'set_thinking_level', level: event.target.value }).catch(onError)}>
-          {['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].map((level) => <option key={level}>{level}</option>)}
-        </select></label>
-        <label>Agent<select disabled={agentBusy || agentOptions.length === 0} value={selectedAgent} onChange={(event) => onAgentChange(event.target.value)}>
-          <option value="">{agentBusy ? 'Chargement…' : 'Choisir un agent'}</option>
-          {agentOptions.map((agent) => <option key={agent} value={agent}>{agent}</option>)}
-        </select></label>
+      <div className="session-heading">
+        <span className={`status-dot ${session.status}`} aria-hidden="true" />
+        <div>
+          <h1>{session.name}</h1>
+          <p>{session.cwd}</p>
+        </div>
       </div>
+      <span className="status-badge">{statusLabel(session.status)}</span>
     </header>
   )
 }
@@ -296,7 +289,8 @@ function SessionHeader({ session, snapshot, agentBusy, agentOptions, selectedAge
 function Conversation({ messages, liveText, activeTools }: { messages: JsonObject[]; liveText: string; activeTools: Record<string, string> }) {
   const endRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+    endRef.current?.scrollIntoView({ behavior })
   }, [messages, liveText, activeTools])
   return (
     <section className="conversation" aria-live="polite">
@@ -335,7 +329,13 @@ function Markdown({ children }: { children: string }) {
   return <ReactMarkdown>{children}</ReactMarkdown>
 }
 
-function Composer({ commands, running, onSend, onAbort, onError }: {
+function Composer({ snapshot, agentBusy, agentOptions, selectedAgent, onAgentChange, onCommand, commands, running, onSend, onAbort, onError }: {
+  snapshot: SessionSnapshot
+  agentBusy: boolean
+  agentOptions: string[]
+  selectedAgent: string
+  onAgentChange: (agent: string) => void
+  onCommand: (command: JsonObject) => Promise<JsonObject>
   commands: JsonObject[]
   running: boolean
   onSend: (message: string, behavior: 'steer' | 'followUp') => Promise<void>
@@ -344,6 +344,9 @@ function Composer({ commands, running, onSend, onAbort, onError }: {
 }) {
   const [message, setMessage] = useState('')
   const [behavior, setBehavior] = useState<'steer' | 'followUp'>('steer')
+  const model = isObject(snapshot.state?.model) ? snapshot.state.model : null
+  const currentModel = model && typeof model.id === 'string' && typeof model.provider === 'string' ? `${model.provider}/${model.id}` : ''
+  const thinking = typeof snapshot.state?.thinkingLevel === 'string' ? snapshot.state.thinkingLevel : 'off'
 
   async function submit(event: FormEvent): Promise<void> {
     event.preventDefault()
@@ -355,13 +358,30 @@ function Composer({ commands, running, onSend, onAbort, onError }: {
 
   return (
     <form className="composer" onSubmit={(event) => void submit(event)}>
+      <div className="composer-controls" aria-label="Configuration de la session">
+        <label><span>Modèle</span><select value={currentModel} onChange={(event) => {
+          const selected = snapshot.models.find((item) => `${item.provider}/${item.id}` === event.target.value)
+          if (selected) void onCommand({ type: 'set_model', provider: selected.provider, modelId: selected.id }).catch(onError)
+        }}>
+          {snapshot.models.map((item) => <option key={`${item.provider}/${item.id}`} value={`${item.provider}/${item.id}`}>{String(item.name ?? item.id)}</option>)}
+        </select></label>
+        <label><span>Thinking</span><select value={thinking} onChange={(event) => void onCommand({ type: 'set_thinking_level', level: event.target.value }).catch(onError)}>
+          {['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].map((level) => <option key={level}>{level}</option>)}
+        </select></label>
+        <label><span>Agent</span><select disabled={agentBusy || agentOptions.length === 0} value={selectedAgent} onChange={(event) => onAgentChange(event.target.value)}>
+          <option value="">{agentBusy ? 'Chargement…' : 'Choisir un agent'}</option>
+          {agentOptions.map((agent) => <option key={agent} value={agent}>{agent}</option>)}
+        </select></label>
+      </div>
       <textarea aria-label="Message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => {
         if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit() }
       }} placeholder="Demandez quelque chose à Pi…" rows={3} />
       <div className="composer-actions">
-        {commands.length > 0 && <select aria-label="Insérer une commande Pi" value="" onChange={(event) => setMessage(`/${event.target.value} `)}><option value="">Commandes</option>{commands.map((command) => <option key={String(command.name)} value={String(command.name)}>{String(command.name)}</option>)}</select>}
-        {running && <select aria-label="Comportement du prochain message" value={behavior} onChange={(event) => setBehavior(event.target.value as 'steer' | 'followUp')}><option value="steer">Intervenir</option><option value="followUp">À la suite</option></select>}
-        {running && <button className="danger" onClick={() => void onAbort().catch(onError)} type="button">Arrêter</button>}
+        <div className="composer-tools">
+          {commands.length > 0 && <select aria-label="Insérer une commande Pi" value="" onChange={(event) => setMessage(`/${event.target.value} `)}><option value="">Commandes</option>{commands.map((command) => <option key={String(command.name)} value={String(command.name)}>{String(command.name)}</option>)}</select>}
+          {running && <select aria-label="Comportement du prochain message" value={behavior} onChange={(event) => setBehavior(event.target.value as 'steer' | 'followUp')}><option value="steer">Intervenir</option><option value="followUp">À la suite</option></select>}
+          {running && <button className="danger" onClick={() => void onAbort().catch(onError)} type="button">Arrêter</button>}
+        </div>
         <button type="submit">Envoyer <span>↵</span></button>
       </div>
     </form>
@@ -418,6 +438,10 @@ function isObject(value: unknown): value is JsonObject {
 function formatUnknown(value: unknown): string {
   if (value === undefined || value === null) return ''
   return typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+}
+
+function statusLabel(status: SessionSummary['status']): string {
+  return { starting: 'Démarrage', idle: 'Prête', running: 'En cours', exited: 'Arrêtée' }[status]
 }
 
 function messageOf(cause: unknown): string {
