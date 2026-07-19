@@ -129,29 +129,11 @@ button { cursor: pointer; }
 
 .workspace {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   min-width: 0;
   min-height: 0;
   background: var(--bg);
 }
-
-.session-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  min-width: 0;
-  padding: 17px max(22px, calc((100% - 880px) / 2));
-  border-bottom: 1px solid var(--line);
-  background: rgb(255 253 250 / 92%);
-  backdrop-filter: blur(12px);
-}
-
-.session-heading { display: flex; align-items: center; gap: 11px; min-width: 0; }
-.session-heading > div { min-width: 0; }
-.session-header h1 { margin: 0; font-size: 17px; letter-spacing: -.02em; }
-.session-header p { max-width: 510px; margin: 4px 0 0; overflow: hidden; color: var(--muted); font: 11px ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }
-.status-badge { flex: 0 0 auto; border: 1px solid var(--line); border-radius: 999px; padding: 5px 9px; color: var(--muted); font-size: 11px; font-weight: 700; }
 
 .conversation {
   min-width: 0;
@@ -202,21 +184,26 @@ button { cursor: pointer; }
   box-shadow: 0 15px 38px rgb(35 37 31 / 12%);
 }
 
-.composer-controls { display: flex; justify-content: flex-end; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--line); background: #faf9f5; }
-.composer-controls label { display: flex; flex: 0 1 auto; min-width: 0; }
-.composer-controls select { max-width: 220px; min-width: 0; border: 1px solid transparent; border-radius: 7px; padding: 6px 24px 6px 7px; background: transparent; color: var(--muted); font-size: 11px; letter-spacing: normal; text-transform: none; }
-.composer-controls select:hover, .composer-controls select:focus-visible { border-color: var(--line); background: var(--panel); color: var(--ink); }
-.composer-tools select { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; background: var(--panel); color: var(--ink); font-size: 12px; letter-spacing: normal; text-transform: none; }
 .composer textarea { display: block; width: 100%; min-height: 78px; resize: vertical; border: 0; outline: 0; padding: 15px 16px 13px; background: transparent; color: var(--ink); line-height: 1.5; }
 .composer textarea::placeholder { color: #a1a49d; }
-.composer-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px; border-top: 1px solid #eeece6; }
+.composer-footer { border-top: 1px solid #eeece6; background: #faf9f5; }
+.composer-info { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-width: 0; padding: 9px 11px 7px; }
+.composer-session, .composer-stats { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--muted); font: 11px ui-monospace, monospace; }
+.composer-session strong { overflow: hidden; color: var(--ink); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.composer-session > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.composer-stats { flex: 0 0 auto; gap: 12px; }
+.composer-stats span { display: inline-flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+.composer-stats b { color: var(--muted); font: 700 10px ui-sans-serif, system-ui, sans-serif; text-transform: uppercase; }
+.composer-stats small { color: #9b9e97; font-size: 10px; }
+.composer-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 8px 8px; }
 .composer-tools { display: flex; flex-wrap: wrap; gap: 7px; min-width: 0; }
+.composer-tools select, .composer-tools label select { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; background: var(--panel); color: var(--ink); font-size: 12px; letter-spacing: normal; text-transform: none; }
 .composer-actions button, .composer-actions select { border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; background: var(--panel); color: var(--ink); font-size: 12px; }
-.composer-actions button:hover, .composer-actions select:hover, .composer-controls select:hover { border-color: #b9bcb3; }
+.composer-actions button:hover, .composer-actions select:hover { border-color: #b9bcb3; }
 .composer-actions button[type='submit'] { border-color: var(--ink); background: var(--ink); color: white; font-weight: 750; }
 .composer-actions button[type='submit']:hover { background: #3b3e39; }
 .composer-actions .danger { border-color: #e3c4be; color: var(--danger); }
-.composer-actions span { margin-left: 3px; color: #a7aaa3; }
+.composer-actions button[type='submit'] span { margin-left: 3px; color: #a7aaa3; }
 
 .toast { position: fixed; right: 20px; bottom: 20px; z-index: 20; display: flex; align-items: flex-start; gap: 12px; max-width: min(420px, calc(100vw - 32px)); border: 1px solid #c7d9d7; border-radius: 11px; padding: 12px 11px 12px 15px; background: #f7fffd; color: #245964; box-shadow: var(--shadow); font-size: 13px; line-height: 1.4; animation: toast-in .2s ease-out; }
 .toast.error { border-color: #e8c2bc; background: #fff8f6; color: var(--danger); }
@@ -245,7 +232,6 @@ button { cursor: pointer; }
 
 @media (max-width: 850px) {
   .app-shell { grid-template-columns: 220px minmax(0, 1fr); }
-  .session-header { padding-inline: 18px; }
   .conversation { padding: 24px 18px; }
   .composer { width: calc(100% - 28px); }
 }
@@ -258,12 +244,7 @@ button { cursor: pointer; }
   .session-list { grid-column: 1 / -1; display: flex; flex-direction: row; overflow-x: auto; }
   .session-item { min-width: 220px; }
   .workspace { flex: 1; }
-  .session-header { padding-block: 14px; }
-  .status-badge { display: none; }
   .message.user { max-width: 92%; }
-  .composer-controls { justify-content: stretch; }
-  .composer-controls label { flex: 1 1 0; }
-  .composer-controls select { width: 100%; max-width: none; }
 }
 
 @media (max-width: 480px) {
@@ -273,8 +254,9 @@ button { cursor: pointer; }
   .conversation { padding: 20px 12px; }
   .message.assistant, .message.toolResult, .message.bashExecution { padding: 14px; }
   .composer { width: calc(100% - 20px); margin-bottom: 10px; }
-  .composer-controls { gap: 2px; padding-inline: 5px; }
-  .composer-controls select { padding-inline: 5px 20px; }
+  .composer-info { align-items: flex-start; flex-direction: column; gap: 7px; }
+  .composer-session { width: 100%; }
+  .composer-stats { width: 100%; justify-content: space-between; }
   .composer-actions { align-items: stretch; flex-direction: column; }
   .composer-tools { width: 100%; }
   .composer-tools > * { flex: 1 1 auto; }

@@ -19,7 +19,7 @@ interface Toast {
   message: string
 }
 
-const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [] }
+const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [], stats: null }
 
 function App() {
   const [sessions, setSessions] = useState<SessionSummary[]>([])
@@ -230,9 +230,9 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <SessionHeader session={selectedSession} />
             <Conversation messages={snapshot.messages} liveText={liveText} activity={activity} activeTools={activeTools} />
             <Composer
+              session={selectedSession}
               snapshot={snapshot}
               agentBusy={Boolean(agentBusy[selectedSession.id])}
               agentOptions={agentOptions[selectedSession.id] ?? []}
@@ -291,21 +291,6 @@ function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>
   return <button className="new-session" disabled={busy} onClick={() => void create()} type="button">{busy ? 'Démarrage…' : '＋ Nouvelle session'}</button>
 }
 
-function SessionHeader({ session }: { session: SessionSummary }) {
-  return (
-    <header className="session-header">
-      <div className="session-heading">
-        <span className={`status-dot ${session.status}`} aria-hidden="true" />
-        <div>
-          <h1>{session.name}</h1>
-          <p>{session.cwd}</p>
-        </div>
-      </div>
-      <span className="status-badge">{statusLabel(session.status)}</span>
-    </header>
-  )
-}
-
 function Conversation({ messages, liveText, activity, activeTools }: { messages: JsonObject[]; liveText: string; activity: string; activeTools: Record<string, string> }) {
   const endRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -350,7 +335,8 @@ function Markdown({ children }: { children: string }) {
   return <ReactMarkdown>{children}</ReactMarkdown>
 }
 
-function Composer({ snapshot, agentBusy, agentOptions, selectedAgent, onAgentChange, onCommand, commands, running, onSend, onAbort, onError }: {
+function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, onAgentChange, onCommand, commands, running, onSend, onAbort, onError }: {
+  session: SessionSummary
   snapshot: SessionSnapshot
   agentBusy: boolean
   agentOptions: string[]
@@ -377,33 +363,45 @@ function Composer({ snapshot, agentBusy, agentOptions, selectedAgent, onAgentCha
     try { await onSend(nextMessage, behavior) } catch (cause) { setMessage(nextMessage); onError(cause) }
   }
 
+  const stats = snapshot.stats
+  const contextUsage = stats?.contextUsage
+  const contextPercent = typeof contextUsage?.percent === 'number' ? `${Math.round(contextUsage.percent)}%` : '—'
+  const contextTokens = typeof contextUsage?.tokens === 'number' && typeof contextUsage.contextWindow === 'number'
+    ? `${formatTokens(contextUsage.tokens)} / ${formatTokens(contextUsage.contextWindow)}`
+    : 'Indisponible'
+  const cost = typeof stats?.cost === 'number' ? `$${stats.cost.toFixed(2)}` : '—'
+
   return (
     <form className="composer" onSubmit={(event) => void submit(event)}>
-      <div className="composer-controls" aria-label="Configuration de la session">
-        <label><select aria-label="Modèle" value={currentModel} onChange={(event) => {
-          const selected = snapshot.models.find((item) => `${item.provider}/${item.id}` === event.target.value)
-          if (selected) void onCommand({ type: 'set_model', provider: selected.provider, modelId: selected.id }).catch(onError)
-        }}>
-          {snapshot.models.map((item) => <option key={`${item.provider}/${item.id}`} value={`${item.provider}/${item.id}`}>{String(item.name ?? item.id)}</option>)}
-        </select></label>
-        <label><select aria-label="Thinking" value={thinking} onChange={(event) => void onCommand({ type: 'set_thinking_level', level: event.target.value }).catch(onError)}>
-          {['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].map((level) => <option key={level}>{level}</option>)}
-        </select></label>
-        <label><select aria-label="Agent" disabled={agentBusy || agentOptions.length === 0} value={selectedAgent} onChange={(event) => onAgentChange(event.target.value)}>
-          <option value="">{agentBusy ? 'Chargement…' : 'Choisir un agent'}</option>
-          {agentOptions.map((agent) => <option key={agent} value={agent}>{agent}</option>)}
-        </select></label>
-      </div>
       <textarea aria-label="Message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => {
         if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit() }
       }} placeholder="Demandez quelque chose à Pi…" rows={3} />
-      <div className="composer-actions">
-        <div className="composer-tools">
-          {commands.length > 0 && <select aria-label="Insérer une commande Pi" value="" onChange={(event) => setMessage(`/${event.target.value} `)}><option value="">Commandes</option>{commands.map((command) => <option key={String(command.name)} value={String(command.name)}>{String(command.name)}</option>)}</select>}
-          {running && <select aria-label="Comportement du prochain message" value={behavior} onChange={(event) => setBehavior(event.target.value as 'steer' | 'followUp')}><option value="steer">Intervenir</option><option value="followUp">À la suite</option></select>}
-          {running && <button className="danger" onClick={() => void onAbort().catch(onError)} type="button">Arrêter</button>}
+      <div className="composer-footer">
+        <div className="composer-info" aria-label="Informations de la session">
+          <div className="composer-session"><span className={`status-dot ${session.status}`} aria-hidden="true" /><strong>{session.name}</strong><span title={session.cwd}>{session.cwd}</span></div>
+          <div className="composer-stats"><span><b>Coût</b>{cost}</span><span><b>Contexte</b>{contextPercent}<small>{contextTokens}</small></span></div>
         </div>
-        <button type="submit">Envoyer <span>↵</span></button>
+        <div className="composer-actions">
+          <div className="composer-tools">
+            <label><select aria-label="Modèle" value={currentModel} onChange={(event) => {
+              const selected = snapshot.models.find((item) => `${item.provider}/${item.id}` === event.target.value)
+              if (selected) void onCommand({ type: 'set_model', provider: selected.provider, modelId: selected.id }).catch(onError)
+            }}>
+              {snapshot.models.map((item) => <option key={`${item.provider}/${item.id}`} value={`${item.provider}/${item.id}`}>{String(item.name ?? item.id)}</option>)}
+            </select></label>
+            <label><select aria-label="Thinking" value={thinking} onChange={(event) => void onCommand({ type: 'set_thinking_level', level: event.target.value }).catch(onError)}>
+              {['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].map((level) => <option key={level}>{level}</option>)}
+            </select></label>
+            <label><select aria-label="Agent" disabled={agentBusy || agentOptions.length === 0} value={selectedAgent} onChange={(event) => onAgentChange(event.target.value)}>
+              <option value="">{agentBusy ? 'Chargement…' : 'Choisir un agent'}</option>
+              {agentOptions.map((agent) => <option key={agent} value={agent}>{agent}</option>)}
+            </select></label>
+            {commands.length > 0 && <select aria-label="Insérer une commande Pi" value="" onChange={(event) => setMessage(`/${event.target.value} `)}><option value="">Commandes</option>{commands.map((command) => <option key={String(command.name)} value={String(command.name)}>{String(command.name)}</option>)}</select>}
+            {running && <select aria-label="Comportement du prochain message" value={behavior} onChange={(event) => setBehavior(event.target.value as 'steer' | 'followUp')}><option value="steer">Intervenir</option><option value="followUp">À la suite</option></select>}
+            {running && <button className="danger" onClick={() => void onAbort().catch(onError)} type="button">Arrêter</button>}
+          </div>
+          <button type="submit">Envoyer <span>↵</span></button>
+        </div>
       </div>
     </form>
   )
@@ -461,8 +459,8 @@ function formatUnknown(value: unknown): string {
   return typeof value === 'string' ? value : JSON.stringify(value, null, 2)
 }
 
-function statusLabel(status: SessionSummary['status']): string {
-  return { starting: 'Démarrage', idle: 'Prête', running: 'En cours', exited: 'Arrêtée' }[status]
+function formatTokens(value: number): string {
+  return value >= 1000 ? `${Math.round(value / 1000)}k` : String(value)
 }
 
 function messageOf(cause: unknown): string {

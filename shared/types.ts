@@ -35,9 +35,19 @@ export interface ManagerEvent {
 
 export type ManagerMessage = ManagerResponse | ManagerEvent
 
+export interface SessionStats {
+  cost?: number
+  contextUsage?: {
+    tokens?: number | null
+    contextWindow?: number | null
+    percent?: number | null
+  }
+}
+
 export interface SessionSnapshot {
   state: JsonObject | null
   messages: JsonObject[]
   models: JsonObject[]
   commands: JsonObject[]
+  stats: SessionStats | null
 }

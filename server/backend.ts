@@ -68,17 +68,19 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
   const snapshotMatch = url.pathname.match(/^\/api\/sessions\/([^/]+)\/snapshot$/)
   if (method === 'GET' && snapshotMatch) {
     const sessionId = decodeURIComponent(snapshotMatch[1])
-    const [state, messages, models, commands] = await Promise.all([
+    const [state, messages, models, commands, stats] = await Promise.all([
       piCommand(sessionId, { type: 'get_state' }),
       piCommand(sessionId, { type: 'get_messages' }),
       piCommand(sessionId, { type: 'get_available_models' }),
       piCommand(sessionId, { type: 'get_commands' }),
+      piCommand(sessionId, { type: 'get_session_stats' }),
     ])
     const snapshot: SessionSnapshot = {
       state: objectData(state),
       messages: arrayData(messages, 'messages'),
       models: arrayData(models, 'models'),
       commands: arrayData(commands, 'commands'),
+      stats: objectData(stats),
     }
     sendJson(response, 200, snapshot)
     return
