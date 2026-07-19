@@ -4,6 +4,7 @@ import './App.css'
 import { createSession, getSnapshot, listDirectories, listRecentSessions, listSessions, openSession, sendPiCommand } from './api.ts'
 import type { DirectoryListing, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
+import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 
 interface UiDialog {
   sessionId: string
@@ -32,7 +33,7 @@ function App() {
   const [snapshot, setSnapshot] = useState<SessionSnapshot>(emptySnapshot)
   const [snapshotSessionId, setSnapshotSessionId] = useState('')
   const [liveText, setLiveText] = useState('')
-  const [activity, setActivity] = useState('')
+  const [activity, setActivity] = useState<Activity | null>(null)
   const [agentOptions, setAgentOptions] = useState<Record<string, string[]>>({})
   const [agentBusy, setAgentBusy] = useState<Record<string, boolean>>({})
   const [dialog, setDialog] = useState<UiDialog | null>(null)
@@ -101,7 +102,7 @@ function App() {
     setSnapshot(emptySnapshot)
     setSnapshotSessionId('')
     setLiveText('')
-    setActivity('')
+    setActivity(null)
     void refreshSnapshot(selectedId)
   }, [refreshSnapshot, selectedId])
 
@@ -128,7 +129,7 @@ function App() {
       }
 
       if (sessionId === selectedIdRef.current && event.type === 'extension_ui_request' && isBlockingDialog(event) && !isAgentSelector(event)) {
-        setActivity('Pi attend votre intervention')
+        setActivity(waitingActivity())
       }
 
       if (event.type === 'extension_ui_request') {
@@ -151,25 +152,12 @@ function App() {
       }
 
       if (sessionId !== selectedIdRef.current) return
-      if (event.type === 'agent_start') setActivity('Pi travaille')
-      if (event.type === 'agent_settled') setActivity('')
-      if (event.type === 'message_start') {
-        setLiveText('')
-        setActivity('Pi travaille')
-      }
+      setActivity((current) => activityForPiEvent(current, event))
+      if (event.type === 'message_start') setLiveText('')
       if (event.type === 'message_update' && isObject(event.assistantMessageEvent)) {
         const update = event.assistantMessageEvent
-        if (update.type === 'thinking_start') setActivity('')
-        if (update.type === 'thinking_delta' && typeof update.delta === 'string') {
-          setActivity((current) => current + update.delta)
-        }
-        if (update.type === 'text_delta' && typeof update.delta === 'string') {
-          setLiveText((current) => current + update.delta)
-          setActivity('')
-        }
+        if (update.type === 'text_delta' && typeof update.delta === 'string') setLiveText((current) => current + update.delta)
       }
-      if (event.type === 'tool_execution_start') setActivity(toolActivity(event))
-      if (event.type === 'tool_execution_end') setActivity(toolActivity(event, true))
       if (event.type === 'message_end' || event.type === 'agent_settled') {
         setLiveText('')
         void refreshSnapshot(sessionId)
@@ -249,7 +237,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation messages={snapshot.messages} liveText={liveText} activity={activity} />
+            <Conversation messages={snapshot.messages} liveText={liveText} activity={activity} agentName={selectedSession.activeAgent} />
             {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
             <Composer
               session={selectedSession}
@@ -359,7 +347,7 @@ function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>
   return <button className="new-session" disabled={busy} onClick={() => void create()} type="button">{busy ? 'Démarrage…' : '＋ Nouvelle session'}</button>
 }
 
-function Conversation({ messages, liveText, activity }: { messages: JsonObject[]; liveText: string; activity: string }) {
+function Conversation({ messages, liveText, activity, agentName }: { messages: JsonObject[]; liveText: string; activity: Activity | null; agentName?: string }) {
   const visibleMessages = messages.filter(isVisibleConversationMessage)
   const endRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -370,7 +358,7 @@ function Conversation({ messages, liveText, activity }: { messages: JsonObject[]
     <section className="conversation" aria-live="polite">
       {visibleMessages.map((message, index) => <MessageCard key={`${String(message.timestamp ?? '')}-${index}`} message={message} />)}
       {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
-      {activity && <div className="pi-activity" role="status"><span aria-hidden="true" className="spinner" /><span>{activity}<span aria-hidden="true" className="activity-dots">···</span></span></div>}
+      {activity && <ActivityIndicator activity={activity} agentName={agentName} />}
       {visibleMessages.length === 0 && !liveText && !activity && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
       <div ref={endRef} />
     </section>
@@ -386,12 +374,8 @@ function RoleLabel({ role }: { role: string }) {
   return <div className="role">{role === 'user' ? 'Vous' : role}</div>
 }
 
-function toolActivity(event: JsonObject, finished = false): string {
-  const name = typeof event.toolName === 'string' ? event.toolName : 'outil'
-  if (finished) return `${name} terminé`
-  const args = isObject(event.args) ? event.args : null
-  const detail = args && typeof args.command === 'string' ? ` — ${args.command}` : ''
-  return `${name}${detail}`
+function ActivityIndicator({ activity, agentName }: { activity: Activity; agentName?: string }) {
+  return <div className="pi-activity" role="status"><span aria-hidden="true" className="spinner" /><span className="activity-text">{activityText(activity, agentName)}</span></div>
 }
 
 function isVisibleConversationMessage(message: JsonObject): boolean {
