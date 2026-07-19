@@ -29,6 +29,26 @@ export interface DirectoryListing {
   directories: DirectoryEntry[]
 }
 
+export interface GitFileChange {
+  path: string
+  status: 'added' | 'deleted' | 'modified' | 'renamed'
+  additions: number | null
+  deletions: number | null
+}
+
+export interface GitSnapshot {
+  repository: boolean
+  branch: string | null
+  files: GitFileChange[]
+  ahead: number
+}
+
+export interface GitActionResult {
+  committed: boolean
+  pushed: boolean
+  pushError?: string
+}
+
 export interface ManagerRequest {
   id: string
   action: 'list' | 'create' | 'open' | 'command'

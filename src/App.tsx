@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNod
 import * as Select from '@radix-ui/react-select'
 import ReactMarkdown from 'react-markdown'
 import './App.css'
-import { createSession, getSnapshot, listDirectories, listRecentSessions, listSessions, openSession, sendPiCommand } from './api.ts'
-import type { DirectoryListing, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
+import { commitAndPush, createSession, getGitSnapshot, getSnapshot, listDirectories, listRecentSessions, listSessions, openSession, sendPiCommand } from './api.ts'
+import type { DirectoryListing, GitActionResult, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 
@@ -39,8 +39,11 @@ function App() {
   const [agentBusy, setAgentBusy] = useState<Record<string, boolean>>({})
   const [dialog, setDialog] = useState<UiDialog | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
+  const [gitSnapshot, setGitSnapshot] = useState<GitSnapshot | null>(null)
+  const [gitSidebarCollapsed, setGitSidebarCollapsed] = useState(() => window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true')
   const selectedIdRef = useRef(selectedId)
   const refreshVersionRef = useRef(0)
+  const gitRefreshVersionRef = useRef(0)
   const toastIdRef = useRef(0)
   const agentIntentsRef = useRef(new Map<string, AgentIntent>())
   selectedIdRef.current = selectedId
@@ -74,6 +77,16 @@ function App() {
     }
   }, [showToast, workspacePath])
 
+  const refreshGit = useCallback(async (cwd = workspacePath, notifyOnError = false) => {
+    const version = ++gitRefreshVersionRef.current
+    try {
+      const nextSnapshot = await getGitSnapshot(cwd)
+      if (version === gitRefreshVersionRef.current) setGitSnapshot(nextSnapshot)
+    } catch (cause) {
+      if (notifyOnError && version === gitRefreshVersionRef.current) showToast('error', messageOf(cause))
+    }
+  }, [showToast, workspacePath])
+
   const refreshSnapshot = useCallback(async (sessionId: string, clearLiveText = false) => {
     if (!sessionId) {
       setSnapshot(emptySnapshot)
@@ -103,6 +116,7 @@ function App() {
   }, [refreshSnapshot, showToast])
 
   useEffect(() => void refreshSessions(), [refreshSessions])
+  useEffect(() => void refreshGit(), [refreshGit])
   useEffect(() => {
     setSnapshot(emptySnapshot)
     setSnapshotSessionId('')
@@ -133,6 +147,7 @@ function App() {
       }
       if (event.type === 'agent_start') updateSessionStatus(sessionId, 'running')
       if (event.type === 'agent_settled') updateSessionStatus(sessionId, 'idle')
+      if (event.type === 'tool_execution_end') void refreshGit()
       if (event.type === 'extension_ui_request' && event.method === 'setStatus' && event.statusKey === 'agent') {
         updateSessionAgent(sessionId, typeof event.activeAgent === 'string' ? event.activeAgent : undefined)
       }
@@ -171,7 +186,7 @@ function App() {
         void refreshSnapshot(sessionId, true)
       }
     }
-  }, [refreshSessions, refreshSnapshot, showToast])
+  }, [refreshGit, refreshSessions, refreshSnapshot, showToast])
 
   useEffect(() => {
     const exposesAgentCommand = snapshot.commands.some((command) => command.name === 'agent')
@@ -192,7 +207,7 @@ function App() {
   const questionnaire = dialog && dialog.sessionId === selectedId && isAskUserQuestionDialog(dialog.request) ? dialog : null
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${gitSnapshot?.repository ? gitSidebarCollapsed ? ' git-sidebar-collapsed' : ' git-sidebar-visible' : ''}`}>
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-mark">π</span>
@@ -279,12 +294,32 @@ function App() {
         )}
       </main>
 
+      {gitSnapshot?.repository && <GitSidebar
+        collapsed={gitSidebarCollapsed}
+        snapshot={gitSnapshot}
+        onAction={async (message) => {
+          const result = await commitAndPush(workspacePath, message)
+          await refreshGit(workspacePath, true)
+          if (result.pushError) showToast('error', `${result.committed ? 'Commit créé, mais' : 'Push'} échoué : ${result.pushError}`)
+          else showToast('notice', result.committed ? 'Commit créé et poussé.' : 'Commits poussés.')
+          return result
+        }}
+        onError={(cause) => showToast('error', messageOf(cause))}
+        onRefresh={() => void refreshGit(workspacePath, true)}
+        onToggle={() => setGitSidebarCollapsed((collapsed) => {
+          const nextCollapsed = !collapsed
+          window.localStorage.setItem('pi-workbench.git-sidebar-collapsed', String(nextCollapsed))
+          return nextCollapsed
+        })}
+      />}
+
       {directoryPickerOpen && <DirectoryPicker
         initialPath={workspacePath}
         onClose={() => setDirectoryPickerOpen(false)}
         onError={(cause) => showToast('error', messageOf(cause))}
         onSelect={(path) => {
           window.localStorage.setItem('pi-workbench.workspace-path', path)
+          setGitSnapshot(null)
           setWorkspacePath(path)
           setSelectedId('')
           setDirectoryPickerOpen(false)
@@ -300,6 +335,76 @@ function App() {
       {dialog && !questionnaire && <ExtensionDialog dialog={dialog} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
     </div>
   )
+}
+
+function GitSidebar({ collapsed, snapshot, onAction, onError, onRefresh, onToggle }: {
+  collapsed: boolean
+  snapshot: GitSnapshot
+  onAction: (message: string) => Promise<GitActionResult>
+  onError: (cause: unknown) => void
+  onRefresh: () => void
+  onToggle: () => void
+}) {
+  const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
+  const hasChanges = snapshot.files.length > 0
+
+  async function action(): Promise<void> {
+    setBusy(true)
+    try {
+      const result = await onAction(message)
+      if (result.committed) setMessage('')
+    } catch (cause) {
+      onError(cause)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (collapsed) {
+    return <aside className="git-sidebar git-rail" aria-label="Git">
+      <button aria-label="Développer le panneau Git" className="git-tab rail-tab" onClick={onToggle} title="Git" type="button">
+        <span aria-hidden="true">⎇</span>
+        {(hasChanges || snapshot.ahead > 0) && <small>{snapshot.files.length + snapshot.ahead}</small>}
+      </button>
+    </aside>
+  }
+
+  return <aside className="git-sidebar" aria-label="Informations Git">
+    <div className="git-tabs" role="tablist" aria-label="Panneaux latéraux">
+      <button aria-controls="git-panel" aria-selected="true" className="git-tab" id="git-tab" role="tab" type="button">
+        <span aria-hidden="true">⎇</span> Git
+        {(hasChanges || snapshot.ahead > 0) && <small>{snapshot.files.length + snapshot.ahead}</small>}
+      </button>
+      <button aria-label="Réduire le panneau Git" className="git-collapse" onClick={onToggle} title="Réduire" type="button">›</button>
+    </div>
+    <section aria-labelledby="git-tab" className="git-panel" id="git-panel" role="tabpanel">
+      <header className="git-heading">
+        <div><strong>{snapshot.branch}</strong><span>{hasChanges ? `${snapshot.files.length} fichier${snapshot.files.length > 1 ? 's' : ''} modifié${snapshot.files.length > 1 ? 's' : ''}` : 'Arbre propre'}</span></div>
+        <button aria-label="Actualiser l’état Git" className="git-refresh" onClick={onRefresh} title="Actualiser" type="button">↻</button>
+      </header>
+      {hasChanges && <ul className="git-file-list">
+        {snapshot.files.map((file) => <li key={file.path}>
+          <span className={`git-file-status ${file.status}`} title={gitStatusLabel(file.status)}>{gitStatusInitial(file.status)}</span>
+          <span className="git-file-path" title={file.path}>{file.path}</span>
+          <span className="git-file-counts"><b>+{file.additions ?? '—'}</b><i>−{file.deletions ?? '—'}</i></span>
+        </li>)}
+      </ul>}
+      {!hasChanges && snapshot.ahead === 0 && <p className="git-empty">Aucun changement à committer.</p>}
+    </section>
+    {(hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>
+      {hasChanges && <input aria-label="Message de commit" disabled={busy} onChange={(event) => setMessage(event.target.value)} placeholder="Message de commit" value={message} />}
+      <button disabled={busy || (hasChanges && !message.trim())} type="submit">{busy ? 'Git en cours…' : hasChanges ? 'Committer et pousser' : `Pousser ${snapshot.ahead} commit${snapshot.ahead > 1 ? 's' : ''}`}</button>
+    </form>}
+  </aside>
+}
+
+function gitStatusLabel(status: 'added' | 'deleted' | 'modified' | 'renamed'): string {
+  return { added: 'Ajouté', deleted: 'Supprimé', modified: 'Modifié', renamed: 'Renommé' }[status]
+}
+
+function gitStatusInitial(status: 'added' | 'deleted' | 'modified' | 'renamed'): string {
+  return { added: 'A', deleted: 'D', modified: 'M', renamed: 'R' }[status]
 }
 
 function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {

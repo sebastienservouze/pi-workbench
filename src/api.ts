@@ -1,4 +1,4 @@
-import type { DirectoryListing, JsonObject, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
+import type { DirectoryListing, GitActionResult, GitSnapshot, JsonObject, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 
 export async function listSessions(): Promise<SessionSummary[]> {
   return request<SessionSummary[]>('/api/sessions')
@@ -10,6 +10,17 @@ export async function listRecentSessions(cwd: string): Promise<RecentSession[]> 
 
 export async function listDirectories(path: string): Promise<DirectoryListing> {
   return request<DirectoryListing>(`/api/directories?path=${encodeURIComponent(path)}`)
+}
+
+export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
+  return request<GitSnapshot>(`/api/git?cwd=${encodeURIComponent(cwd)}`)
+}
+
+export async function commitAndPush(cwd: string, message: string): Promise<GitActionResult> {
+  return request<GitActionResult>('/api/git/action', {
+    method: 'POST',
+    body: JSON.stringify({ cwd, message }),
+  })
 }
 
 export async function createSession(cwd: string): Promise<SessionSummary> {
