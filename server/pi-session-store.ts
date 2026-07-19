@@ -64,10 +64,11 @@ async function readPiSession(path: string, updatedAt: number): Promise<RecentSes
   const header = parseHeader(lines[0])
   if (!header) return null
   const name = lines.reduce<string | undefined>((current, line) => parseSessionName(line) ?? current, undefined)
+  const prompt = lines.reduce<string | undefined>((current, line) => current ?? parseUserPrompt(line), undefined)
   return {
     id: header.id,
     cwd: header.cwd,
-    name: name || new Date(header.timestamp).toLocaleString('fr-FR'),
+    name: name || prompt || new Date(header.timestamp).toLocaleString('fr-FR'),
     sessionPath: path,
     updatedAt,
   }
@@ -92,6 +93,34 @@ function parseSessionName(line: string): string | undefined {
   } catch {
     return undefined
   }
+}
+
+function parseUserPrompt(line: string): string | undefined {
+  try {
+    const value: unknown = JSON.parse(line)
+    if (!isObject(value) || value.type !== 'message' || !isObject(value.message) || value.message.role !== 'user') return undefined
+    const content = textContent(value.message.content)
+    if (!content || content.startsWith('/')) return undefined
+    return shortenPrompt(content)
+  } catch {
+    return undefined
+  }
+}
+
+function textContent(content: unknown): string | undefined {
+  if (typeof content === 'string') return content.trim() || undefined
+  if (!Array.isArray(content)) return undefined
+  const text = content
+    .filter((part): part is Record<string, unknown> => isObject(part) && part.type === 'text' && typeof part.text === 'string')
+    .map((part) => part.text)
+    .join(' ')
+    .trim()
+  return text || undefined
+}
+
+function shortenPrompt(prompt: string): string {
+  const words = prompt.split(/\s+/)
+  return words.length > 8 ? `${words.slice(0, 8).join(' ')}…` : prompt
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
