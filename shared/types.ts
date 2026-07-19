@@ -4,17 +4,38 @@ export interface SessionSummary {
   id: string
   cwd: string
   name: string
+  sessionPath?: string
   activeAgent?: string
   status: 'starting' | 'idle' | 'running' | 'exited'
   pendingUi: JsonObject[]
 }
 
+export interface RecentSession {
+  id: string
+  cwd: string
+  name: string
+  sessionPath: string
+  updatedAt: number
+}
+
+export interface DirectoryEntry {
+  name: string
+  path: string
+}
+
+export interface DirectoryListing {
+  path: string
+  parentPath: string | null
+  directories: DirectoryEntry[]
+}
+
 export interface ManagerRequest {
   id: string
-  action: 'list' | 'create' | 'command'
+  action: 'list' | 'create' | 'open' | 'command'
   sessionId?: string
   cwd?: string
   name?: string
+  sessionPath?: string
   command?: JsonObject
 }
 

@@ -69,6 +69,23 @@ button { cursor: pointer; }
   font-size: 40px;
 }
 
+.workspace-path {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 8px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+
+.workspace-path:hover, .workspace-path:focus-visible { border-color: var(--line); background: rgb(255 255 255 / 62%); }
+.workspace-path span { color: var(--muted); font-size: 11px; }
+.workspace-path strong { overflow: hidden; font: 12px ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }
+
 .new-session {
   width: 100%;
   border: 1px solid var(--accent);
@@ -213,6 +230,12 @@ button { cursor: pointer; }
 .modal-backdrop { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 20px; background: rgb(27 26 23 / 48%); backdrop-filter: blur(5px); }
 .modal { width: min(560px, 100%); max-height: 80vh; overflow: auto; border: 1px solid rgb(255 255 255 / 70%); border-radius: 16px; padding: 24px; background: var(--panel); box-shadow: 0 30px 90px rgb(0 0 0 / 25%); }
 .modal h2 { margin: 0 0 8px; letter-spacing: -.025em; }
+.directory-picker { display: flex; flex-direction: column; }
+.directory-current, .directory-list button { overflow: hidden; border: 1px solid var(--line); border-radius: 9px; padding: 10px 11px; background: white; color: var(--ink); text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.directory-current { border-color: var(--ink); background: var(--ink); color: white; }
+.directory-list { display: grid; gap: 7px; max-height: 42vh; margin-top: 12px; overflow: auto; }
+.directory-list button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.directory-list p { margin: 8px 0; color: var(--muted); font-size: 13px; text-align: center; }
 .modal p { margin: 0 0 18px; color: var(--muted); line-height: 1.55; }
 .modal textarea { width: 100%; resize: vertical; border: 1px solid var(--line); border-radius: 9px; padding: 12px; background: white; color: var(--ink); }
 .option-list { display: grid; gap: 7px; }

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import ReactMarkdown from 'react-markdown'
 import './App.css'
-import { createSession, getSnapshot, listSessions, sendPiCommand } from './api.ts'
-import type { JsonObject, ManagerEvent, SessionSnapshot, SessionSummary } from '../shared/types.ts'
+import { createSession, getSnapshot, listDirectories, listRecentSessions, listSessions, openSession, sendPiCommand } from './api.ts'
+import type { DirectoryListing, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 
 interface UiDialog {
   sessionId: string
@@ -23,6 +23,10 @@ const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], 
 
 function App() {
   const [sessions, setSessions] = useState<SessionSummary[]>([])
+  const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
+  const [workspacePath, setWorkspacePath] = useState(() => window.localStorage.getItem('pi-workbench.workspace-path') ?? '~/.pi')
+  const [directoryPickerOpen, setDirectoryPickerOpen] = useState(false)
+  const [openingSessionPath, setOpeningSessionPath] = useState('')
   const [selectedId, setSelectedId] = useState('')
   const [snapshot, setSnapshot] = useState<SessionSnapshot>(emptySnapshot)
   const [snapshotSessionId, setSnapshotSessionId] = useState('')
@@ -50,11 +54,12 @@ function App() {
     return () => window.clearTimeout(timeout)
   }, [toast])
 
-  const refreshSessions = useCallback(async () => {
+  const refreshSessions = useCallback(async (cwd = workspacePath) => {
     try {
-      const nextSessions = await listSessions()
+      const [nextSessions, nextRecentSessions] = await Promise.all([listSessions(), listRecentSessions(cwd)])
       setSessions(nextSessions)
-      setSelectedId((current) => current || nextSessions[0]?.id || '')
+      setRecentSessions(nextRecentSessions)
+      setSelectedId((current) => nextSessions.some((session) => session.id === current) ? current : '')
       const pending = nextSessions.flatMap((session) =>
         session.pendingUi.map((request) => ({ sessionId: session.id, request })),
       )[0]
@@ -62,7 +67,7 @@ function App() {
     } catch (cause) {
       showToast('error', messageOf(cause))
     }
-  }, [showToast])
+  }, [showToast, workspacePath])
 
   const refreshSnapshot = useCallback(async (sessionId: string) => {
     if (!sessionId) {
@@ -203,27 +208,47 @@ function App() {
           <span className="brand-mark">π</span>
           <div><strong>Pi Workbench</strong><small>Local workspace</small></div>
         </div>
+        <button className="workspace-path" onClick={() => setDirectoryPickerOpen(true)} title={workspacePath} type="button">
+          <span>Dossier courant</span><strong>{workspacePath}</strong>
+        </button>
         <NewSessionButton
           onCreate={async () => {
-            const session = await createSession()
+            const session = await createSession(workspacePath)
             await refreshSessions()
             setSelectedId(session.id)
           }}
           onError={(cause) => showToast('error', messageOf(cause))}
         />
-        <nav className="session-list" aria-label="Sessions Pi">
-          {sessions.map((session) => (
-            <button
-              className={session.id === selectedId ? 'session-item selected' : 'session-item'}
-              key={session.id}
-              onClick={() => setSelectedId(session.id)}
-              type="button"
-            >
-              <span className={`status-dot ${session.status}`} />
-              <span><strong>{session.name}</strong><small>{session.cwd}</small></span>
-            </button>
-          ))}
-          {sessions.length === 0 && <p className="empty-sidebar">Créez votre première session.</p>}
+        <nav className="session-list" aria-label="Sessions Pi récentes">
+          {recentSessions.map((recentSession) => {
+            const activeSession = sessions.find((session) => session.sessionPath === recentSession.sessionPath)
+            return (
+              <button
+                className={activeSession?.id === selectedId ? 'session-item selected' : 'session-item'}
+                disabled={openingSessionPath === recentSession.sessionPath}
+                key={recentSession.sessionPath}
+                onClick={() => {
+                  if (activeSession) {
+                    setSelectedId(activeSession.id)
+                    return
+                  }
+                  setOpeningSessionPath(recentSession.sessionPath)
+                  void openSession(workspacePath, recentSession.sessionPath)
+                    .then(async (session) => {
+                      await refreshSessions()
+                      setSelectedId(session.id)
+                    })
+                    .catch((cause) => showToast('error', messageOf(cause)))
+                    .finally(() => setOpeningSessionPath(''))
+                }}
+                type="button"
+              >
+                <span className={`status-dot ${activeSession?.status ?? 'exited'}`} />
+                <span><strong>{openingSessionPath === recentSession.sessionPath ? 'Ouverture…' : recentSession.name}</strong><small>{new Date(recentSession.updatedAt).toLocaleString('fr-FR')}</small></span>
+              </button>
+            )
+          })}
+          {recentSessions.length === 0 && <p className="empty-sidebar">Aucune session Pi dans ce dossier.</p>}
         </nav>
       </aside>
 
@@ -263,6 +288,18 @@ function App() {
         )}
       </main>
 
+      {directoryPickerOpen && <DirectoryPicker
+        initialPath={workspacePath}
+        onClose={() => setDirectoryPickerOpen(false)}
+        onError={(cause) => showToast('error', messageOf(cause))}
+        onSelect={(path) => {
+          window.localStorage.setItem('pi-workbench.workspace-path', path)
+          setWorkspacePath(path)
+          setSelectedId('')
+          setDirectoryPickerOpen(false)
+          void refreshSessions(path)
+        }}
+      />}
       {toast && (
         <div className={`toast ${toast.kind === 'error' ? 'error' : ''}`} role={toast.kind === 'error' ? 'alert' : 'status'}>
           <span>{toast.message}</span>
@@ -270,6 +307,42 @@ function App() {
         </div>
       )}
       {dialog && <ExtensionDialog dialog={dialog} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
+    </div>
+  )
+}
+
+function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {
+  initialPath: string
+  onClose: () => void
+  onError: (cause: unknown) => void
+  onSelect: (path: string) => void
+}) {
+  const [listing, setListing] = useState<DirectoryListing | null>(null)
+
+  const load = useCallback(async (path: string) => {
+    try {
+      setListing(await listDirectories(path))
+    } catch (cause) {
+      onError(cause)
+    }
+  }, [onError])
+
+  useEffect(() => { void load(initialPath) }, [initialPath, load])
+
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section aria-labelledby="directory-picker-title" aria-modal="true" className="modal directory-picker" role="dialog">
+        <h2 id="directory-picker-title">Choisir un dossier</h2>
+        {listing ? <>
+          <button className="directory-current" onClick={() => onSelect(listing.path)} type="button">Utiliser {listing.path}</button>
+          <div className="directory-list">
+            {listing.parentPath && <button onClick={() => void load(listing.parentPath as string)} type="button">⌃ Dossier parent</button>}
+            {listing.directories.map((directory) => <button key={directory.path} onClick={() => void load(directory.path)} type="button">⌄ {directory.name}</button>)}
+            {listing.directories.length === 0 && <p>Aucun sous-dossier.</p>}
+          </div>
+        </> : <p>Chargement des dossiers…</p>}
+        <div className="modal-actions"><button onClick={onClose} type="button">Annuler</button></div>
+      </section>
     </div>
   )
 }

@@ -1,11 +1,12 @@
 import { createReadStream } from 'node:fs'
-import { realpath, stat } from 'node:fs/promises'
+import { readdir, realpath, stat } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { extname, resolve, sep } from 'node:path'
+import { dirname, extname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { ManagerClient } from './manager-client.ts'
-import type { JsonObject, ManagerEvent, SessionSnapshot } from '../shared/types.ts'
+import { listRecentPiSessions, loadPiSession } from './pi-session-store.ts'
+import type { DirectoryListing, JsonObject, ManagerEvent, SessionSnapshot } from '../shared/types.ts'
 
 const host = '127.0.0.1'
 const port = readPort('PI_WORKBENCH_BACKEND_PORT', 43_121)
@@ -56,9 +57,26 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
     return
   }
 
+  if (method === 'GET' && url.pathname === '/api/sessions/recent') {
+    const cwd = await resolveWorkingDirectory(url.searchParams.get('cwd') ?? '~/.pi')
+    sendJson(response, 200, await listRecentPiSessions(cwd))
+    return
+  }
+
+  if (method === 'GET' && url.pathname === '/api/directories') {
+    sendJson(response, 200, await listDirectories(url.searchParams.get('path') ?? '~/.pi'))
+    return
+  }
+
   if (method === 'POST' && url.pathname === '/api/sessions') {
     const body = await readJsonBody(request)
     const cwd = await resolveWorkingDirectory(typeof body.cwd === 'string' ? body.cwd : '~/.pi')
+    if (typeof body.sessionPath === 'string') {
+      const session = await loadPiSession(body.sessionPath)
+      if (session.cwd !== cwd) throw new HttpError(400, 'Pi session does not belong to this working directory')
+      sendJson(response, 201, await manager.request({ action: 'open', cwd, name: session.name, sessionPath: session.sessionPath }))
+      return
+    }
     const name = typeof body.name === 'string' ? body.name : ''
     const session = await manager.request({ action: 'create', cwd, name })
     sendJson(response, 201, session)
@@ -133,6 +151,17 @@ async function resolveWorkingDirectory(input: string): Promise<string> {
   }
   if (!(await stat(canonical)).isDirectory()) throw new HttpError(400, 'Working directory must be a directory')
   return canonical
+}
+
+async function listDirectories(path: string): Promise<DirectoryListing> {
+  const canonicalPath = await resolveWorkingDirectory(path)
+  const entries = await readdir(canonicalPath, { withFileTypes: true })
+  const directories = entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => ({ name: entry.name, path: resolve(canonicalPath, entry.name) }))
+    .sort((left, right) => left.name.localeCompare(right.name))
+  const parent = dirname(canonicalPath)
+  return { path: canonicalPath, parentPath: parent === canonicalPath ? null : parent, directories }
 }
 
 async function readJsonBody(request: IncomingMessage): Promise<JsonObject> {

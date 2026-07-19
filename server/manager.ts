@@ -3,7 +3,6 @@ import { realpath, stat } from 'node:fs/promises'
 import { createServer, type Socket } from 'node:net'
 import { JsonLineDecoder, encodeJsonLine } from './jsonl.ts'
 import { PiProcess } from './pi-process.ts'
-import { loadSessionRegistry, saveSessionRegistry } from './session-registry.ts'
 import type {
   JsonObject,
   ManagerEvent,
@@ -16,7 +15,6 @@ const host = '127.0.0.1'
 const port = readPort('PI_WORKBENCH_MANAGER_PORT', 43_120)
 const clients = new Set<Socket>()
 const sessions = new Map<string, ManagedSession>()
-let registryWrite: Promise<void> = Promise.resolve()
 
 interface ManagedSession {
   summary: SessionSummary
@@ -46,8 +44,6 @@ server.on('error', (error) => {
   process.exitCode = 1
 })
 
-await restoreSessions()
-
 server.listen(port, host, () => {
   console.log(`Pi manager listening on tcp://${host}:${port}`)
 })
@@ -70,6 +66,7 @@ async function handleRequest(socket: Socket, value: unknown): Promise<void> {
     let data: unknown
     if (value.action === 'list') data = listSessions()
     else if (value.action === 'create') data = await createSession(value)
+    else if (value.action === 'open') data = await openSession(value)
     else data = await sendCommand(value)
     respond(socket, { kind: 'response', id: value.id, ok: true, data })
   } catch (error) {
@@ -100,31 +97,33 @@ async function createSession(request: ManagerRequest): Promise<SessionSummary> {
 
   const session = await startSession(summary)
   sessions.set(summary.id, session)
-  try {
-    await persistSessions()
-  } catch (error) {
-    sessions.delete(summary.id)
-    session.pi.terminate()
-    throw error
-  }
-
   broadcast({ kind: 'event', event: 'session_created', sessionId: summary.id, data: summary })
   return { ...summary, pendingUi: [] }
 }
 
-async function restoreSessions(): Promise<void> {
-  for (const storedSession of await loadSessionRegistry()) {
-    const summary: SessionSummary = { ...storedSession, status: 'starting', pendingUi: [] }
-    try {
-      sessions.set(summary.id, await startSession(summary))
-    } catch (error) {
-      console.error(`Unable to restore Pi session ${summary.id}: ${errorMessage(error)}`)
-    }
+async function openSession(request: ManagerRequest): Promise<SessionSummary> {
+  if (typeof request.cwd !== 'string' || typeof request.name !== 'string' || typeof request.sessionPath !== 'string') {
+    throw new Error('Session cwd, name and path are required')
   }
+  const existing = [...sessions.values()].find(({ summary }) => summary.sessionPath === request.sessionPath)
+  if (existing) return { ...existing.summary, pendingUi: [...existing.pendingUi.values()] }
+
+  const summary: SessionSummary = {
+    id: randomUUID(),
+    cwd: request.cwd,
+    name: request.name,
+    sessionPath: request.sessionPath,
+    status: 'starting',
+    pendingUi: [],
+  }
+  const session = await startSession(summary)
+  sessions.set(summary.id, session)
+  broadcast({ kind: 'event', event: 'session_created', sessionId: summary.id, data: summary })
+  return { ...summary, pendingUi: [] }
 }
 
 async function startSession(summary: SessionSummary): Promise<ManagedSession> {
-  const pi = new PiProcess(summary.cwd, summary.name, summary.id)
+  const pi = new PiProcess(summary.cwd, summary.sessionPath ? '' : summary.name, summary.id, summary.sessionPath)
   const session: ManagedSession = { summary, pi, pendingUi: new Map() }
 
   pi.on('event', (event: JsonObject) => handlePiEvent(summary.id, session, event))
@@ -134,20 +133,15 @@ async function startSession(summary: SessionSummary): Promise<ManagedSession> {
   })
 
   try {
-    await pi.request({ type: 'get_state' })
+    const state = await pi.request({ type: 'get_state' })
+    const sessionPath = isObject(state.data) && typeof state.data.sessionFile === 'string' ? state.data.sessionFile : undefined
+    if (sessionPath) summary.sessionPath = sessionPath
     summary.status = 'idle'
     return session
   } catch (error) {
     pi.terminate()
     throw error
   }
-}
-
-function persistSessions(): Promise<void> {
-  registryWrite = registryWrite
-    .catch(() => undefined)
-    .then(() => saveSessionRegistry([...sessions.values()].map(({ summary }) => summary)))
-  return registryWrite
 }
 
 async function sendCommand(request: ManagerRequest): Promise<JsonObject> {
@@ -207,7 +201,7 @@ function respond(socket: Socket, response: ManagerResponse): void {
 
 function isManagerRequest(value: unknown): value is ManagerRequest {
   if (!isObject(value) || typeof value.id !== 'string') return false
-  return value.action === 'list' || value.action === 'create' || value.action === 'command'
+  return value.action === 'list' || value.action === 'create' || value.action === 'open' || value.action === 'command'
 }
 
 function isObject(value: unknown): value is JsonObject {

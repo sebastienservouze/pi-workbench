@@ -1,13 +1,28 @@
-import type { JsonObject, SessionSnapshot, SessionSummary } from '../shared/types.ts'
+import type { DirectoryListing, JsonObject, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 
 export async function listSessions(): Promise<SessionSummary[]> {
   return request<SessionSummary[]>('/api/sessions')
 }
 
-export async function createSession(): Promise<SessionSummary> {
+export async function listRecentSessions(cwd: string): Promise<RecentSession[]> {
+  return request<RecentSession[]>(`/api/sessions/recent?cwd=${encodeURIComponent(cwd)}`)
+}
+
+export async function listDirectories(path: string): Promise<DirectoryListing> {
+  return request<DirectoryListing>(`/api/directories?path=${encodeURIComponent(path)}`)
+}
+
+export async function createSession(cwd: string): Promise<SessionSummary> {
   return request<SessionSummary>('/api/sessions', {
     method: 'POST',
-    body: JSON.stringify({}),
+    body: JSON.stringify({ cwd }),
+  })
+}
+
+export async function openSession(cwd: string, sessionPath: string): Promise<SessionSummary> {
+  return request<SessionSummary>('/api/sessions', {
+    method: 'POST',
+    body: JSON.stringify({ cwd, sessionPath }),
   })
 }
 
