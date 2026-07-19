@@ -481,8 +481,21 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, o
               tone="agent"
               value={selectedAgent}
             />
-            {commands.length > 0 && <select aria-label="Insérer une commande Pi" value="" onChange={(event) => setMessage(`/${event.target.value} `)}><option value="">Commandes</option>{commands.map((command) => <option key={String(command.name)} value={String(command.name)}>{String(command.name)}</option>)}</select>}
-            {running && <select aria-label="Comportement du prochain message" value={behavior} onChange={(event) => setBehavior(event.target.value as 'steer' | 'followUp')}><option value="steer">Intervenir</option><option value="followUp">À la suite</option></select>}
+            {commands.length > 0 && <ComposerSelect
+              ariaLabel="Insérer une commande Pi"
+              onValueChange={(value) => setMessage(`/${value} `)}
+              options={commands.map((command) => ({ label: String(command.name), value: String(command.name) }))}
+              placeholder="Commandes"
+              tone="command"
+              value=""
+            />}
+            {running && <ComposerSelect
+              ariaLabel="Comportement du prochain message"
+              onValueChange={(value) => setBehavior(value as 'steer' | 'followUp')}
+              options={[{ label: 'Intervenir', value: 'steer' }, { label: 'À la suite', value: 'followUp' }]}
+              tone="behavior"
+              value={behavior}
+            />}
             {running && <button className="danger" onClick={() => void onAbort().catch(onError)} type="button">Arrêter</button>}
           </div>
           <button type="submit">Envoyer <span>↵</span></button>
@@ -498,7 +511,7 @@ function ComposerSelect({ ariaLabel, disabled, onValueChange, options, placehold
   onValueChange: (value: string) => void
   options: { label: string; value: string }[]
   placeholder?: string
-  tone: 'agent' | 'model' | 'thinking'
+  tone: 'agent' | 'behavior' | 'command' | 'model' | 'thinking'
   value: string
 }) {
   return (
@@ -506,7 +519,6 @@ function ComposerSelect({ ariaLabel, disabled, onValueChange, options, placehold
       <Select.Trigger aria-label={ariaLabel} className={`composer-select ${tone}`}>
         <span className="composer-select-icon" aria-hidden="true" />
         <Select.Value placeholder={placeholder} />
-        <Select.Icon className="composer-select-chevron" aria-hidden="true">⌄</Select.Icon>
       </Select.Trigger>
       <Select.Portal>
         <Select.Content className={`composer-select-content ${tone}`} position="popper" sideOffset={7}>

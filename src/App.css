@@ -215,11 +215,19 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .composer-select-icon::before { content: '◇'; }
 .composer-select.thinking .composer-select-icon::before { content: '◐'; }
 .composer-select.agent .composer-select-icon::before { content: '✦'; }
+.composer-select.command .composer-select-icon::before { content: '#'; }
+.composer-select.behavior .composer-select-icon::before { content: '↳'; }
 .composer-select > :nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.composer-select-chevron { flex: 0 0 auto; margin-left: auto; color: currentColor; font-size: 15px; line-height: 1; }
 .composer-select.model { border-color: var(--violet); background: var(--violet-soft); }
+.composer-select.model .composer-select-icon { color: var(--violet); }
 .composer-select.thinking { border-color: var(--amber); background: var(--amber-soft); }
+.composer-select.thinking .composer-select-icon { color: var(--amber); }
 .composer-select.agent { border-color: var(--teal); background: var(--teal-soft); }
+.composer-select.agent .composer-select-icon { color: var(--teal); }
+.composer-select.command { border-color: #b6c9d1; background: #edf4f6; }
+.composer-select.command .composer-select-icon { color: #37677a; }
+.composer-select.behavior { border-color: #cdc2e0; background: #f1eef9; }
+.composer-select.behavior .composer-select-icon { color: #68528c; }
 .composer-select-content {
   z-index: 40;
   min-width: var(--radix-select-trigger-width);
