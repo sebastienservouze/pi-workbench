@@ -19,7 +19,7 @@ export function activityForPiEvent(current: Activity | null, event: JsonObject):
   if (update.type === 'thinking_start') return { kind: 'thinking', thinking: '' }
   if (update.type === 'thinking_delta' && typeof update.delta === 'string') {
     const thinking = `${current?.kind === 'thinking' ? current.thinking ?? '' : ''}${update.delta}`
-    return { kind: 'thinking', thinking: lastLine(thinking) }
+    return { kind: 'thinking', thinking }
   }
   if (update.type === 'text_start' || update.type === 'text_delta') return { kind: 'writing' }
   return current
@@ -31,7 +31,7 @@ export function waitingActivity(): Activity {
 
 export function activityText(activity: Activity, agentName: string | undefined): string {
   const agent = displayAgentName(agentName)
-  if (activity.kind === 'thinking') return activity.thinking ? `${agent} réfléchit — ${activity.thinking.replaceAll('**', '')}` : `${agent} réfléchit…`
+  if (activity.kind === 'thinking') return activity.thinking ? `${agent} réfléchit — ${lastLine(activity.thinking).replaceAll('**', '')}` : `${agent} réfléchit…`
   if (activity.kind === 'tool') return `${agent} utilise ${activity.toolName ?? 'un outil'}`
   if (activity.kind === 'writing') return `${agent} écrit…`
   if (activity.kind === 'waiting') return `${agent} attend votre intervention`
