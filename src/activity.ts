@@ -6,6 +6,18 @@ export interface Activity {
   toolName?: string
 }
 
+const toolActivityText: Record<string, string> = {
+  ask_user_question: 'vous pose une question',
+  fffind: 'repère les fichiers pertinents',
+  ffgrep: 'cherche dans le code',
+  read: 'lit un fichier',
+  write: 'écrit un fichier',
+  edit: 'modifie un fichier',
+  bash: 'exécute une commande',
+  web_search: 'recherche sur le web',
+  fetch_content: 'consulte du contenu',
+}
+
 export function activityForPiEvent(current: Activity | null, event: JsonObject): Activity | null {
   if (event.type === 'agent_start' || event.type === 'message_start') return { kind: 'working' }
   if (event.type === 'agent_settled') return null
@@ -32,7 +44,10 @@ export function waitingActivity(): Activity {
 export function activityText(activity: Activity, agentName: string | undefined): string {
   const agent = displayAgentName(agentName)
   if (activity.kind === 'thinking') return activity.thinking ? `${agent} réfléchit — ${lastLine(activity.thinking).replaceAll('**', '')}` : `${agent} réfléchit…`
-  if (activity.kind === 'tool') return `${agent} utilise ${activity.toolName ?? 'un outil'}`
+  if (activity.kind === 'tool') {
+    const toolName = activity.toolName ?? 'un outil'
+    return `${agent} ${toolActivityText[toolName] ?? `utilise ${toolName}`}`
+  }
   if (activity.kind === 'writing') return `${agent} écrit…`
   if (activity.kind === 'waiting') return `${agent} attend votre intervention`
   return `${agent} travaille…`

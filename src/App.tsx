@@ -551,10 +551,6 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, o
         if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit() }
       }} placeholder="Demandez quelque chose à Pi…" rows={3} />
       <div className="composer-footer">
-        <div className="composer-info" aria-label="Informations de la session">
-          <div className="composer-session"><span className={`status-dot ${session.status}`} aria-hidden="true" /><strong>{session.name}</strong><span title={session.cwd}>{session.cwd}</span></div>
-          <div className="composer-stats"><span><b>Coût</b>{cost}</span><span><b>Contexte</b>{contextPercent}<small>{contextTokens}</small></span></div>
-        </div>
         <div className="composer-actions">
           <div className="composer-tools">
             <ComposerSelect
@@ -599,9 +595,17 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, o
               tone="behavior"
               value={behavior}
             />}
-            {running && <button className="danger" onClick={() => void onAbort().catch(onError)} type="button">Arrêter</button>}
+            {running && <button aria-label="Arrêter la génération" className="icon-button danger" onClick={() => void onAbort().catch(onError)} title="Arrêter la génération" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16"><rect height="8" rx="1.5" width="8" x="4" y="4" /></svg>
+            </button>}
           </div>
-          <button type="submit">Envoyer <span>↵</span></button>
+          <button aria-label="Envoyer le message" className="icon-button send" title="Envoyer le message (Entrée)" type="submit">
+            <svg aria-hidden="true" viewBox="0 0 16 16"><path d="m2.5 2.5 11 5.5-11 5.5 1.8-5.1L9 8 4.3 7.6z" /></svg>
+          </button>
+        </div>
+        <div className="composer-info" aria-label="Informations de la session">
+          <div className="composer-session"><span className={`status-dot ${session.status}`} aria-hidden="true" /><strong>{session.name}</strong><span title={session.cwd}>{session.cwd}</span></div>
+          <div className="composer-stats"><span><b>Coût</b>{cost}</span><span><b>Contexte</b>{contextPercent}<small>{contextTokens}</small></span></div>
         </div>
       </div>
     </form>
