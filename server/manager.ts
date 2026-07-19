@@ -105,7 +105,8 @@ async function openSession(request: ManagerRequest): Promise<SessionSummary> {
     throw new Error('Session cwd, name and path are required')
   }
   const existing = [...sessions.values()].find(({ summary }) => summary.sessionPath === request.sessionPath)
-  if (existing) return { ...existing.summary, pendingUi: [...existing.pendingUi.values()] }
+  if (existing && existing.summary.status !== 'exited') return { ...existing.summary, pendingUi: [...existing.pendingUi.values()] }
+  if (existing) sessions.delete(existing.summary.id)
 
   const summary: SessionSummary = {
     id: randomUUID(),

@@ -1,0 +1,119 @@
+import assert from 'node:assert/strict'
+import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { spawn } from 'node:child_process'
+import { connect, type Socket } from 'node:net'
+import test from 'node:test'
+
+test('restarts an exited Pi session when reopening it', { timeout: 10_000 }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pi-manager-'))
+  const port = 45_000 + (process.pid % 10_000)
+  await writeFakePi(directory)
+  const manager = spawn(process.execPath, ['server/manager.ts'], {
+    cwd: process.cwd(),
+    env: { ...process.env, PATH: `${directory}:${process.env.PATH}`, PI_WORKBENCH_MANAGER_PORT: String(port) },
+    stdio: 'ignore',
+  })
+  const client = await connectManager(port)
+  try {
+    const first = await client.request('open', { cwd: process.cwd(), name: 'Archived', sessionPath: join(directory, 'archived.jsonl') })
+    assert.equal(first.ok, true)
+
+    const stopped = await client.request('command', { sessionId: sessionId(first), command: { type: 'quit_test' } })
+    assert.equal(stopped.ok, false)
+
+    const reopened = await client.request('open', { cwd: process.cwd(), name: 'Archived', sessionPath: join(directory, 'archived.jsonl') })
+    assert.equal(reopened.ok, true)
+    assert.notEqual(sessionId(reopened), sessionId(first))
+  } finally {
+    client.close()
+    manager.kill('SIGTERM')
+    await once(manager, 'exit')
+    await rm(directory, { force: true, recursive: true })
+  }
+})
+
+async function writeFakePi(directory: string): Promise<void> {
+  const path = join(directory, 'pi')
+  await writeFile(path, `#!/usr/bin/env node
+import readline from 'node:readline'
+const sessionPath = process.argv[process.argv.indexOf('--session') + 1]
+readline.createInterface({ input: process.stdin }).on('line', (line) => {
+  const command = JSON.parse(line)
+  if (command.type === 'quit_test') process.exit(0)
+  const data = command.type === 'get_state' ? { sessionFile: sessionPath } : {}
+  console.log(JSON.stringify({ type: 'response', id: command.id, success: true, data }))
+})
+`)
+  await chmod(path, 0o755)
+}
+
+interface ManagerResponse {
+  kind: 'response'
+  id: string
+  ok: boolean
+  data?: unknown
+}
+
+async function connectManager(port: number): Promise<{ request: (action: string, fields: Record<string, unknown>) => Promise<ManagerResponse>; close: () => void }> {
+  const socket = await connectWithRetry(port)
+  let buffer = ''
+  let requestId = 0
+  const pending = new Map<string, (response: ManagerResponse) => void>()
+  socket.on('data', (chunk) => {
+    buffer += chunk.toString('utf8')
+    const lines = buffer.split('\n')
+    buffer = lines.pop() ?? ''
+    for (const line of lines) {
+      if (!line) continue
+      const response: unknown = JSON.parse(line)
+      if (!isManagerResponse(response)) continue
+      pending.get(response.id)?.(response)
+      pending.delete(response.id)
+    }
+  })
+
+  return {
+    request(action, fields) {
+      const id = String(++requestId)
+      return new Promise((resolve) => {
+        pending.set(id, resolve)
+        socket.write(`${JSON.stringify({ id, action, ...fields })}\n`)
+      })
+    },
+    close: () => socket.end(),
+  }
+}
+
+async function connectWithRetry(port: number): Promise<Socket> {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    try {
+      return await new Promise<Socket>((resolve, reject) => {
+        const socket = connect({ host: '127.0.0.1', port })
+        socket.once('connect', () => resolve(socket))
+        socket.once('error', reject)
+      })
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 25))
+    }
+  }
+  throw new Error('Pi manager did not start')
+}
+
+function sessionId(response: ManagerResponse): string {
+  if (!isObject(response.data) || typeof response.data.id !== 'string') throw new Error('Invalid session response')
+  return response.data.id
+}
+
+function isManagerResponse(value: unknown): value is ManagerResponse {
+  return isObject(value) && value.kind === 'response' && typeof value.id === 'string' && typeof value.ok === 'boolean'
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function once(process: ReturnType<typeof spawn>, event: 'exit'): Promise<void> {
+  return new Promise((resolve) => process.once(event, () => resolve()))
+}

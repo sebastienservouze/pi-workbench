@@ -210,7 +210,7 @@ function App() {
         />
         <nav className="session-list" aria-label="Sessions Pi récentes">
           {recentSessions.map((recentSession) => {
-            const activeSession = sessions.find((session) => session.sessionPath === recentSession.sessionPath)
+            const activeSession = sessions.find((session) => session.sessionPath === recentSession.sessionPath && session.status !== 'exited')
             return (
               <button
                 className={activeSession?.id === selectedId ? 'session-item selected' : 'session-item'}
