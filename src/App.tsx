@@ -269,7 +269,6 @@ function App() {
                 const command: JsonObject = { type: 'prompt', message }
                 if (selectedSession.status === 'running') command.streamingBehavior = behavior
                 await sendPiCommand(selectedSession.id, command)
-                await refreshSessions()
               }}
               onAbort={() => sendPiCommand(selectedSession.id, { type: 'abort' })}
               onError={(cause) => showToast('error', messageOf(cause))}
