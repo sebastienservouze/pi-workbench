@@ -375,11 +375,9 @@ function Conversation({ messages, liveText, activity, agentName }: { messages: J
 
 function MessageCard({ message }: { message: JsonObject }) {
   const role = String(message.role)
-  return <article className={`message ${role}`}>{role === 'user' && <RoleLabel role={role} />}<div className="content">{renderContent(message.content ?? message.output)}</div></article>
-}
-
-function RoleLabel({ role }: { role: string }) {
-  return <div className="role">{role === 'user' ? 'Vous' : role}</div>
+  const timestamp = typeof message.timestamp === 'number' ? new Date(message.timestamp) : null
+  const time = timestamp && !Number.isNaN(timestamp.getTime()) ? timestamp : null
+  return <article className={`message ${role}`}><div className="content">{renderContent(message.content ?? message.output)}</div>{role === 'user' && time && <time className="message-time" dateTime={time.toISOString()}>{time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time>}</article>
 }
 
 function ActivityIndicator({ activity, agentName }: { activity: Activity; agentName?: string }) {

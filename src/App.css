@@ -131,7 +131,7 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .message { margin: 0 0 26px; }
 .message.user { width: fit-content; max-width: 78%; margin-left: auto; padding: 13px 16px; border-radius: 14px 14px 4px; background: var(--ink); color: white; box-shadow: var(--shadow-soft); }
 .message.assistant { max-width: 760px; padding: 0 2px; }
-.role { margin-bottom: 8px; color: #f7c2b5; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.message-time { display: block; margin-top: 8px; color: rgb(255 255 255 / 76%); font: 10px ui-monospace, monospace; text-align: right; }
 .content { overflow-wrap: anywhere; font: 14px/1.7 ui-sans-serif, system-ui, sans-serif; }
 .content > :first-child, .content details > :first-child { margin-top: 0; }
 .content > :last-child, .content details > :last-child { margin-bottom: 0; }
