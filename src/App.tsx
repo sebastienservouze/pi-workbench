@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import './App.css'
 import { createSession, getSnapshot, listDirectories, listRecentSessions, listSessions, openSession, sendPiCommand } from './api.ts'
 import type { DirectoryListing, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
+import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 
 interface UiDialog {
   sessionId: string
@@ -192,6 +193,7 @@ function App() {
   }
 
   const selectedSession = sessions.find((session) => session.id === selectedId)
+  const questionnaire = dialog && dialog.sessionId === selectedId && isAskUserQuestionDialog(dialog.request) ? dialog : null
 
   return (
     <div className="app-shell">
@@ -248,6 +250,7 @@ function App() {
         {selectedSession ? (
           <>
             <Conversation messages={snapshot.messages} liveText={liveText} activity={activity} />
+            {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
             <Composer
               session={selectedSession}
               snapshot={snapshot}
@@ -298,7 +301,7 @@ function App() {
           <button aria-label="Fermer la notification" className="toast-close" onClick={() => setToast(null)} type="button">×</button>
         </div>
       )}
-      {dialog && <ExtensionDialog dialog={dialog} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
+      {dialog && !questionnaire && <ExtensionDialog dialog={dialog} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
     </div>
   )
 }
@@ -483,6 +486,71 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, o
   )
 }
 
+function AskUserQuestionDialog({ dialog, onClose, onError }: { dialog: UiDialog; onClose: () => void; onError: (cause: unknown) => void }) {
+  const request = parseQuestionnaire(dialog.request)
+  const [selectedOptions, setSelectedOptions] = useState<string[][]>(() => request.questions.map(() => []))
+  const [freeText, setFreeText] = useState<string[]>(() => request.questions.map(() => ''))
+
+  function toggle(questionIndex: number, option: string): void {
+    setSelectedOptions((current) => current.map((selected, index) => {
+      if (index !== questionIndex) return selected
+      if (request.questions[index].multiSelect) return selected.includes(option) ? selected.filter((value) => value !== option) : [...selected, option]
+      return selected[0] === option ? [] : [option]
+    }))
+  }
+
+  async function respond(cancelled: boolean): Promise<void> {
+    try {
+      const value = cancelled
+        ? { answers: [], cancelled: true }
+        : {
+            cancelled: false,
+            answers: request.questions.map((question, index) => ({
+              question: question.question,
+              selectedOptions: selectedOptions[index],
+              ...(freeText[index].trim() ? { text: freeText[index] } : {}),
+            })),
+          }
+      await sendPiCommand(dialog.sessionId, { type: 'extension_ui_response', id: dialog.request.id, value: JSON.stringify(value) })
+      onClose()
+    } catch (cause) { onError(cause) }
+  }
+
+  const complete = request.questions.every((question, index) => selectedOptions[index].length > 0 || (!question.multiSelect && freeText[index].trim()))
+
+  return (
+    <section aria-labelledby="ask-user-question-title" className="ask-user-question" role="dialog">
+      <div className="ask-user-question-heading"><span>Pi attend votre réponse</span><strong id="ask-user-question-title">Questionnaire</strong></div>
+      <div className="ask-user-question-list">
+        {request.questions.map((question, questionIndex) => <fieldset key={question.question}>
+          <legend><span>{question.header}</span>{question.question}</legend>
+          <div className="ask-user-options">
+            {question.options.map((option) => {
+              const selected = selectedOptions[questionIndex].includes(option.label)
+              return <button aria-pressed={selected} className={selected ? 'selected' : ''} key={option.label} onClick={() => toggle(questionIndex, option.label)} type="button">
+                <strong>{option.label}</strong><small>{option.description}</small>
+              </button>
+            })}
+          </div>
+          {!question.multiSelect && <textarea aria-label={`Réponse libre : ${question.question}`} onChange={(event) => setFreeText((current) => current.map((text, index) => index === questionIndex ? event.target.value : text))} placeholder="Ou saisissez votre propre réponse…" rows={2} value={freeText[questionIndex]} />}
+        </fieldset>)}
+      </div>
+      <div className="ask-user-question-actions"><button onClick={() => void respond(true)} type="button">Annuler</button><button disabled={!complete} onClick={() => void respond(false)} type="button">Envoyer les réponses</button></div>
+    </section>
+  )
+}
+
+function parseQuestionnaire(request: JsonObject): AskUserQuestionRequest {
+  const payload = typeof request.prefill === 'string' ? safeJsonParse(request.prefill) : null
+  const questionnaire = parseAskUserQuestionRequest(payload)
+  if (!questionnaire) throw new Error('Questionnaire Pi invalide')
+  return questionnaire
+}
+
+function safeJsonParse(value: string): unknown {
+  try { return JSON.parse(value) } catch { return null }
+}
+
 function ExtensionDialog({ dialog, onClose, onError }: { dialog: UiDialog; onClose: () => void; onError: (cause: unknown) => void }) {
   const request = dialog.request
   const [value, setValue] = useState(typeof request.prefill === 'string' ? request.prefill : '')
@@ -513,6 +581,15 @@ function ExtensionDialog({ dialog, onClose, onError }: { dialog: UiDialog; onClo
 
 function isManagerEvent(value: unknown): value is ManagerEvent {
   return isObject(value) && value.kind === 'event' && typeof value.event === 'string' && typeof value.sessionId === 'string'
+}
+
+function isAskUserQuestionDialog(value: JsonObject): boolean {
+  const payload = typeof value.prefill === 'string' ? safeJsonParse(value.prefill) : null
+  return value.method === 'editor'
+    && value.title === 'Pi Workbench questionnaire'
+    && isObject(payload)
+    && payload.protocol === askUserQuestionProtocol
+    && parseAskUserQuestionRequest(payload) !== null
 }
 
 function isAgentSelector(value: JsonObject): value is JsonObject & { id: string; options: unknown[] } {

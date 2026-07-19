@@ -186,6 +186,35 @@ button { cursor: pointer; }
 .welcome { max-width: 520px; padding: 30px; }
 .welcome h1 { margin: 22px 0 10px; font-size: 35px; letter-spacing: -.045em; }
 
+.ask-user-question {
+  width: min(880px, calc(100% - 44px));
+  max-height: min(48vh, 560px);
+  margin: 0 auto 12px;
+  overflow: auto;
+  border: 1px solid #d9b9b0;
+  border-radius: 15px;
+  background: var(--panel);
+  box-shadow: var(--shadow-soft);
+}
+
+.ask-user-question-heading { display: grid; gap: 2px; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+.ask-user-question-heading span { color: var(--accent-dark); font-size: 11px; font-weight: 750; }
+.ask-user-question-heading strong { font-size: 15px; }
+.ask-user-question-list { display: grid; gap: 16px; padding: 16px; }
+.ask-user-question fieldset { min-width: 0; margin: 0; border: 0; padding: 0; }
+.ask-user-question legend { width: 100%; margin-bottom: 9px; font-weight: 700; line-height: 1.4; }
+.ask-user-question legend span { display: block; margin-bottom: 3px; color: var(--muted); font-size: 11px; font-weight: 700; }
+.ask-user-options { display: grid; gap: 6px; }
+.ask-user-options button { display: grid; gap: 3px; width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; background: var(--panel); color: var(--ink); text-align: left; }
+.ask-user-options button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.ask-user-options button.selected { border-color: var(--accent-dark); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-dark); }
+.ask-user-options small { color: var(--muted); font-size: 12px; font-weight: 400; line-height: 1.4; }
+.ask-user-question textarea { width: 100%; margin-top: 7px; resize: vertical; border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; color: var(--ink); }
+.ask-user-question-actions { display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--line); padding: 10px 12px; background: #fafbfc; }
+.ask-user-question-actions button { border: 1px solid var(--line); border-radius: 8px; padding: 8px 11px; background: var(--panel); color: var(--ink); font-size: 12px; }
+.ask-user-question-actions button:last-child { border-color: var(--ink); background: var(--ink); color: white; font-weight: 750; }
+.ask-user-question-actions button:disabled { cursor: not-allowed; opacity: .5; }
+
 .composer {
   width: min(880px, calc(100% - 44px));
   margin: 0 auto 19px;
@@ -251,7 +280,7 @@ button { cursor: pointer; }
 @media (max-width: 850px) {
   .app-shell { grid-template-columns: 220px minmax(0, 1fr); }
   .conversation { padding: 24px 18px; }
-  .composer { width: calc(100% - 28px); }
+  .composer, .ask-user-question { width: calc(100% - 28px); }
 }
 
 @media (max-width: 700px) {
@@ -271,7 +300,9 @@ button { cursor: pointer; }
   .new-session { font-size: 12px; }
   .conversation { padding: 20px 12px; }
   .message.assistant { padding-inline: 2px; }
-  .composer { width: calc(100% - 20px); margin-bottom: 10px; }
+  .composer, .ask-user-question { width: calc(100% - 20px); }
+  .composer { margin-bottom: 10px; }
+  .ask-user-question { max-height: 52vh; margin-bottom: 8px; }
   .composer-info { align-items: flex-start; flex-direction: column; gap: 7px; }
   .composer-session { width: 100%; }
   .composer-stats { width: 100%; justify-content: space-between; }
