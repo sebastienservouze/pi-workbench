@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import * as Select from '@radix-ui/react-select'
 import ReactMarkdown from 'react-markdown'
 import './App.css'
 import { createSession, getSnapshot, listDirectories, listRecentSessions, listSessions, openSession, sendPiCommand } from './api.ts'
@@ -453,19 +454,33 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, o
         </div>
         <div className="composer-actions">
           <div className="composer-tools">
-            <label className="model-control"><select aria-label="Modèle" value={currentModel} onChange={(event) => {
-              const selected = snapshot.models.find((item) => `${item.provider}/${item.id}` === event.target.value)
-              if (selected) void onCommand({ type: 'set_model', provider: selected.provider, modelId: selected.id }).catch(onError)
-            }}>
-              {snapshot.models.map((item) => <option key={`${item.provider}/${item.id}`} value={`${item.provider}/${item.id}`}>{String(item.name ?? item.id)}</option>)}
-            </select></label>
-            <label className="thinking-control"><select aria-label="Niveau de réflexion" value={thinking} onChange={(event) => void onCommand({ type: 'set_thinking_level', level: event.target.value }).catch(onError)}>
-              {['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].map((level) => <option key={level}>{level}</option>)}
-            </select></label>
-            <label className="agent-control"><select aria-label="Agent" disabled={agentBusy || agentOptions.length === 0} value={selectedAgent} onChange={(event) => onAgentChange(event.target.value)}>
-              <option value="">{agentBusy ? 'Chargement…' : 'Choisir un agent'}</option>
-              {agentOptions.map((agent) => <option key={agent} value={agent}>{agent}</option>)}
-            </select></label>
+            <ComposerSelect
+              ariaLabel="Modèle"
+              onValueChange={(value) => {
+                const selected = snapshot.models.find((item) => `${item.provider}/${item.id}` === value)
+                if (selected) void onCommand({ type: 'set_model', provider: selected.provider, modelId: selected.id }).catch(onError)
+              }}
+              options={snapshot.models.map((item) => ({ label: String(item.name ?? item.id), value: `${item.provider}/${item.id}` }))}
+              placeholder="Choisir un modèle"
+              tone="model"
+              value={currentModel}
+            />
+            <ComposerSelect
+              ariaLabel="Niveau de réflexion"
+              onValueChange={(value) => void onCommand({ type: 'set_thinking_level', level: value }).catch(onError)}
+              options={['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].map((level) => ({ label: level, value: level }))}
+              tone="thinking"
+              value={thinking}
+            />
+            <ComposerSelect
+              ariaLabel="Agent"
+              disabled={agentBusy || agentOptions.length === 0}
+              onValueChange={onAgentChange}
+              options={agentOptions.map((agent) => ({ label: agent, value: agent }))}
+              placeholder={agentBusy ? 'Chargement…' : 'Choisir un agent'}
+              tone="agent"
+              value={selectedAgent}
+            />
             {commands.length > 0 && <select aria-label="Insérer une commande Pi" value="" onChange={(event) => setMessage(`/${event.target.value} `)}><option value="">Commandes</option>{commands.map((command) => <option key={String(command.name)} value={String(command.name)}>{String(command.name)}</option>)}</select>}
             {running && <select aria-label="Comportement du prochain message" value={behavior} onChange={(event) => setBehavior(event.target.value as 'steer' | 'followUp')}><option value="steer">Intervenir</option><option value="followUp">À la suite</option></select>}
             {running && <button className="danger" onClick={() => void onAbort().catch(onError)} type="button">Arrêter</button>}
@@ -474,6 +489,38 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, o
         </div>
       </div>
     </form>
+  )
+}
+
+function ComposerSelect({ ariaLabel, disabled, onValueChange, options, placeholder, tone, value }: {
+  ariaLabel: string
+  disabled?: boolean
+  onValueChange: (value: string) => void
+  options: { label: string; value: string }[]
+  placeholder?: string
+  tone: 'agent' | 'model' | 'thinking'
+  value: string
+}) {
+  return (
+    <Select.Root disabled={disabled} onValueChange={onValueChange} value={value}>
+      <Select.Trigger aria-label={ariaLabel} className={`composer-select ${tone}`}>
+        <span className="composer-select-icon" aria-hidden="true" />
+        <Select.Value placeholder={placeholder} />
+        <Select.Icon className="composer-select-chevron" aria-hidden="true">⌄</Select.Icon>
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Content className={`composer-select-content ${tone}`} position="popper" sideOffset={7}>
+          <Select.Viewport>
+            {options.map((option) => (
+              <Select.Item className="composer-select-option" key={option.value} value={option.value}>
+                <Select.ItemText>{option.label}</Select.ItemText>
+                <Select.ItemIndicator aria-hidden="true">✓</Select.ItemIndicator>
+              </Select.Item>
+            ))}
+          </Select.Viewport>
+        </Select.Content>
+      </Select.Portal>
+    </Select.Root>
   )
 }
 
