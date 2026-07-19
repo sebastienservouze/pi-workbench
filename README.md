@@ -19,15 +19,13 @@ npm install
 
 ## Développement
 
-Lancer chaque service dans un terminal distinct :
+Lancer les trois services dans un même terminal :
 
 ```bash
-npm run dev:manager
-npm run dev:backend
-npm run dev:frontend
+npm run dev
 ```
 
-Ouvrir ensuite <http://127.0.0.1:5173>.
+Ouvrir ensuite <http://127.0.0.1:5173>. `Ctrl+C` arrête le frontend, le backend et le gestionnaire.
 
 Le backend peut être redémarré sans interrompre les processus Pi. Après un redémarrage du gestionnaire, les sessions enregistrées dans `~/.pi-workbench/sessions.json` sont relancées avec leur historique ; une réponse qui était encore en cours reste interrompue.
 

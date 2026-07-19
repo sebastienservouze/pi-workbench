@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "dev": "node scripts/dev.ts",
     "dev:frontend": "vite --host 127.0.0.1",
     "dev:backend": "node --watch server/backend.ts",
     "dev:manager": "node --watch server/manager.ts",

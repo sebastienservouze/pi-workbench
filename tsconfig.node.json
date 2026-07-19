@@ -19,5 +19,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "server", "shared", "test"]
+  "include": ["vite.config.ts", "scripts", "server", "shared", "test"]
 }
