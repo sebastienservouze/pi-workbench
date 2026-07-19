@@ -30,7 +30,6 @@ function App() {
   const [activity, setActivity] = useState('')
   const [activeTools, setActiveTools] = useState<Record<string, string>>({})
   const [agentOptions, setAgentOptions] = useState<Record<string, string[]>>({})
-  const [selectedAgents, setSelectedAgents] = useState<Record<string, string>>({})
   const [agentBusy, setAgentBusy] = useState<Record<string, boolean>>({})
   const [dialog, setDialog] = useState<UiDialog | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
@@ -84,12 +83,13 @@ function App() {
     agentIntentsRef.current.set(sessionId, value ? { value } : {})
     setAgentBusy((current) => ({ ...current, [sessionId]: true }))
     void sendPiCommand(sessionId, { type: 'prompt', message: '/agent' })
+      .then(() => refreshSnapshot(sessionId))
       .catch((cause) => {
         agentIntentsRef.current.delete(sessionId)
         showToast('error', messageOf(cause))
       })
       .finally(() => setAgentBusy((current) => ({ ...current, [sessionId]: false })))
-  }, [showToast])
+  }, [refreshSnapshot, showToast])
 
   useEffect(() => void refreshSessions(), [refreshSessions])
   useEffect(() => {
@@ -118,6 +118,9 @@ function App() {
     function handlePiEvent(sessionId: string, event: JsonObject): void {
       if (event.type === 'agent_start') updateSessionStatus(sessionId, 'running')
       if (event.type === 'agent_settled') updateSessionStatus(sessionId, 'idle')
+      if (event.type === 'extension_ui_request' && event.method === 'setStatus' && event.statusKey === 'agent') {
+        updateSessionAgent(sessionId, typeof event.activeAgent === 'string' ? event.activeAgent : undefined)
+      }
 
       if (sessionId === selectedIdRef.current && event.type === 'extension_ui_request' && isBlockingDialog(event) && !isAgentSelector(event)) {
         setActivity('Pi attend votre intervention')
@@ -134,9 +137,7 @@ function App() {
           const selectedAgent = agentIntent.value && options.includes(agentIntent.value) ? agentIntent.value : undefined
           const response = selectedAgent ? { value: selectedAgent } : { cancelled: true }
           void sendPiCommand(sessionId, { type: 'extension_ui_response', id: event.id, ...response })
-            .then(() => {
-              if (selectedAgent) setSelectedAgents((current) => ({ ...current, [sessionId]: selectedAgent }))
-            })
+            .then(() => refreshSnapshot(sessionId))
             .catch((cause) => showToast('error', messageOf(cause)))
           if (agentIntent.value && !selectedAgent) showToast('error', 'L’agent sélectionné n’est plus disponible.')
           return
@@ -189,6 +190,10 @@ function App() {
     setSessions((current) => current.map((session) => (session.id === sessionId ? { ...session, status } : session)))
   }
 
+  function updateSessionAgent(sessionId: string, activeAgent: string | undefined): void {
+    setSessions((current) => current.map((session) => (session.id === sessionId ? { ...session, activeAgent } : session)))
+  }
+
   const selectedSession = sessions.find((session) => session.id === selectedId)
 
   return (
@@ -231,7 +236,7 @@ function App() {
               snapshot={snapshot}
               agentBusy={Boolean(agentBusy[selectedSession.id])}
               agentOptions={agentOptions[selectedSession.id] ?? []}
-              selectedAgent={selectedAgents[selectedSession.id] ?? ''}
+              selectedAgent={selectedSession.activeAgent ?? ''}
               onAgentChange={(agent) => requestAgent(selectedSession.id, agent)}
               onCommand={async (command) => {
                 const result = await sendPiCommand(selectedSession.id, command)
@@ -375,16 +380,16 @@ function Composer({ snapshot, agentBusy, agentOptions, selectedAgent, onAgentCha
   return (
     <form className="composer" onSubmit={(event) => void submit(event)}>
       <div className="composer-controls" aria-label="Configuration de la session">
-        <label><span>Modèle</span><select value={currentModel} onChange={(event) => {
+        <label><select aria-label="Modèle" value={currentModel} onChange={(event) => {
           const selected = snapshot.models.find((item) => `${item.provider}/${item.id}` === event.target.value)
           if (selected) void onCommand({ type: 'set_model', provider: selected.provider, modelId: selected.id }).catch(onError)
         }}>
           {snapshot.models.map((item) => <option key={`${item.provider}/${item.id}`} value={`${item.provider}/${item.id}`}>{String(item.name ?? item.id)}</option>)}
         </select></label>
-        <label><span>Thinking</span><select value={thinking} onChange={(event) => void onCommand({ type: 'set_thinking_level', level: event.target.value }).catch(onError)}>
+        <label><select aria-label="Thinking" value={thinking} onChange={(event) => void onCommand({ type: 'set_thinking_level', level: event.target.value }).catch(onError)}>
           {['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].map((level) => <option key={level}>{level}</option>)}
         </select></label>
-        <label><span>Agent</span><select disabled={agentBusy || agentOptions.length === 0} value={selectedAgent} onChange={(event) => onAgentChange(event.target.value)}>
+        <label><select aria-label="Agent" disabled={agentBusy || agentOptions.length === 0} value={selectedAgent} onChange={(event) => onAgentChange(event.target.value)}>
           <option value="">{agentBusy ? 'Chargement…' : 'Choisir un agent'}</option>
           {agentOptions.map((agent) => <option key={agent} value={agent}>{agent}</option>)}
         </select></label>

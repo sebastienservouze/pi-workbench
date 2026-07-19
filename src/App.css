@@ -202,9 +202,11 @@ button { cursor: pointer; }
   box-shadow: 0 15px 38px rgb(35 37 31 / 12%);
 }
 
-.composer-controls { display: flex; gap: 8px; padding: 9px 10px; border-bottom: 1px solid var(--line); background: #faf9f5; }
-.composer-controls label { display: grid; flex: 1 1 0; gap: 4px; min-width: 0; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
-.composer-controls select, .composer-tools select { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; background: var(--panel); color: var(--ink); font-size: 12px; letter-spacing: normal; text-transform: none; }
+.composer-controls { display: flex; justify-content: flex-end; gap: 4px; padding: 6px 8px; border-bottom: 1px solid var(--line); background: #faf9f5; }
+.composer-controls label { display: flex; flex: 0 1 auto; min-width: 0; }
+.composer-controls select { max-width: 220px; min-width: 0; border: 1px solid transparent; border-radius: 7px; padding: 6px 24px 6px 7px; background: transparent; color: var(--muted); font-size: 11px; letter-spacing: normal; text-transform: none; }
+.composer-controls select:hover, .composer-controls select:focus-visible { border-color: var(--line); background: var(--panel); color: var(--ink); }
+.composer-tools select { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; background: var(--panel); color: var(--ink); font-size: 12px; letter-spacing: normal; text-transform: none; }
 .composer textarea { display: block; width: 100%; min-height: 78px; resize: vertical; border: 0; outline: 0; padding: 15px 16px 13px; background: transparent; color: var(--ink); line-height: 1.5; }
 .composer textarea::placeholder { color: #a1a49d; }
 .composer-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px; border-top: 1px solid #eeece6; }
@@ -259,8 +261,9 @@ button { cursor: pointer; }
   .session-header { padding-block: 14px; }
   .status-badge { display: none; }
   .message.user { max-width: 92%; }
-  .composer-controls { flex-wrap: wrap; }
-  .composer-controls label { flex-basis: calc(33.333% - 6px); }
+  .composer-controls { justify-content: stretch; }
+  .composer-controls label { flex: 1 1 0; }
+  .composer-controls select { width: 100%; max-width: none; }
 }
 
 @media (max-width: 480px) {
@@ -270,8 +273,8 @@ button { cursor: pointer; }
   .conversation { padding: 20px 12px; }
   .message.assistant, .message.toolResult, .message.bashExecution { padding: 14px; }
   .composer { width: calc(100% - 20px); margin-bottom: 10px; }
-  .composer-controls label { flex-basis: calc(50% - 4px); }
-  .composer-controls label:first-child { flex-basis: 100%; }
+  .composer-controls { gap: 2px; padding-inline: 5px; }
+  .composer-controls select { padding-inline: 5px 20px; }
   .composer-actions { align-items: stretch; flex-direction: column; }
   .composer-tools { width: 100%; }
   .composer-tools > * { flex: 1 1 auto; }

@@ -169,10 +169,25 @@ async function sendCommand(request: ManagerRequest): Promise<JsonObject> {
 function handlePiEvent(sessionId: string, session: ManagedSession, event: JsonObject): void {
   if (event.type === 'agent_start') session.summary.status = 'running'
   if (event.type === 'agent_settled') session.summary.status = 'idle'
+  if (event.type === 'extension_ui_request' && event.method === 'setStatus' && event.statusKey === 'agent') {
+    session.summary.activeAgent = activeAgentFromStatus(event.statusText)
+    event.activeAgent = session.summary.activeAgent
+  }
   if (event.type === 'extension_ui_request' && isBlockingUiRequest(event) && typeof event.id === 'string') {
     session.pendingUi.set(event.id, event)
   }
   broadcast({ kind: 'event', event: 'pi', sessionId, data: event })
+}
+
+function activeAgentFromStatus(statusText: unknown): string | undefined {
+  if (typeof statusText !== 'string') return undefined
+  const prefix = 'Agent:'
+  const prefixIndex = statusText.indexOf(prefix)
+  if (prefixIndex === -1) return undefined
+  const rawName = statusText.slice(prefixIndex + prefix.length)
+  const endIndex = rawName.indexOf('\u001b')
+  const name = rawName.slice(0, endIndex === -1 ? undefined : endIndex).trim()
+  return name || undefined
 }
 
 function isBlockingUiRequest(event: JsonObject): boolean {

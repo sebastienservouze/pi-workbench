@@ -4,6 +4,7 @@ export interface SessionSummary {
   id: string
   cwd: string
   name: string
+  activeAgent?: string
   status: 'starting' | 'idle' | 'running' | 'exited'
   pendingUi: JsonObject[]
 }
