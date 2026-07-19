@@ -295,7 +295,9 @@ function SessionHeader({ session, snapshot, agentBusy, agentOptions, selectedAge
 
 function Conversation({ messages, liveText, activeTools }: { messages: JsonObject[]; liveText: string; activeTools: Record<string, string> }) {
   const endRef = useRef<HTMLDivElement>(null)
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: 'smooth' }), [messages, liveText, activeTools])
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, liveText, activeTools])
   return (
     <section className="conversation" aria-live="polite">
       {messages.map((message, index) => <MessageCard key={`${String(message.timestamp ?? '')}-${index}`} message={message} />)}
