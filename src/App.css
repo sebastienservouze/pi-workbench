@@ -163,10 +163,8 @@ button { cursor: pointer; }
 
 .message { margin: 0 0 22px; }
 .message.user { width: fit-content; max-width: 82%; margin-left: auto; padding: 13px 16px; border-radius: 15px 15px 4px 15px; background: var(--ink); color: white; box-shadow: var(--shadow-soft); }
-.message.assistant, .message.toolResult, .message.bashExecution { padding: 17px 18px; border: 1px solid var(--line); border-radius: 4px 15px 15px; background: var(--panel); box-shadow: var(--shadow-soft); }
-.message.streaming { border-color: #e6b5a7; }
-.role { margin-bottom: 8px; color: var(--accent); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-.user .role { color: #f0b5a5; }
+.message.assistant { max-width: 760px; padding: 0 2px; }
+.role { margin-bottom: 8px; color: #f0b5a5; font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .content { overflow-wrap: anywhere; font: 14px/1.65 ui-sans-serif, system-ui, sans-serif; }
 .content > :first-child, .content details > :first-child { margin-top: 0; }
 .content > :last-child, .content details > :last-child { margin-bottom: 0; }
@@ -176,12 +174,8 @@ button { cursor: pointer; }
 .content :not(pre) > code { padding: 2px 5px; border-radius: 4px; background: var(--panel-muted); color: var(--ink); font: 12px ui-monospace, monospace; }
 .content a { color: var(--blue); }
 .user .content pre { background: #353733; }
-.content details { margin: 8px 0; color: var(--muted); }
-.content details pre, .tool-call pre { margin-top: 8px; }
-.tool-call { margin-top: 12px; padding: 12px; border: 1px solid rgb(36 106 123 / 18%); border-radius: 9px; background: rgb(36 106 123 / 6%); }
-.tool-running { display: flex; align-items: center; gap: 9px; margin: -5px 0 22px; color: var(--blue); font: 12px ui-monospace, monospace; }
-.pi-activity { display: flex; align-items: center; gap: 9px; width: fit-content; margin: -5px 0 22px; border: 1px solid #c7d9d7; border-radius: 4px 13px 13px; padding: 10px 13px; background: #f7fffd; color: var(--blue); font: 12px ui-monospace, monospace; }
-.activity-dots { display: inline-block; min-width: 1.5em; animation: pulse 1.2s ease-in-out infinite; }
+.pi-activity { display: flex; align-items: flex-start; gap: 9px; max-width: 760px; margin: -4px 2px 22px; color: var(--blue); font: 12px/1.55 ui-monospace, monospace; white-space: pre-wrap; }
+.activity-dots { display: inline-block; min-width: 1.5em; margin-left: 2px; animation: pulse 1.2s ease-in-out infinite; }
 .spinner { width: 13px; height: 13px; border: 2px solid #b9cacd; border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; }
 
 .empty-conversation, .welcome { align-self: center; margin: auto; color: var(--muted); text-align: center; }
@@ -276,7 +270,7 @@ button { cursor: pointer; }
   .brand small { display: none; }
   .new-session { font-size: 12px; }
   .conversation { padding: 20px 12px; }
-  .message.assistant, .message.toolResult, .message.bashExecution { padding: 14px; }
+  .message.assistant { padding-inline: 2px; }
   .composer { width: calc(100% - 20px); margin-bottom: 10px; }
   .composer-info { align-items: flex-start; flex-direction: column; gap: 7px; }
   .composer-session { width: 100%; }

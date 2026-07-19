@@ -32,7 +32,6 @@ function App() {
   const [snapshotSessionId, setSnapshotSessionId] = useState('')
   const [liveText, setLiveText] = useState('')
   const [activity, setActivity] = useState('')
-  const [activeTools, setActiveTools] = useState<Record<string, string>>({})
   const [agentOptions, setAgentOptions] = useState<Record<string, string[]>>({})
   const [agentBusy, setAgentBusy] = useState<Record<string, boolean>>({})
   const [dialog, setDialog] = useState<UiDialog | null>(null)
@@ -102,7 +101,6 @@ function App() {
     setSnapshotSessionId('')
     setLiveText('')
     setActivity('')
-    setActiveTools({})
     void refreshSnapshot(selectedId)
   }, [refreshSnapshot, selectedId])
 
@@ -152,32 +150,25 @@ function App() {
       }
 
       if (sessionId !== selectedIdRef.current) return
-      if (event.type === 'agent_start') setActivity('Pi prépare une réponse')
+      if (event.type === 'agent_start') setActivity('Pi travaille')
       if (event.type === 'agent_settled') setActivity('')
       if (event.type === 'message_start') {
         setLiveText('')
-        setActivity('Pi réfléchit')
+        setActivity('Pi travaille')
       }
       if (event.type === 'message_update' && isObject(event.assistantMessageEvent)) {
         const update = event.assistantMessageEvent
+        if (update.type === 'thinking_start') setActivity('')
+        if (update.type === 'thinking_delta' && typeof update.delta === 'string') {
+          setActivity((current) => current + update.delta)
+        }
         if (update.type === 'text_delta' && typeof update.delta === 'string') {
           setLiveText((current) => current + update.delta)
-          setActivity('Pi écrit')
+          setActivity('')
         }
       }
-      if (event.type === 'tool_execution_start' && typeof event.toolCallId === 'string') {
-        const tool = String(event.toolName ?? 'outil')
-        setActiveTools((current) => ({ ...current, [event.toolCallId as string]: tool }))
-        setActivity(`Pi utilise ${tool}`)
-      }
-      if (event.type === 'tool_execution_end' && typeof event.toolCallId === 'string') {
-        setActiveTools((current) => {
-          const next = { ...current }
-          delete next[event.toolCallId as string]
-          return next
-        })
-        setActivity('Pi traite le résultat')
-      }
+      if (event.type === 'tool_execution_start') setActivity(toolActivity(event))
+      if (event.type === 'tool_execution_end') setActivity(toolActivity(event, true))
       if (event.type === 'message_end' || event.type === 'agent_settled') {
         setLiveText('')
         void refreshSnapshot(sessionId)
@@ -256,7 +247,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation messages={snapshot.messages} liveText={liveText} activity={activity} activeTools={activeTools} />
+            <Conversation messages={snapshot.messages} liveText={liveText} activity={activity} />
             <Composer
               session={selectedSession}
               snapshot={snapshot}
@@ -365,44 +356,55 @@ function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>
   return <button className="new-session" disabled={busy} onClick={() => void create()} type="button">{busy ? 'Démarrage…' : '＋ Nouvelle session'}</button>
 }
 
-function Conversation({ messages, liveText, activity, activeTools }: { messages: JsonObject[]; liveText: string; activity: string; activeTools: Record<string, string> }) {
+function Conversation({ messages, liveText, activity }: { messages: JsonObject[]; liveText: string; activity: string }) {
+  const visibleMessages = messages.filter(isVisibleConversationMessage)
   const endRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
     endRef.current?.scrollIntoView({ behavior })
-  }, [messages, liveText, activity, activeTools])
+  }, [visibleMessages.length, liveText, activity])
   return (
     <section className="conversation" aria-live="polite">
-      {messages.map((message, index) => <MessageCard key={`${String(message.timestamp ?? '')}-${index}`} message={message} />)}
-      {liveText && <article className="message assistant streaming"><RoleLabel role="assistant" /><div className="content"><Markdown>{liveText}</Markdown></div></article>}
-      {Object.entries(activeTools).map(([id, tool]) => <div className="tool-running" key={id}><span className="spinner" />{tool} en cours…</div>)}
-      {activity && <div className="pi-activity" role="status"><span aria-hidden="true" className="spinner" /><span>{activity} <span aria-hidden="true" className="activity-dots">···</span></span></div>}
-      {messages.length === 0 && !liveText && !activity && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
+      {visibleMessages.map((message, index) => <MessageCard key={`${String(message.timestamp ?? '')}-${index}`} message={message} />)}
+      {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
+      {activity && <div className="pi-activity" role="status"><span aria-hidden="true" className="spinner" /><span>{activity}<span aria-hidden="true" className="activity-dots">···</span></span></div>}
+      {visibleMessages.length === 0 && !liveText && !activity && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
       <div ref={endRef} />
     </section>
   )
 }
 
 function MessageCard({ message }: { message: JsonObject }) {
-  const role = typeof message.role === 'string' ? message.role : 'event'
-  return <article className={`message ${role}`}><RoleLabel role={role} /><div className="content">{renderContent(message.content ?? message.output)}</div></article>
+  const role = String(message.role)
+  return <article className={`message ${role}`}>{role === 'user' && <RoleLabel role={role} />}<div className="content">{renderContent(message.content ?? message.output)}</div></article>
 }
 
 function RoleLabel({ role }: { role: string }) {
-  const labels: Record<string, string> = { user: 'Vous', assistant: 'Pi', toolResult: 'Outil', bashExecution: 'Shell' }
-  return <div className="role">{labels[role] ?? role}</div>
+  return <div className="role">{role === 'user' ? 'Vous' : role}</div>
+}
+
+function toolActivity(event: JsonObject, finished = false): string {
+  const name = typeof event.toolName === 'string' ? event.toolName : 'outil'
+  if (finished) return `${name} terminé`
+  const args = isObject(event.args) ? event.args : null
+  const detail = args && typeof args.command === 'string' ? ` — ${args.command}` : ''
+  return `${name}${detail}`
+}
+
+function isVisibleConversationMessage(message: JsonObject): boolean {
+  const role = message.role
+  return (role === 'user' || role === 'assistant') && hasVisibleText(message.content ?? message.output)
+}
+
+function hasVisibleText(content: unknown): boolean {
+  if (typeof content === 'string') return content.trim().length > 0
+  return Array.isArray(content) && content.some((part) => isObject(part) && part.type === 'text' && typeof part.text === 'string' && part.text.trim().length > 0)
 }
 
 function renderContent(content: unknown): ReactNode {
   if (typeof content === 'string') return <Markdown>{content}</Markdown>
-  if (!Array.isArray(content)) return <pre>{formatUnknown(content)}</pre>
-  return content.map((part, index) => {
-    if (!isObject(part)) return <pre key={index}>{formatUnknown(part)}</pre>
-    if (part.type === 'text' && typeof part.text === 'string') return <Markdown key={index}>{part.text}</Markdown>
-    if (part.type === 'thinking' && typeof part.thinking === 'string') return <details key={index}><summary>Raisonnement</summary><Markdown>{part.thinking}</Markdown></details>
-    if (part.type === 'toolCall') return <div className="tool-call" key={index}><strong>{String(part.name ?? 'tool')}</strong><pre>{formatUnknown(part.arguments)}</pre></div>
-    return <pre key={index}>{formatUnknown(part)}</pre>
-  })
+  if (!Array.isArray(content)) return null
+  return content.map((part, index) => isObject(part) && part.type === 'text' && typeof part.text === 'string' ? <Markdown key={index}>{part.text}</Markdown> : null)
 }
 
 function Markdown({ children }: { children: string }) {
@@ -526,11 +528,6 @@ function isBlockingDialog(value: JsonObject): boolean {
 
 function isObject(value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function formatUnknown(value: unknown): string {
-  if (value === undefined || value === null) return ''
-  return typeof value === 'string' ? value : JSON.stringify(value, null, 2)
 }
 
 function formatTokens(value: number): string {

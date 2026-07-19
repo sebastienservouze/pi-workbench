@@ -95,7 +95,7 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
     ])
     const snapshot: SessionSnapshot = {
       state: objectData(state),
-      messages: arrayData(messages, 'messages'),
+      messages: arrayData(messages, 'messages').filter((message) => message.role === 'user' || message.role === 'assistant'),
       models: arrayData(models, 'models'),
       commands: arrayData(commands, 'commands'),
       stats: objectData(stats),
