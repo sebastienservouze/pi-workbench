@@ -160,6 +160,9 @@ async function sendCommand(request: ManagerRequest): Promise<JsonObject> {
 }
 
 function handlePiEvent(sessionId: string, session: ManagedSession, event: JsonObject): void {
+  if (event.type === 'session_info_changed') {
+    session.summary.name = typeof event.name === 'string' && event.name.trim() ? event.name.trim() : 'Nouvelle session'
+  }
   if (event.type === 'agent_start') session.summary.status = 'running'
   if (event.type === 'agent_settled') session.summary.status = 'idle'
   if (event.type === 'extension_ui_request' && event.method === 'setStatus' && event.statusKey === 'agent') {

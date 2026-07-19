@@ -39,6 +39,7 @@ function App() {
   const [dialog, setDialog] = useState<UiDialog | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
   const selectedIdRef = useRef(selectedId)
+  const refreshVersionRef = useRef(0)
   const toastIdRef = useRef(0)
   const agentIntentsRef = useRef(new Map<string, AgentIntent>())
   selectedIdRef.current = selectedId
@@ -56,8 +57,10 @@ function App() {
   }, [toast])
 
   const refreshSessions = useCallback(async (cwd = workspacePath) => {
+    const version = ++refreshVersionRef.current
     try {
       const [nextSessions, nextRecentSessions] = await Promise.all([listSessions(), listRecentSessions(cwd)])
+      if (version !== refreshVersionRef.current) return
       setSessions(nextSessions)
       setRecentSessions(nextRecentSessions)
       setSelectedId((current) => nextSessions.some((session) => session.id === current) ? current : '')
@@ -66,7 +69,7 @@ function App() {
       )[0]
       if (pending) setDialog(pending)
     } catch (cause) {
-      showToast('error', messageOf(cause))
+      if (version === refreshVersionRef.current) showToast('error', messageOf(cause))
     }
   }, [showToast, workspacePath])
 
@@ -121,7 +124,11 @@ function App() {
     return () => events.close()
 
     function handlePiEvent(sessionId: string, event: JsonObject): void {
-      if (event.type === 'session_info_changed') void refreshSessions()
+      if (event.type === 'session_info_changed') {
+        const name = typeof event.name === 'string' && event.name.trim() ? event.name.trim() : 'Nouvelle session'
+        setSessions((current) => current.map((session) => session.id === sessionId ? { ...session, name } : session))
+        void refreshSessions()
+      }
       if (event.type === 'agent_start') updateSessionStatus(sessionId, 'running')
       if (event.type === 'agent_settled') updateSessionStatus(sessionId, 'idle')
       if (event.type === 'extension_ui_request' && event.method === 'setStatus' && event.statusKey === 'agent') {
