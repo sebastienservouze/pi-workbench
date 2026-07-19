@@ -180,6 +180,8 @@ button { cursor: pointer; }
 .content details pre, .tool-call pre { margin-top: 8px; }
 .tool-call { margin-top: 12px; padding: 12px; border-left: 3px solid var(--blue); background: rgb(57 113 127 / 5%); }
 .tool-running { display: flex; align-items: center; gap: 9px; margin: -5px 0 22px; color: var(--blue); font: 12px ui-monospace, monospace; }
+.pi-activity { display: flex; align-items: center; gap: 9px; width: fit-content; margin: -5px 0 22px; border: 1px solid #c7d9d7; border-radius: 4px 13px 13px; padding: 10px 13px; background: #f7fffd; color: var(--blue); font: 12px ui-monospace, monospace; }
+.activity-dots { display: inline-block; min-width: 1.5em; animation: pulse 1.2s ease-in-out infinite; }
 .spinner { width: 13px; height: 13px; border: 2px solid #b9cacd; border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; }
 
 .empty-conversation, .welcome { align-self: center; margin: auto; color: var(--muted); text-align: center; }

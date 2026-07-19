@@ -27,6 +27,7 @@ function App() {
   const [snapshot, setSnapshot] = useState<SessionSnapshot>(emptySnapshot)
   const [snapshotSessionId, setSnapshotSessionId] = useState('')
   const [liveText, setLiveText] = useState('')
+  const [activity, setActivity] = useState('')
   const [activeTools, setActiveTools] = useState<Record<string, string>>({})
   const [agentOptions, setAgentOptions] = useState<Record<string, string[]>>({})
   const [selectedAgents, setSelectedAgents] = useState<Record<string, string>>({})
@@ -95,6 +96,7 @@ function App() {
     setSnapshot(emptySnapshot)
     setSnapshotSessionId('')
     setLiveText('')
+    setActivity('')
     setActiveTools({})
     void refreshSnapshot(selectedId)
   }, [refreshSnapshot, selectedId])
@@ -116,6 +118,10 @@ function App() {
     function handlePiEvent(sessionId: string, event: JsonObject): void {
       if (event.type === 'agent_start') updateSessionStatus(sessionId, 'running')
       if (event.type === 'agent_settled') updateSessionStatus(sessionId, 'idle')
+
+      if (sessionId === selectedIdRef.current && event.type === 'extension_ui_request' && isBlockingDialog(event) && !isAgentSelector(event)) {
+        setActivity('Pi attend votre intervention')
+      }
 
       if (event.type === 'extension_ui_request') {
         if (event.method === 'notify' && typeof event.message === 'string') showToast('notice', event.message)
@@ -139,15 +145,23 @@ function App() {
       }
 
       if (sessionId !== selectedIdRef.current) return
-      if (event.type === 'message_start') setLiveText('')
+      if (event.type === 'agent_start') setActivity('Pi prépare une réponse')
+      if (event.type === 'agent_settled') setActivity('')
+      if (event.type === 'message_start') {
+        setLiveText('')
+        setActivity('Pi réfléchit')
+      }
       if (event.type === 'message_update' && isObject(event.assistantMessageEvent)) {
         const update = event.assistantMessageEvent
         if (update.type === 'text_delta' && typeof update.delta === 'string') {
           setLiveText((current) => current + update.delta)
+          setActivity('Pi écrit')
         }
       }
       if (event.type === 'tool_execution_start' && typeof event.toolCallId === 'string') {
-        setActiveTools((current) => ({ ...current, [event.toolCallId as string]: String(event.toolName ?? 'tool') }))
+        const tool = String(event.toolName ?? 'outil')
+        setActiveTools((current) => ({ ...current, [event.toolCallId as string]: tool }))
+        setActivity(`Pi utilise ${tool}`)
       }
       if (event.type === 'tool_execution_end' && typeof event.toolCallId === 'string') {
         setActiveTools((current) => {
@@ -155,6 +169,7 @@ function App() {
           delete next[event.toolCallId as string]
           return next
         })
+        setActivity('Pi traite le résultat')
       }
       if (event.type === 'message_end' || event.type === 'agent_settled') {
         setLiveText('')
@@ -211,7 +226,7 @@ function App() {
         {selectedSession ? (
           <>
             <SessionHeader session={selectedSession} />
-            <Conversation messages={snapshot.messages} liveText={liveText} activeTools={activeTools} />
+            <Conversation messages={snapshot.messages} liveText={liveText} activity={activity} activeTools={activeTools} />
             <Composer
               snapshot={snapshot}
               agentBusy={Boolean(agentBusy[selectedSession.id])}
@@ -286,18 +301,19 @@ function SessionHeader({ session }: { session: SessionSummary }) {
   )
 }
 
-function Conversation({ messages, liveText, activeTools }: { messages: JsonObject[]; liveText: string; activeTools: Record<string, string> }) {
+function Conversation({ messages, liveText, activity, activeTools }: { messages: JsonObject[]; liveText: string; activity: string; activeTools: Record<string, string> }) {
   const endRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
     endRef.current?.scrollIntoView({ behavior })
-  }, [messages, liveText, activeTools])
+  }, [messages, liveText, activity, activeTools])
   return (
     <section className="conversation" aria-live="polite">
       {messages.map((message, index) => <MessageCard key={`${String(message.timestamp ?? '')}-${index}`} message={message} />)}
       {liveText && <article className="message assistant streaming"><RoleLabel role="assistant" /><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {Object.entries(activeTools).map(([id, tool]) => <div className="tool-running" key={id}><span className="spinner" />{tool} en cours…</div>)}
-      {messages.length === 0 && !liveText && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
+      {activity && <div className="pi-activity" role="status"><span aria-hidden="true" className="spinner" /><span>{activity} <span aria-hidden="true" className="activity-dots">···</span></span></div>}
+      {messages.length === 0 && !liveText && !activity && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
       <div ref={endRef} />
     </section>
   )
