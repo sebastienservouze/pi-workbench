@@ -63,7 +63,7 @@ async function readPiSession(path: string, updatedAt: number): Promise<RecentSes
 
   const header = parseHeader(lines[0])
   if (!header) return null
-  const name = lines.reduce<string | undefined>((current, line) => current ?? parseSessionName(line), undefined)
+  const name = lines.reduce<string | undefined>((current, line) => parseSessionName(line) ?? current, undefined)
   return {
     id: header.id,
     cwd: header.cwd,

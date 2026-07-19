@@ -121,6 +121,7 @@ function App() {
     return () => events.close()
 
     function handlePiEvent(sessionId: string, event: JsonObject): void {
+      if (event.type === 'session_info_changed') void refreshSessions()
       if (event.type === 'agent_start') updateSessionStatus(sessionId, 'running')
       if (event.type === 'agent_settled') updateSessionStatus(sessionId, 'idle')
       if (event.type === 'extension_ui_request' && event.method === 'setStatus' && event.statusKey === 'agent') {
