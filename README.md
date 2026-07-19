@@ -29,7 +29,7 @@ npm run dev:frontend
 
 Ouvrir ensuite <http://127.0.0.1:5173>.
 
-Le gestionnaire doit rester actif pour conserver les processus Pi. Le backend peut être redémarré et s’y reconnecte automatiquement.
+Le backend peut être redémarré sans interrompre les processus Pi. Après un redémarrage du gestionnaire, les sessions enregistrées dans `~/.pi-workbench/sessions.json` sont relancées avec leur historique ; une réponse qui était encore en cours reste interrompue.
 
 ## Build et exécution
 

@@ -40,6 +40,7 @@ test('exposes current Pi commands over RPC', { timeout: 30_000 }, async () => {
     const dialog = await dialogRequest
     assert.equal(dialog.title, 'Select an agent')
     assert.ok(Array.isArray(dialog.options) && dialog.options.length > 0)
+    assert.ok(dialog.options.every((option) => typeof option === 'string'))
     pi.stdin.write(encodeJsonLine({ type: 'extension_ui_response', id: dialog.id, cancelled: true }))
     assert.equal((await promptResponse).success, true)
   } finally {

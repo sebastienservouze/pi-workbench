@@ -23,12 +23,9 @@ button { cursor: pointer; }
 .brand-mark.large { width: 72px; height: 72px; border-radius: 22px; font-size: 42px; margin: auto; }
 .new-session { width: 100%; border: 0; border-radius: 10px; padding: 12px; background: var(--accent); color: white; font-weight: 700; }
 .new-session:hover { background: var(--accent-dark); }
-.session-form { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
-.session-form label, .controls label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; font-weight: 700; }
-.session-form input, .controls select { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: white; color: var(--ink); }
-.session-form div { display: flex; gap: 7px; }
-.session-form button { flex: 1; border: 0; border-radius: 7px; padding: 7px; }
-.session-form button[type='submit'] { background: var(--ink); color: white; }
+.new-session:disabled { cursor: wait; opacity: .7; }
+.controls label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.controls select { min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: white; color: var(--ink); }
 .session-list { display: flex; flex: 1; flex-direction: column; gap: 6px; overflow-y: auto; }
 .session-item { display: grid; grid-template-columns: 9px minmax(0, 1fr); align-items: center; gap: 11px; width: 100%; border: 0; border-radius: 11px; padding: 11px; background: transparent; color: inherit; text-align: left; }
 .session-item:hover, .session-item.selected { background: rgb(255 255 255 / 72%); }
@@ -55,9 +52,15 @@ button { cursor: pointer; }
 .message.streaming { border-color: #d8aa99; }
 .role { margin-bottom: 9px; color: var(--accent); font-size: 11px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
 .user .role { color: #e8aa96; }
-.content pre { margin: 0; overflow-wrap: anywhere; color: inherit; font: 14px/1.65 ui-sans-serif, system-ui, sans-serif; white-space: pre-wrap; }
+.content { overflow-wrap: anywhere; font: 14px/1.65 ui-sans-serif, system-ui, sans-serif; }
+.content > :first-child, .content details > :first-child { margin-top: 0; }
+.content > :last-child, .content details > :last-child { margin-bottom: 0; }
+.content pre { overflow-x: auto; padding: 12px; border-radius: 9px; background: #eeece6; font: 12px/1.55 ui-monospace, monospace; white-space: pre-wrap; }
+.content :not(pre) > code { padding: 2px 5px; border-radius: 4px; background: #eeece6; color: var(--ink); font: 12px ui-monospace, monospace; }
+.content a { color: var(--blue); }
+.user .content pre { background: #343431; }
 .content details { margin: 8px 0; color: var(--muted); }
-.content details pre, .tool-call pre { margin-top: 8px; padding: 12px; border-radius: 9px; background: #eeece6; font: 12px/1.55 ui-monospace, monospace; }
+.content details pre, .tool-call pre { margin-top: 8px; }
 .tool-call { margin-top: 12px; padding: 12px; border-left: 3px solid var(--blue); }
 .tool-running { display: flex; align-items: center; gap: 9px; margin: -8px 0 22px; color: var(--blue); font: 12px ui-monospace, monospace; }
 .spinner { width: 13px; height: 13px; border: 2px solid #b9cacd; border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; }

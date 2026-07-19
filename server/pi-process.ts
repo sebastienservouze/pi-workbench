@@ -15,9 +15,9 @@ export class PiProcess extends EventEmitter {
   readonly #pending = new Map<string, PendingRequest>()
   #stderr = ''
 
-  constructor(cwd: string, name: string) {
+  constructor(cwd: string, name: string, sessionId: string) {
     super()
-    const args = ['--mode', 'rpc']
+    const args = ['--mode', 'rpc', '--session-id', sessionId]
     if (name) args.push('--name', name)
 
     this.child = spawn('pi', args, {

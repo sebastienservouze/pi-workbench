@@ -58,9 +58,9 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
 
   if (method === 'POST' && url.pathname === '/api/sessions') {
     const body = await readJsonBody(request)
-    if (typeof body.cwd !== 'string' || typeof body.name !== 'string') throw new HttpError(400, 'cwd and name are required')
-    const cwd = await resolveWorkingDirectory(body.cwd)
-    const session = await manager.request({ action: 'create', cwd, name: body.name })
+    const cwd = await resolveWorkingDirectory(typeof body.cwd === 'string' ? body.cwd : '~/.pi')
+    const name = typeof body.name === 'string' ? body.name : ''
+    const session = await manager.request({ action: 'create', cwd, name })
     sendJson(response, 201, session)
     return
   }

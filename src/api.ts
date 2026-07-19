@@ -4,10 +4,10 @@ export async function listSessions(): Promise<SessionSummary[]> {
   return request<SessionSummary[]>('/api/sessions')
 }
 
-export async function createSession(cwd: string, name: string): Promise<SessionSummary> {
+export async function createSession(): Promise<SessionSummary> {
   return request<SessionSummary>('/api/sessions', {
     method: 'POST',
-    body: JSON.stringify({ cwd, name }),
+    body: JSON.stringify({}),
   })
 }
 
