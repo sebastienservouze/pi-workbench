@@ -366,7 +366,7 @@ function Conversation({ messages, liveText, activity, agentName }: { messages: J
     <section className="conversation" aria-live="polite">
       {visibleMessages.map((message, index) => <MessageCard key={`${String(message.timestamp ?? '')}-${index}`} message={message} />)}
       {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
-      {activity && <ActivityIndicator activity={activity} agentName={agentName} />}
+      {activity && activity.kind !== 'writing' && <ActivityIndicator activity={activity} agentName={agentName} />}
       {visibleMessages.length === 0 && !liveText && !activity && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
       <div ref={endRef} />
     </section>

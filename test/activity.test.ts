@@ -23,3 +23,11 @@ test('keeps a current activity through thinking, tool execution, and writing', (
   assert.deepEqual(activity, { kind: 'writing' })
   assert.equal(activityForPiEvent(activity, { type: 'agent_settled' }), null)
 })
+
+test('keeps only the last thinking line', () => {
+  let activity = activityForPiEvent(null, { type: 'message_update', assistantMessageEvent: { type: 'thinking_start' } })
+  activity = activityForPiEvent(activity, { type: 'message_update', assistantMessageEvent: { type: 'thinking_delta', delta: '**Inspecting** files\n**Checking** tests\n' } })
+
+  assert.deepEqual(activity, { kind: 'thinking', thinking: '**Checking** tests' })
+  assert.equal(activityText(activity, undefined), 'Pi réfléchit — Checking tests')
+})

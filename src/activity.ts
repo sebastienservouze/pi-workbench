@@ -18,7 +18,8 @@ export function activityForPiEvent(current: Activity | null, event: JsonObject):
   const update = event.assistantMessageEvent
   if (update.type === 'thinking_start') return { kind: 'thinking', thinking: '' }
   if (update.type === 'thinking_delta' && typeof update.delta === 'string') {
-    return { kind: 'thinking', thinking: `${current?.kind === 'thinking' ? current.thinking ?? '' : ''}${update.delta}` }
+    const thinking = `${current?.kind === 'thinking' ? current.thinking ?? '' : ''}${update.delta}`
+    return { kind: 'thinking', thinking: lastLine(thinking) }
   }
   if (update.type === 'text_start' || update.type === 'text_delta') return { kind: 'writing' }
   return current
@@ -35,6 +36,10 @@ export function activityText(activity: Activity, agentName: string | undefined):
   if (activity.kind === 'writing') return `${agent} écrit…`
   if (activity.kind === 'waiting') return `${agent} attend votre intervention`
   return `${agent} travaille…`
+}
+
+function lastLine(text: string): string {
+  return text.trimEnd().split(/\r?\n/).at(-1) ?? ''
 }
 
 function displayAgentName(agentName: string | undefined): string {
