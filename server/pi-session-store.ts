@@ -68,7 +68,7 @@ async function readPiSession(path: string, updatedAt: number): Promise<RecentSes
   return {
     id: header.id,
     cwd: header.cwd,
-    name: name || prompt || new Date(header.timestamp).toLocaleString('fr-FR'),
+    name: name || prompt || 'Nouvelle session',
     sessionPath: path,
     updatedAt,
   }

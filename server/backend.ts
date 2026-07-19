@@ -77,8 +77,7 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
       sendJson(response, 201, await manager.request({ action: 'open', cwd, name: session.name, sessionPath: session.sessionPath }))
       return
     }
-    const name = typeof body.name === 'string' ? body.name : ''
-    const session = await manager.request({ action: 'create', cwd, name })
+    const session = await manager.request({ action: 'create', cwd })
     sendJson(response, 201, session)
     return
   }

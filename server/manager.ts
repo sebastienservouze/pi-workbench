@@ -86,11 +86,10 @@ async function createSession(request: ManagerRequest): Promise<SessionSummary> {
   const cwd = await realpath(request.cwd)
   if (!(await stat(cwd)).isDirectory()) throw new Error('Session cwd must be a directory')
 
-  const requestedName = typeof request.name === 'string' ? request.name.trim() : ''
   const summary: SessionSummary = {
     id: randomUUID(),
     cwd,
-    name: requestedName || `Session ${sessions.size + 1}`,
+    name: 'Nouvelle session',
     status: 'starting',
     pendingUi: [],
   }
@@ -123,7 +122,7 @@ async function openSession(request: ManagerRequest): Promise<SessionSummary> {
 }
 
 async function startSession(summary: SessionSummary): Promise<ManagedSession> {
-  const pi = new PiProcess(summary.cwd, summary.sessionPath ? '' : summary.name, summary.id, summary.sessionPath)
+  const pi = new PiProcess(summary.cwd, summary.id, summary.sessionPath)
   const session: ManagedSession = { summary, pi, pendingUi: new Map() }
 
   pi.on('event', (event: JsonObject) => handlePiEvent(summary.id, session, event))
