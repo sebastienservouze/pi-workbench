@@ -74,7 +74,7 @@ function App() {
     }
   }, [showToast, workspacePath])
 
-  const refreshSnapshot = useCallback(async (sessionId: string) => {
+  const refreshSnapshot = useCallback(async (sessionId: string, clearLiveText = false) => {
     if (!sessionId) {
       setSnapshot(emptySnapshot)
       setSnapshotSessionId('')
@@ -83,6 +83,7 @@ function App() {
     try {
       setSnapshot(await getSnapshot(sessionId))
       setSnapshotSessionId(sessionId)
+      if (clearLiveText && sessionId === selectedIdRef.current) setLiveText('')
     } catch (cause) {
       showToast('error', messageOf(cause))
     }
@@ -167,8 +168,7 @@ function App() {
         if (update.type === 'text_delta' && typeof update.delta === 'string') setLiveText((current) => current + update.delta)
       }
       if (event.type === 'message_end' || event.type === 'agent_settled') {
-        setLiveText('')
-        void refreshSnapshot(sessionId)
+        void refreshSnapshot(sessionId, true)
       }
     }
   }, [refreshSessions, refreshSnapshot, showToast])
