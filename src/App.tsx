@@ -453,16 +453,16 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, o
         </div>
         <div className="composer-actions">
           <div className="composer-tools">
-            <label><select aria-label="Modèle" value={currentModel} onChange={(event) => {
+            <label className="model-control"><select aria-label="Modèle" value={currentModel} onChange={(event) => {
               const selected = snapshot.models.find((item) => `${item.provider}/${item.id}` === event.target.value)
               if (selected) void onCommand({ type: 'set_model', provider: selected.provider, modelId: selected.id }).catch(onError)
             }}>
               {snapshot.models.map((item) => <option key={`${item.provider}/${item.id}`} value={`${item.provider}/${item.id}`}>{String(item.name ?? item.id)}</option>)}
             </select></label>
-            <label><select aria-label="Thinking" value={thinking} onChange={(event) => void onCommand({ type: 'set_thinking_level', level: event.target.value }).catch(onError)}>
+            <label className="thinking-control"><select aria-label="Niveau de réflexion" value={thinking} onChange={(event) => void onCommand({ type: 'set_thinking_level', level: event.target.value }).catch(onError)}>
               {['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].map((level) => <option key={level}>{level}</option>)}
             </select></label>
-            <label><select aria-label="Agent" disabled={agentBusy || agentOptions.length === 0} value={selectedAgent} onChange={(event) => onAgentChange(event.target.value)}>
+            <label className="agent-control"><select aria-label="Agent" disabled={agentBusy || agentOptions.length === 0} value={selectedAgent} onChange={(event) => onAgentChange(event.target.value)}>
               <option value="">{agentBusy ? 'Chargement…' : 'Choisir un agent'}</option>
               {agentOptions.map((agent) => <option key={agent} value={agent}>{agent}</option>)}
             </select></label>
