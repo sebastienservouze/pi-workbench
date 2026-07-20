@@ -16,7 +16,7 @@ import type { DirectoryListing, GitActionResult, GitFileDiff, GitSnapshot, JsonO
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff, readGitSidebarWidth } from './git-sidebar.ts'
-import { editOperations, formatToolCallTooltip, formatToolData, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, type EditOperation, type ToolResult } from './tool-calls.ts'
+import { editOperations, formatToolData, readContentDisplay, toolCallInUpdate, toolCallMetrics, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, type EditOperation, type ToolResult } from './tool-calls.ts'
 
 interface UiDialog {
   sessionId: string
@@ -715,11 +715,11 @@ const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, rep
   const output = hasResult ? toolContentText(resultContent) : ''
   const displayedOutput = output || 'Aucune sortie.'
   const presentation = toolCallPresentation({ id, name, args }, repositoryRoot)
-  const tooltip = formatToolCallTooltip(input, hasResult ? displayedOutput : undefined)
+  const tooltipId = `tool-call-tooltip-${id}`
   return <article className={`tool-call${resultError ? ' error' : ''}`}>
-    <button aria-expanded={hasResult ? expanded : undefined} className="tool-call-heading tool-call-tooltip" data-tooltip={tooltip} disabled={!hasResult} onClick={() => setExpanded((isExpanded) => !isExpanded)} type="button">
+    <button aria-describedby={tooltipId} aria-expanded={hasResult ? expanded : undefined} className="tool-call-heading" disabled={!hasResult} onClick={() => setExpanded((isExpanded) => !isExpanded)} type="button">
       <span aria-hidden="true">⌘</span>
-      <span><strong aria-label={tooltip}>{name}</strong></span>
+      <span><strong>{name}</strong></span>
       {presentation.headerDetail && <span className="tool-call-command"><code aria-label={`Commande complète : ${presentation.headerDetail.title}`}>{presentation.headerDetail.text}</code></span>}
       {presentation.headerDetail?.suffix && <span className="tool-call-range"><code aria-label={`Plage lue : ${presentation.headerDetail.suffix}`}>{presentation.headerDetail.suffix}</code></span>}
       <small>
@@ -728,9 +728,19 @@ const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, rep
         {pending && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
       </small>
     </button>
+    <ToolCallTooltip id={tooltipId} input={input} output={hasResult ? displayedOutput : undefined} />
     {hasResult && <ToolCallContent call={{ name, args }} content={displayedOutput} error={resultError} expanded={expanded} />}
   </article>
 })
+
+// Affiche les données complètes et les métriques d'un appel sans alourdir son en-tête.
+function ToolCallTooltip({ id, input, output }: { id: string; input: string; output?: string }) {
+  const metrics = toolCallMetrics(input, output)
+  return <aside aria-label="Détails de l’appel" className="tool-call-tooltip" id={id} role="tooltip">
+    <pre>{input}</pre>
+    <footer className="tool-call-tooltip-metrics">{metrics.map((metric) => <span key={metric}>{metric}</span>)}</footer>
+  </aside>
+}
 
 // Préserve un aperçu léger tant que la carte est réduite et ne monte le rendu riche qu'à son ouverture.
 function ToolCallContent({ call, content, error, expanded }: { call: { name: string; args: unknown }; content: string; error?: boolean; expanded: boolean }) {

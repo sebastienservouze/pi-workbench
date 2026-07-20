@@ -68,8 +68,8 @@ export function formatToolData(value: unknown): string {
   try { return JSON.stringify(value, null, 2) ?? String(value) } catch { return String(value) }
 }
 
-export function formatToolCallTooltip(input: string, output?: string): string {
-  return `Appel complet : ${input}\nAppel : ${input.length} caractères${output === undefined ? '' : `\nRésultat : ${output.length} caractères`}`
+export function toolCallMetrics(input: string, output?: string): string[] {
+  return [`Appel : ${input.length} caractères`, ...(output === undefined ? [] : [`Résultat : ${output.length} caractères`])]
 }
 
 export function truncateToolText(text: string, maxLength = 140): { text: string; truncated: boolean } {
