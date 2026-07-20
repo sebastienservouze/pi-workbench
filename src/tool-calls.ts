@@ -106,6 +106,8 @@ type ToolCallPresenter = (args: unknown, repositoryRoot?: string | null) => Tool
 const toolCallPresentations: Record<string, ToolCallPresenter> = {
   bash: bashPresentation,
   edit: filePresentation,
+  fffind: searchPresentation,
+  ffgrep: searchPresentation,
   read: readPresentation,
   write: filePresentation,
 }
@@ -128,6 +130,15 @@ function filePresentation(args: unknown, repositoryRoot?: string | null): ToolCa
 
   const path = pathFromRepositoryRoot(args.path, repositoryRoot)
   return { headerDetail: { text: truncateToolText(path, 80).text, title: path } }
+}
+
+// Expose le motif et son périmètre facultatif sans dupliquer la présentation des deux outils de recherche.
+function searchPresentation(args: unknown, repositoryRoot?: string | null): ToolCallPresentation {
+  if (!isObject(args) || typeof args.pattern !== 'string') return {}
+
+  const path = typeof args.path === 'string' ? pathFromRepositoryRoot(args.path, repositoryRoot) : undefined
+  const detail = path ? `${args.pattern} · ${path}` : args.pattern
+  return { headerDetail: { text: truncateToolText(detail, 80).text, title: detail } }
 }
 
 // Complète le chemin lu avec une plage toujours visible, distincte du texte tronqué.
