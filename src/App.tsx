@@ -248,7 +248,7 @@ function App() {
                 }}
                 type="button"
               >
-                <span className={`status-dot ${activeSession?.status ?? 'exited'}`} />
+                {activeSession?.status === 'running' && <span className="status-dot" aria-label="Agent en cours de travail" role="img" />}
                 <span><strong>{openingSessionPath === recentSession.sessionPath ? 'Ouverture…' : recentSession.name}</strong><small>{new Date(recentSession.updatedAt).toLocaleString('fr-FR')}</small></span>
               </button>
             )
@@ -604,7 +604,7 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, o
           </button>
         </div>
         <div className="composer-info" aria-label="Informations de la session">
-          <div className="composer-session"><span className={`status-dot ${session.status}`} aria-hidden="true" /><strong>{session.name}</strong><span title={session.cwd}>{session.cwd}</span></div>
+          <div className="composer-session">{session.status === 'running' && <span className="status-dot" aria-label="Agent en cours de travail" role="img" />}<strong>{session.name}</strong><span title={session.cwd}>{session.cwd}</span></div>
           <div className="composer-stats"><span><b>Coût</b>{cost}</span><span><b>Contexte</b>{contextPercent}<small>{contextTokens}</small></span></div>
         </div>
       </div>
