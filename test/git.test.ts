@@ -62,17 +62,23 @@ test('reports unpushed commits and the files they contain', async () => {
     await writeFile(join(directory, 'unpushed.ts'), 'local only\n')
     await execFile('git', ['add', 'tracked.ts', 'unpushed.ts'], { cwd: directory })
     await execFile('git', ['commit', '--quiet', '-m', 'Local commit'], { cwd: directory })
+    await writeFile(join(directory, 'second.ts'), 'second commit\n')
+    await execFile('git', ['add', 'second.ts'], { cwd: directory })
+    await execFile('git', ['commit', '--quiet', '-m', 'Second local commit'], { cwd: directory })
 
     const snapshot = await getGitSnapshot(directory)
 
-    assert.equal(snapshot.ahead, 1)
-    assert.deepEqual(snapshot.commits.map(({ hash: _hash, ...commit }) => commit), [{
-      subject: 'Local commit',
-      files: [
-        { path: 'tracked.ts', status: 'modified', additions: 1, deletions: 0 },
-        { path: 'unpushed.ts', status: 'added', additions: 1, deletions: 0 },
-      ],
-    }])
+    assert.equal(snapshot.ahead, 2)
+    assert.deepEqual(snapshot.commits.map(({ hash: _hash, ...commit }) => commit), [
+      { subject: 'Second local commit', files: [{ path: 'second.ts', status: 'added', additions: 1, deletions: 0 }] },
+      {
+        subject: 'Local commit',
+        files: [
+          { path: 'tracked.ts', status: 'modified', additions: 1, deletions: 0 },
+          { path: 'unpushed.ts', status: 'added', additions: 1, deletions: 0 },
+        ],
+      },
+    ])
     assert.match(snapshot.commits[0]?.hash ?? '', /^[0-9a-f]{40}$/)
   } finally {
     await rm(directory, { force: true, recursive: true })

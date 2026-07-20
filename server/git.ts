@@ -49,7 +49,7 @@ async function unpushedCommits(cwd: string): Promise<GitCommit[]> {
   const commits: GitCommit[] = []
 
   for (let index = 0; index < fields.length - 1; index += 2) {
-    const hash = fields[index]
+    const hash = fields[index].trim()
     const subject = fields[index + 1]
     if (!hash) continue
     commits.push({ hash, subject, files: [] })
