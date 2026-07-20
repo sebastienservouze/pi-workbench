@@ -7,6 +7,7 @@ import type { DirectoryListing, GitActionResult, GitSnapshot, JsonObject, Manage
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, readGitSidebarWidth } from './git-sidebar.ts'
+import { formatToolData, toolCallsInMessage, toolContentText, toolResultInMessage, type ToolResult } from './tool-calls.ts'
 
 interface UiDialog {
   sessionId: string
@@ -23,6 +24,13 @@ interface Toast {
   message: string
 }
 
+interface ToolExecution {
+  id: string
+  name: string
+  args: unknown
+  result?: ToolResult
+}
+
 const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [], stats: null }
 
 function App() {
@@ -36,6 +44,8 @@ function App() {
   const [snapshotSessionId, setSnapshotSessionId] = useState('')
   const [liveText, setLiveText] = useState('')
   const [activity, setActivity] = useState<Activity | null>(null)
+  const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([])
+  const [detailedView, setDetailedView] = useState(() => window.localStorage.getItem('pi-workbench.detailed-view') === 'true')
   const [agentOptions, setAgentOptions] = useState<Record<string, string[]>>({})
   const [agentBusy, setAgentBusy] = useState<Record<string, boolean>>({})
   const [dialog, setDialog] = useState<UiDialog | null>(null)
@@ -130,6 +140,7 @@ function App() {
     setSnapshotSessionId('')
     setLiveText('')
     setActivity(null)
+    setToolExecutions([])
     void refreshSnapshot(selectedId)
   }, [refreshSnapshot, selectedId])
 
@@ -184,6 +195,25 @@ function App() {
       }
 
       if (sessionId !== selectedIdRef.current) return
+      if (event.type === 'tool_execution_start' && typeof event.toolCallId === 'string' && typeof event.toolName === 'string') {
+        const id = event.toolCallId
+        const name = event.toolName
+        setToolExecutions((current) => [
+          ...current.filter((execution) => execution.id !== id),
+          { id, name, args: event.args },
+        ])
+      }
+      if (event.type === 'tool_execution_end' && typeof event.toolCallId === 'string' && typeof event.toolName === 'string') {
+        const id = event.toolCallId
+        const result: ToolResult = {
+          toolCallId: id,
+          toolName: event.toolName,
+          content: event.result,
+          isError: event.isError === true,
+        }
+        setToolExecutions((current) => current.map((execution) => execution.id === id ? { ...execution, result } : execution))
+        void refreshSnapshot(sessionId)
+      }
       setActivity((current) => activityForPiEvent(current, event))
       if (event.type === 'message_start') setLiveText('')
       if (event.type === 'message_update' && isObject(event.assistantMessageEvent)) {
@@ -271,7 +301,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation messages={snapshot.messages} liveText={liveText} activity={activity} agentName={selectedSession.activeAgent} />
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} toolExecutions={toolExecutions} />
             {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
             <Composer
               session={selectedSession}
@@ -287,6 +317,12 @@ function App() {
               }}
               commands={snapshot.commands}
               running={selectedSession.status === 'running'}
+              detailedView={detailedView}
+              onDetailedViewChange={() => setDetailedView((current) => {
+                const next = !current
+                window.localStorage.setItem('pi-workbench.detailed-view', String(next))
+                return next
+              })}
               onSend={async (message, behavior) => {
                 const command: JsonObject = { type: 'prompt', message }
                 if (selectedSession.status === 'running') command.streamingBehavior = behavior
@@ -524,22 +560,60 @@ function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>
   return <button className="new-session" disabled={busy} onClick={() => void create()} type="button">{busy ? 'Démarrage…' : '＋ Nouvelle session'}</button>
 }
 
-function Conversation({ messages, liveText, activity, agentName }: { messages: JsonObject[]; liveText: string; activity: Activity | null; agentName?: string }) {
+function Conversation({ messages, liveText, activity, agentName, detailedView, toolExecutions }: {
+  messages: JsonObject[]
+  liveText: string
+  activity: Activity | null
+  agentName?: string
+  detailedView: boolean
+  toolExecutions: ToolExecution[]
+}) {
   const visibleMessages = messages.filter(isVisibleConversationMessage)
+  const toolCalls = messages.flatMap(toolCallsInMessage)
+  const toolCallIds = new Set(toolCalls.map((call) => call.id))
+  const resultsByCallId = new Map(messages.flatMap((message) => {
+    const result = toolResultInMessage(message)
+    return result ? [[result.toolCallId, result] as const] : []
+  }))
+  const executionsByCallId = new Map(toolExecutions.map((execution) => [execution.id, execution]))
   const endRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
     endRef.current?.scrollIntoView({ behavior })
-  }, [visibleMessages.length, liveText, activity])
+  }, [visibleMessages.length, liveText, activity, toolExecutions])
+
   return (
     <section className="conversation" aria-live="polite">
-      {visibleMessages.map((message, index) => <MessageCard key={`${String(message.timestamp ?? '')}-${index}`} message={message} />)}
+      {messages.map((message, index) => {
+        const calls = detailedView ? toolCallsInMessage(message) : []
+        if (!isVisibleConversationMessage(message) && calls.length === 0) return null
+        return <div key={`${String(message.timestamp ?? '')}-${index}`}>
+          {isVisibleConversationMessage(message) && <MessageCard message={message} />}
+          {calls.map((call) => <ToolCallCard key={call.id} call={call} result={resultsByCallId.get(call.id) ?? executionsByCallId.get(call.id)?.result} />)}
+        </div>
+      })}
+      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard key={execution.id} call={execution} result={execution.result} />)}
       {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {activity && activity.kind !== 'writing' && <ActivityIndicator activity={activity} agentName={agentName} />}
       {visibleMessages.length === 0 && !liveText && !activity && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
       <div ref={endRef} />
     </section>
   )
+}
+
+function ToolCallCard({ call, result }: { call: { id: string; name: string; args: unknown }; result?: ToolResult }) {
+  const output = result ? toolContentText(result.content) : ''
+  return <article className={`tool-call${result?.isError ? ' error' : ''}`}>
+    <div className="tool-call-heading"><span aria-hidden="true">⌘</span><strong>{call.name}</strong><small>{result ? result.isError ? 'Échec' : 'Terminé' : 'En cours…'}</small></div>
+    <details>
+      <summary>Appel</summary>
+      <pre>{formatToolData(call.args)}</pre>
+    </details>
+    {result && <details className="tool-result">
+      <summary>Résultat</summary>
+      <pre>{output || 'Aucune sortie.'}</pre>
+    </details>}
+  </article>
 }
 
 function MessageCard({ message }: { message: JsonObject }) {
@@ -573,7 +647,7 @@ function Markdown({ children }: { children: string }) {
   return <ReactMarkdown>{children}</ReactMarkdown>
 }
 
-function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, onAgentChange, onCommand, commands, running, onSend, onAbort, onError }: {
+function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, onAgentChange, onCommand, commands, running, detailedView, onDetailedViewChange, onSend, onAbort, onError }: {
   session: SessionSummary
   snapshot: SessionSnapshot
   agentBusy: boolean
@@ -583,6 +657,8 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, o
   onCommand: (command: JsonObject) => Promise<JsonObject>
   commands: JsonObject[]
   running: boolean
+  detailedView: boolean
+  onDetailedViewChange: () => void
   onSend: (message: string, behavior: 'steer' | 'followUp') => Promise<void>
   onAbort: () => Promise<JsonObject>
   onError: (cause: unknown) => void
@@ -652,6 +728,9 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, o
               tone="command"
               value=""
             />}
+            <button aria-pressed={detailedView} className={`composer-toggle${detailedView ? ' active' : ''}`} onClick={onDetailedViewChange} type="button">
+              <span aria-hidden="true">⌘</span> {detailedView ? 'Vue détaillée' : 'Vue simplifiée'}
+            </button>
             {running && <ComposerSelect
               ariaLabel="Comportement du prochain message"
               onValueChange={(value) => setBehavior(value as 'steer' | 'followUp')}
