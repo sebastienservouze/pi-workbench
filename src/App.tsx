@@ -134,7 +134,6 @@ function App() {
   const [workspacePath, setWorkspacePath] = useState(() => window.localStorage.getItem('pi-workbench.workspace-path') ?? '~/.pi')
   const [recentWorkspacePaths, setRecentWorkspacePaths] = useState(() => recentWorkspaces(window.localStorage.getItem('pi-workbench.workspace-path') ?? '~/.pi', readRecentWorkspaces()))
   const [directoryPickerOpen, setDirectoryPickerOpen] = useState(false)
-  const [vsCodeAvailable, setVsCodeAvailable] = useState<boolean | null>(null)
   const [openingSessionPath, setOpeningSessionPath] = useState('')
   const [selectedId, setSelectedId] = useState('')
   const [snapshot, setSnapshot] = useState<SessionSnapshot>(emptySnapshot)
@@ -196,18 +195,6 @@ function App() {
       if (version === fileRequestVersionRef.current) setFilePreview({ path, display, error: messageOf(cause) })
     }
   }, [showToast, startTransition, workspacePath])
-
-  useEffect(() => {
-    let cancelled = false
-    void getVsCodeStatus()
-      .then(({ available }) => {
-        if (!cancelled) setVsCodeAvailable(available)
-      })
-      .catch(() => {
-        if (!cancelled) setVsCodeAvailable(false)
-      })
-    return () => { cancelled = true }
-  }, [])
 
   useEffect(() => {
     if (!toast) return
@@ -405,39 +392,9 @@ function App() {
           <span className="brand-mark">π</span>
           <div><strong>Pi Workbench</strong><small>Local workspace</small></div>
         </div>
-        <div className="workspace-actions">
-          <button className="workspace-path" onClick={() => setDirectoryPickerOpen(true)} title={workspacePath} type="button">
-            <span>Dossier courant</span><strong>{workspacePath}</strong>
-          </button>
-          <div className="workspace-action-buttons">
-            <button
-              aria-label="Ouvrir le dossier dans l’Explorateur Windows"
-              className="icon-button open-explorer"
-              onClick={() => void openExplorer(workspacePath).catch((cause) => showToast('error', messageOf(cause)))}
-              title="Ouvrir le dossier dans l’Explorateur Windows"
-              type="button"
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h4l2 2h7A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z" /><path d="M3 9h18" /></svg>
-            </button>
-            <span className="open-vscode-tooltip" title={vsCodeAvailable === null ? 'Vérification de VS Code…' : vsCodeAvailable ? 'Ouvrir le dossier dans VS Code' : 'VS Code est indisponible. Tapez code dans WSL, puis rechargez la page.'}>
-              <button
-                aria-label="Ouvrir le dossier dans VS Code"
-                className="icon-button open-vscode"
-                disabled={vsCodeAvailable !== true}
-                onClick={() => {
-                  void openVsCode(workspacePath)
-                    .catch((cause) => {
-                      setVsCodeAvailable(false)
-                      showToast('error', messageOf(cause))
-                    })
-                }}
-                type="button"
-              >
-                <span aria-hidden="true" className="code-symbol">{'<>'}</span>
-              </button>
-            </span>
-          </div>
-        </div>
+        <button className="workspace-path" onClick={() => setDirectoryPickerOpen(true)} title={workspacePath} type="button">
+          <span>Dossier courant</span><strong>{workspacePath}</strong>
+        </button>
         <NewSessionButton
           onCreate={async () => {
             const session = await createSession(workspacePath)
@@ -1161,6 +1118,19 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, a
   const [preparingImages, setPreparingImages] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [behavior, setBehavior] = useState<'steer' | 'followUp'>('steer')
+  const [vsCodeAvailable, setVsCodeAvailable] = useState<boolean | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    void getVsCodeStatus()
+      .then(({ available }) => {
+        if (!cancelled) setVsCodeAvailable(available)
+      })
+      .catch(() => {
+        if (!cancelled) setVsCodeAvailable(false)
+      })
+    return () => { cancelled = true }
+  }, [])
+
   const model = isObject(snapshot.state?.model) ? snapshot.state.model : null
   const currentModel = model && typeof model.id === 'string' && typeof model.provider === 'string' ? `${model.provider}/${model.id}` : ''
   const selectedModel = snapshot.models.find((item) => `${item.provider}/${item.id}` === currentModel)
@@ -1240,6 +1210,34 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, a
       <div className="composer-footer">
         <div className="composer-actions">
           <div className="composer-tools">
+            <div className="composer-workspace-actions">
+              <button
+                aria-label="Ouvrir le dossier dans l’Explorateur Windows"
+                className="icon-button open-explorer"
+                onClick={() => void openExplorer(session.cwd).catch(onError)}
+                title="Ouvrir le dossier dans l’Explorateur Windows"
+                type="button"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h4l2 2h7A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z" /><path d="M3 9h18" /></svg>
+              </button>
+              <span className="open-vscode-tooltip" title={vsCodeAvailable === null ? 'Vérification de VS Code…' : vsCodeAvailable ? 'Ouvrir le dossier dans VS Code' : 'VS Code est indisponible. Tapez code dans WSL, puis rechargez la page.'}>
+                <button
+                  aria-label="Ouvrir le dossier dans VS Code"
+                  className="icon-button open-vscode"
+                  disabled={vsCodeAvailable !== true}
+                  onClick={() => {
+                    void openVsCode(session.cwd)
+                      .catch((cause) => {
+                        setVsCodeAvailable(false)
+                        onError(cause)
+                      })
+                  }}
+                  type="button"
+                >
+                  <span aria-hidden="true" className="code-symbol">{'<>'}</span>
+                </button>
+              </span>
+            </div>
             {showAgentSelector && <ComposerSelect
               ariaLabel="Agent"
               disabled={agentLoading || agentBusy || agentOptions.length === 0}

@@ -68,9 +68,8 @@ button:disabled, select:disabled { cursor: not-allowed; }
 }
 .brand-mark.large { width: 64px; height: 64px; margin: auto; border-radius: 18px; font-size: 38px; }
 
-.workspace-actions { display: grid; gap: 6px; }
-.workspace-action-buttons { display: flex; justify-content: flex-end; gap: 6px; }
-.open-vscode-tooltip { display: flex; }
+.composer-workspace-actions, .open-vscode-tooltip { display: flex; gap: 5px; }
+.composer-workspace-actions { padding-right: 5px; border-right: 1px solid var(--line); }
 .open-explorer svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
 .code-symbol { font: 700 15px/1 ui-monospace, monospace; letter-spacing: -2px; }
 .open-vscode:disabled { opacity: .45; }
