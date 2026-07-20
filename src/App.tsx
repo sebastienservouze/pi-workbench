@@ -12,7 +12,7 @@ import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typesc
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import './App.css'
 import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getSnapshot, getWorkspaceFile, listDirectories, listRecentSessions, listSessions, openSession, sendPiCommand } from './api.ts'
-import type { DirectoryListing, GitActionResult, GitFileDiff, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
+import type { GitActionResult, GitFileDiff, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { canHighlightFile } from './file-preview.ts'
@@ -662,31 +662,17 @@ function gitStatusInitial(status: 'added' | 'deleted' | 'modified' | 'renamed'):
   return { added: 'A', deleted: 'D', modified: 'M', renamed: 'R' }[status]
 }
 
-// Permet de parcourir ou compléter un chemin local avant de changer l'espace de travail.
+// Permet de compléter puis valider un chemin local avant de changer l'espace de travail.
 function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {
   initialPath: string
   onClose: () => void
   onError: (cause: unknown) => void
   onSelect: (path: string) => void
 }) {
-  const [listing, setListing] = useState<DirectoryListing | null>(null)
   const [path, setPath] = useState(initialPath)
-  const [suggestions, setSuggestions] = useState<Array<{ path: string; completion: string }>>([])
+  const [suggestions, setSuggestions] = useState<string[]>([])
   const [activeSuggestion, setActiveSuggestion] = useState(-1)
   const completionVersionRef = useRef(0)
-
-  const load = useCallback(async (nextPath: string) => {
-    try {
-      const nextListing = await listDirectories(nextPath)
-      setListing(nextListing)
-      setPath(nextListing.path)
-      setActiveSuggestion(-1)
-    } catch (cause) {
-      onError(cause)
-    }
-  }, [onError])
-
-  useEffect(() => { void load(initialPath) }, [initialPath, load])
 
   // Les requêtes obsolètes ne doivent pas remplacer les suggestions du chemin actuellement saisi.
   useEffect(() => {
@@ -701,7 +687,8 @@ function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {
       if (version !== completionVersionRef.current) return
       setSuggestions(parent.directories
         .filter((directory) => directory.name.startsWith(target.namePrefix))
-        .map((directory) => ({ path: directory.path, completion: `${target.pathPrefix}${directory.name}` })))
+        .map((directory) => `${target.pathPrefix}${directory.name}`)
+        .filter((completion) => completion !== path.trim()))
       setActiveSuggestion(-1)
     }).catch(() => {
       if (version === completionVersionRef.current) setSuggestions([])
@@ -727,17 +714,12 @@ function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {
       const suggestion = suggestions[activeSuggestion >= 0 ? activeSuggestion : 0]
       if (!suggestion) return
       event.preventDefault()
-      setPath(suggestion.completion)
+      setPath(suggestion)
       setActiveSuggestion(-1)
       return
     }
     if (event.key === 'Enter') {
       event.preventDefault()
-      const suggestion = suggestions[activeSuggestion]
-      if (suggestion) {
-        void load(suggestion.path)
-        return
-      }
       void listDirectories(path).then((directory) => onSelect(directory.path)).catch(onError)
     }
   }
@@ -749,6 +731,7 @@ function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {
         <label className="directory-path-label" htmlFor="directory-path">Chemin du dossier</label>
         <input
           aria-activedescendant={activeSuggestion >= 0 ? `directory-suggestion-${activeSuggestion}` : undefined}
+          autoFocus
           aria-autocomplete="list"
           aria-controls={suggestions.length > 0 ? 'directory-suggestions' : undefined}
           aria-expanded={suggestions.length > 0}
@@ -760,26 +743,18 @@ function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {
           role="combobox"
           value={path}
         />
-        <p className="directory-path-hint">Tab complète · ↑↓ parcourent · Entrée ouvre ou valide</p>
+        <p className="directory-path-hint">Tab complète · ↑↓ parcourent · Entrée valide · Échap annule</p>
         {suggestions.length > 0 && <div aria-label="Suggestions de dossiers" className="directory-suggestions" id="directory-suggestions" role="listbox">
           {suggestions.map((suggestion, index) => <div
             aria-selected={index === activeSuggestion}
             className={index === activeSuggestion ? 'active' : undefined}
             id={`directory-suggestion-${index}`}
-            key={suggestion.path}
-            onClick={() => void load(suggestion.path)}
+            key={suggestion}
+            onClick={() => { setPath(suggestion); setActiveSuggestion(-1) }}
             onMouseDown={(event) => event.preventDefault()}
             role="option"
-          >{suggestion.completion}</div>)}
+          >{suggestion}</div>)}
         </div>}
-        {listing ? <>
-          <button className="directory-current" onClick={() => onSelect(listing.path)} type="button">Utiliser {listing.path}</button>
-          <div className="directory-list">
-            {listing.parentPath && <button onClick={() => void load(listing.parentPath as string)} type="button">⌃ Dossier parent</button>}
-            {listing.directories.map((directory) => <button key={directory.path} onClick={() => void load(directory.path)} type="button">⌄ {directory.name}</button>)}
-            {listing.directories.length === 0 && <p>Aucun sous-dossier.</p>}
-          </div>
-        </> : <p>Chargement des dossiers…</p>}
         <div className="modal-actions"><button onClick={onClose} type="button">Annuler</button></div>
       </section>
     </div>

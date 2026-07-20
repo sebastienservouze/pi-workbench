@@ -297,9 +297,9 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .ask-user-question legend span { display: block; margin-bottom: 5px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: 0; }
 .ask-user-question-hint { margin: 0 0 14px; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .ask-user-options { display: grid; gap: 7px; }
-.ask-user-options button, .directory-current, .directory-list button, .option-list button { border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); text-align: left; transition: border-color 180ms ease, background 180ms ease; }
+.ask-user-options button, .option-list button { border: 1px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); text-align: left; transition: border-color 180ms ease, background 180ms ease; }
 .ask-user-options button { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; width: 100%; padding: 11px; }
-.ask-user-options button:hover, .directory-list button:hover, .option-list button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.ask-user-options button:hover, .option-list button:hover { border-color: var(--accent); background: var(--accent-soft); }
 .ask-user-options button.selected { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
 .ask-user-option-mark { display: grid; place-items: center; width: 20px; height: 20px; border: 1px solid var(--line-strong); border-radius: 50%; color: white; font-size: 12px; font-weight: 800; }
 .ask-user-options button.selected .ask-user-option-mark { border-color: var(--accent); background: var(--accent); }
@@ -420,10 +420,6 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .directory-suggestions { max-height: 180px; margin-top: 8px; overflow: auto; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-raised); }
 .directory-suggestions [role='option'] { overflow: hidden; padding: 8px 10px; color: var(--ink); cursor: pointer; font: 12px ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }
 .directory-suggestions [role='option']:hover, .directory-suggestions [role='option'].active { background: var(--accent-soft); color: #18584f; }
-.directory-current, .directory-list button { overflow: hidden; padding: 10px 11px; text-overflow: ellipsis; white-space: nowrap; }
-.directory-current { margin-top: 12px; border-color: var(--ink); background: var(--ink); color: white; }
-.directory-list { display: grid; gap: 7px; max-height: 42vh; margin-top: 12px; overflow: auto; }
-.directory-list p { margin: 8px 0; color: var(--muted); font-size: 13px; text-align: center; }
 .modal p { margin: 0 0 18px; color: var(--muted); line-height: 1.55; }
 .option-list { display: grid; gap: 7px; }
 .option-list button { padding: 11px; }
