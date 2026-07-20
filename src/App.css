@@ -70,9 +70,16 @@ button:disabled, select:disabled { cursor: not-allowed; }
 
 .workspace-actions { display: flex; align-items: stretch; gap: 6px; }
 .workspace-actions .workspace-path { flex: 1; min-width: 0; }
-.open-vscode-tooltip { display: flex; align-self: center; }
-.open-vscode svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
-.open-vscode:disabled { opacity: .45; }
+.launcher-control { display: flex; align-items: stretch; min-width: 0; }
+.launcher-open { border-radius: 8px 0 0 8px; }
+.launcher-select-trigger { display: flex; align-items: center; justify-content: space-between; gap: 3px; min-width: 30px; max-width: 72px; border: 1px solid var(--line-strong); border-left: 0; border-radius: 0 8px 8px 0; padding: 0 6px; background: var(--surface); color: var(--ink); font-size: 10px; font-weight: 700; }
+.launcher-select-trigger:hover, .launcher-select-trigger:focus-visible { border-color: #9caea3; outline: 0; }
+.launcher-select-content { z-index: 40; min-width: 210px; }
+.launcher-option { display: flex; align-items: center; gap: 7px; }
+.launcher-mark { display: inline-grid; place-items: center; flex: 0 0 auto; width: 20px; height: 20px; border: 1px solid #b5c8c0; border-radius: 5px; background: #edf4f1; color: #18584f; font: 800 8px ui-sans-serif, system-ui, sans-serif; letter-spacing: -.04em; }
+.launcher-select-separator { height: 1px; margin: 4px 0; background: var(--line); }
+.launcher-configure { width: 100%; border: 0; padding: 8px 10px; background: transparent; color: var(--teal); font-size: 12px; font-weight: 700; text-align: left; }
+.launcher-configure:hover, .launcher-configure:focus-visible { background: #edf2ef; outline: 0; }
 
 .workspace-path {
   display: grid;
@@ -435,6 +442,27 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .option-list { display: grid; gap: 7px; }
 .option-list button { padding: 11px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.launcher-dialog { width: min(620px, 100%); }
+.launcher-dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.launcher-dialog-heading .icon-button { margin-top: -3px; font-size: 17px; }
+.launcher-dialog-heading h2 { margin-bottom: 4px; }
+.launcher-dialog-heading p { margin-bottom: 14px; font-size: 12px; }
+.launcher-list { display: grid; max-height: 240px; overflow: auto; border: 1px solid var(--line); border-radius: 9px; }
+.launcher-list-item { display: flex; align-items: center; gap: 9px; border: 0; border-bottom: 1px solid var(--line); padding: 9px 10px; background: var(--surface-raised); color: var(--ink); text-align: left; }
+.launcher-list-item:last-child { border-bottom: 0; }
+.launcher-list-item:hover, .launcher-list-item:focus-visible { background: var(--accent-soft); outline: 0; }
+.launcher-list-item > span:last-child { min-width: 0; }
+.launcher-list-item strong, .launcher-list-item small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.launcher-list-item strong { font-size: 12px; }
+.launcher-list-item small { margin-top: 3px; color: var(--muted); font: 10px ui-monospace, monospace; }
+.launcher-empty { padding: 12px; font-size: 12px; }
+.launcher-manual { display: grid; gap: 10px; margin-top: 18px; }
+.launcher-manual h3 { margin: 0; font-size: 14px; }
+.launcher-manual label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.launcher-manual label small { font-weight: 400; }
+.launcher-manual input, .launcher-manual textarea { width: 100%; border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px 9px; background: var(--surface-raised); color: var(--ink); font: 12px ui-monospace, monospace; }
+.launcher-manual textarea { resize: vertical; }
+.launcher-manual input:focus, .launcher-manual textarea:focus { border-color: var(--accent); outline: 0; box-shadow: 0 0 0 3px rgb(35 119 109 / 14%); }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes activity-pulse { 50% { opacity: .58; } }

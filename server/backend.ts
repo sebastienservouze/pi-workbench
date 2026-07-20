@@ -8,7 +8,7 @@ import { ManagerClient } from './manager-client.ts'
 import { listRecentPiSessions, loadPiSession } from './pi-session-store.ts'
 import { commitAndPush, getGitFileDiff, getGitSnapshot } from './git.ts'
 import { readWorkspaceFile, WorkspaceFileError } from './workspace-file.ts'
-import { isVsCodeAvailable, openVsCode } from './vscode.ts'
+import { createManualLauncher, detectWindowsLaunchers, launchWorkspace, launcherSnapshot, loadLauncherRegistry, mergeDetectedLaunchers, recordLauncherLaunch, saveLauncherRegistry, selectWorkspaceLauncher } from './launchers.ts'
 import type { DirectoryListing, JsonObject, ManagerEvent, SessionSnapshot } from '../shared/types.ts'
 
 const host = '127.0.0.1'
@@ -72,17 +72,56 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
     return
   }
 
-  if (method === 'GET' && url.pathname === '/api/vscode') {
-    sendJson(response, 200, { available: await isVsCodeAvailable() })
+  if (method === 'GET' && url.pathname === '/api/launchers') {
+    const cwd = await resolveWorkingDirectory(url.searchParams.get('cwd') ?? '~/.pi')
+    sendJson(response, 200, launcherSnapshot(await loadLauncherRegistry(), cwd))
     return
   }
 
-  if (method === 'POST' && url.pathname === '/api/vscode') {
+  if (method === 'POST' && url.pathname === '/api/launchers/detect') {
     const body = await readJsonBody(request)
     if (typeof body.cwd !== 'string') throw new HttpError(400, 'Working directory is required')
-    if (!(await isVsCodeAvailable())) throw new HttpError(409, 'VS Code is unavailable')
-    await openVsCode(await resolveWorkingDirectory(body.cwd))
-    sendJson(response, 200, { available: true })
+    const cwd = await resolveWorkingDirectory(body.cwd)
+    const registry = mergeDetectedLaunchers(await loadLauncherRegistry(), await detectWindowsLaunchers())
+    await saveLauncherRegistry(registry)
+    sendJson(response, 200, launcherSnapshot(registry, cwd))
+    return
+  }
+
+  if (method === 'POST' && url.pathname === '/api/launchers/select') {
+    const body = await readJsonBody(request)
+    if (typeof body.cwd !== 'string' || typeof body.launcherId !== 'string') throw new HttpError(400, 'Working directory and launcher are required')
+    const cwd = await resolveWorkingDirectory(body.cwd)
+    const registry = selectWorkspaceLauncher(await loadLauncherRegistry(), cwd, body.launcherId)
+    await saveLauncherRegistry(registry)
+    sendJson(response, 200, launcherSnapshot(registry, cwd))
+    return
+  }
+
+  if (method === 'POST' && url.pathname === '/api/launchers') {
+    const body = await readJsonBody(request)
+    if (typeof body.cwd !== 'string' || typeof body.name !== 'string' || typeof body.executablePath !== 'string' || !Array.isArray(body.arguments) || !body.arguments.every((argument) => typeof argument === 'string')) throw new HttpError(400, 'Invalid launcher')
+    const cwd = await resolveWorkingDirectory(body.cwd)
+    const registry = await loadLauncherRegistry()
+    const launcher = createManualLauncher({ name: body.name, executablePath: body.executablePath, arguments: body.arguments })
+    const nextRegistry = selectWorkspaceLauncher({ ...registry, launchers: [...registry.launchers, launcher] }, cwd, launcher.id)
+    await saveLauncherRegistry(nextRegistry)
+    sendJson(response, 201, launcherSnapshot(nextRegistry, cwd))
+    return
+  }
+
+  if (method === 'POST' && url.pathname === '/api/launchers/open') {
+    const body = await readJsonBody(request)
+    if (typeof body.cwd !== 'string') throw new HttpError(400, 'Working directory is required')
+    const cwd = await resolveWorkingDirectory(body.cwd)
+    const registry = await loadLauncherRegistry()
+    const selected = launcherSnapshot(registry, cwd).selectedLauncherId
+    const launcher = registry.launchers.find(({ id }) => id === selected)
+    if (!launcher) throw new HttpError(409, 'No launcher is configured for this workspace')
+    await launchWorkspace(launcher, cwd)
+    const nextRegistry = recordLauncherLaunch(registry, launcher.id)
+    await saveLauncherRegistry(nextRegistry)
+    sendJson(response, 200, launcherSnapshot(nextRegistry, cwd))
     return
   }
 

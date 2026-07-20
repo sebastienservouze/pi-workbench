@@ -1,4 +1,4 @@
-import type { DirectoryListing, GitActionResult, GitFileDiff, GitSnapshot, JsonObject, RecentSession, SessionSnapshot, SessionSummary, VsCodeStatus, WorkspaceFile } from '../shared/types.ts'
+import type { DirectoryListing, GitActionResult, GitFileDiff, GitSnapshot, JsonObject, LauncherSnapshot, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
 
 export async function listSessions(): Promise<SessionSummary[]> {
   return request<SessionSummary[]>('/api/sessions')
@@ -12,12 +12,33 @@ export async function listDirectories(path: string): Promise<DirectoryListing> {
   return request<DirectoryListing>(`/api/directories?path=${encodeURIComponent(path)}`)
 }
 
-export async function getVsCodeStatus(): Promise<VsCodeStatus> {
-  return request<VsCodeStatus>('/api/vscode')
+export async function getLaunchers(cwd: string): Promise<LauncherSnapshot> {
+  return request<LauncherSnapshot>(`/api/launchers?cwd=${encodeURIComponent(cwd)}`)
 }
 
-export async function openVsCode(cwd: string): Promise<VsCodeStatus> {
-  return request<VsCodeStatus>('/api/vscode', {
+export async function detectLaunchers(cwd: string): Promise<LauncherSnapshot> {
+  return request<LauncherSnapshot>('/api/launchers/detect', {
+    method: 'POST',
+    body: JSON.stringify({ cwd }),
+  })
+}
+
+export async function selectLauncher(cwd: string, launcherId: string): Promise<LauncherSnapshot> {
+  return request<LauncherSnapshot>('/api/launchers/select', {
+    method: 'POST',
+    body: JSON.stringify({ cwd, launcherId }),
+  })
+}
+
+export async function createLauncher(cwd: string, name: string, executablePath: string, argumentsForLauncher: string[]): Promise<LauncherSnapshot> {
+  return request<LauncherSnapshot>('/api/launchers', {
+    method: 'POST',
+    body: JSON.stringify({ cwd, name, executablePath, arguments: argumentsForLauncher }),
+  })
+}
+
+export async function openLauncher(cwd: string): Promise<LauncherSnapshot> {
+  return request<LauncherSnapshot>('/api/launchers/open', {
     method: 'POST',
     body: JSON.stringify({ cwd }),
   })
