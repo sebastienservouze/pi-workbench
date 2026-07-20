@@ -17,6 +17,7 @@ import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuest
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { canHighlightFile } from './file-preview.ts'
 import { formatTurnCost, turnUsageByMessage, type MessageUsage } from './message-usage.ts'
+import { directoryCompletionTarget } from './directory-completion.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff, readGitSidebarWidth } from './git-sidebar.ts'
 import { editOperations, formatToolCallTooltip, formatToolData, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolFilePath, toolResultInMessage, type EditOperation, type ReadContentDisplay, type ToolResult } from './tool-calls.ts'
 
@@ -670,7 +671,7 @@ function gitStatusInitial(status: 'added' | 'deleted' | 'modified' | 'renamed'):
   return { added: 'A', deleted: 'D', modified: 'M', renamed: 'R' }[status]
 }
 
-// Permet de parcourir les dossiers accessibles avant de changer l'espace de travail.
+// Permet de parcourir ou compléter un chemin local avant de changer l'espace de travail.
 function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {
   initialPath: string
   onClose: () => void
@@ -678,10 +679,17 @@ function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {
   onSelect: (path: string) => void
 }) {
   const [listing, setListing] = useState<DirectoryListing | null>(null)
+  const [path, setPath] = useState(initialPath)
+  const [suggestions, setSuggestions] = useState<Array<{ path: string; completion: string }>>([])
+  const [activeSuggestion, setActiveSuggestion] = useState(-1)
+  const completionVersionRef = useRef(0)
 
-  const load = useCallback(async (path: string) => {
+  const load = useCallback(async (nextPath: string) => {
     try {
-      setListing(await listDirectories(path))
+      const nextListing = await listDirectories(nextPath)
+      setListing(nextListing)
+      setPath(nextListing.path)
+      setActiveSuggestion(-1)
     } catch (cause) {
       onError(cause)
     }
@@ -689,10 +697,90 @@ function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {
 
   useEffect(() => { void load(initialPath) }, [initialPath, load])
 
+  // Les requêtes obsolètes ne doivent pas remplacer les suggestions du chemin actuellement saisi.
+  useEffect(() => {
+    const version = ++completionVersionRef.current
+    const target = directoryCompletionTarget(path)
+    if (!target) {
+      setSuggestions([])
+      return
+    }
+
+    void listDirectories(target.parentPath).then((parent) => {
+      if (version !== completionVersionRef.current) return
+      setSuggestions(parent.directories
+        .filter((directory) => directory.name.startsWith(target.namePrefix))
+        .map((directory) => ({ path: directory.path, completion: `${target.pathPrefix}${directory.name}` })))
+      setActiveSuggestion(-1)
+    }).catch(() => {
+      if (version === completionVersionRef.current) setSuggestions([])
+    })
+  }, [path])
+
+  // Applique les raccourcis habituels d'une liste de complétion sans intercepter la saisie normale.
+  function handlePathKeyDown(event: ReactKeyboardEvent<HTMLInputElement>): void {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      onClose()
+      return
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (suggestions.length === 0) return
+      event.preventDefault()
+      setActiveSuggestion((current) => event.key === 'ArrowDown'
+        ? Math.min(current + 1, suggestions.length - 1)
+        : Math.max(current - 1, 0))
+      return
+    }
+    if (event.key === 'Tab') {
+      const suggestion = suggestions[activeSuggestion >= 0 ? activeSuggestion : 0]
+      if (!suggestion) return
+      event.preventDefault()
+      setPath(suggestion.completion)
+      setActiveSuggestion(-1)
+      return
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      const suggestion = suggestions[activeSuggestion]
+      if (suggestion) {
+        void load(suggestion.path)
+        return
+      }
+      void listDirectories(path).then((directory) => onSelect(directory.path)).catch(onError)
+    }
+  }
+
   return (
     <div className="modal-backdrop" role="presentation">
       <section aria-labelledby="directory-picker-title" aria-modal="true" className="modal directory-picker" role="dialog">
         <h2 id="directory-picker-title">Choisir un dossier</h2>
+        <label className="directory-path-label" htmlFor="directory-path">Chemin du dossier</label>
+        <input
+          aria-activedescendant={activeSuggestion >= 0 ? `directory-suggestion-${activeSuggestion}` : undefined}
+          aria-autocomplete="list"
+          aria-controls={suggestions.length > 0 ? 'directory-suggestions' : undefined}
+          aria-expanded={suggestions.length > 0}
+          className="directory-path-input"
+          id="directory-path"
+          onChange={(event) => setPath(event.target.value)}
+          onKeyDown={handlePathKeyDown}
+          placeholder="~/projets ou /chemin/absolu"
+          role="combobox"
+          value={path}
+        />
+        <p className="directory-path-hint">Tab complète · ↑↓ parcourent · Entrée ouvre ou valide</p>
+        {suggestions.length > 0 && <div aria-label="Suggestions de dossiers" className="directory-suggestions" id="directory-suggestions" role="listbox">
+          {suggestions.map((suggestion, index) => <div
+            aria-selected={index === activeSuggestion}
+            className={index === activeSuggestion ? 'active' : undefined}
+            id={`directory-suggestion-${index}`}
+            key={suggestion.path}
+            onClick={() => void load(suggestion.path)}
+            onMouseDown={(event) => event.preventDefault()}
+            role="option"
+          >{suggestion.completion}</div>)}
+        </div>}
         {listing ? <>
           <button className="directory-current" onClick={() => onSelect(listing.path)} type="button">Utiliser {listing.path}</button>
           <div className="directory-list">

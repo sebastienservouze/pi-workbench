@@ -414,8 +414,15 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .modal { width: min(560px, 100%); max-height: 80vh; overflow: auto; border: 1px solid rgb(255 255 255 / 80%); border-radius: 14px; padding: 24px; background: var(--surface); box-shadow: 0 30px 90px rgb(17 29 23 / 24%); }
 .modal h2 { margin: 0 0 8px; letter-spacing: -.025em; }
 .directory-picker { display: flex; flex-direction: column; }
+.directory-path-label { margin: 12px 0 5px; color: var(--muted); font-size: 12px; font-weight: 700; }
+.directory-path-input { width: 100%; border: 1px solid var(--line-strong); border-radius: 9px; padding: 10px 11px; background: var(--surface-raised); color: var(--ink); font: 13px ui-monospace, monospace; }
+.directory-path-input:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px rgb(35 119 109 / 14%); }
+.modal .directory-path-hint { margin: 6px 0 0; color: var(--muted); font-size: 11px; }
+.directory-suggestions { max-height: 180px; margin-top: 8px; overflow: auto; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-raised); }
+.directory-suggestions [role='option'] { overflow: hidden; padding: 8px 10px; color: var(--ink); cursor: pointer; font: 12px ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }
+.directory-suggestions [role='option']:hover, .directory-suggestions [role='option'].active { background: var(--accent-soft); color: #18584f; }
 .directory-current, .directory-list button { overflow: hidden; padding: 10px 11px; text-overflow: ellipsis; white-space: nowrap; }
-.directory-current { border-color: var(--ink); background: var(--ink); color: white; }
+.directory-current { margin-top: 12px; border-color: var(--ink); background: var(--ink); color: white; }
 .directory-list { display: grid; gap: 7px; max-height: 42vh; margin-top: 12px; overflow: auto; }
 .directory-list p { margin: 8px 0; color: var(--muted); font-size: 13px; text-align: center; }
 .modal p { margin: 0 0 18px; color: var(--muted); line-height: 1.55; }
