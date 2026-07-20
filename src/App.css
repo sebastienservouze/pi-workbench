@@ -205,6 +205,13 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .tool-call-spinner { display: inline-block; width: 11px; height: 11px; border-width: 1.5px; }
 .tool-call-content { border-top: 1px solid rgb(33 68 61 / 14%); }
 .tool-call pre { max-height: calc(6em + 18px); margin: 0; overflow-x: auto; overflow-y: auto; border: 0; border-radius: 0; padding: 9px 10px; background: rgb(255 255 255 / 56%); color: inherit; font: 11px/1.5 ui-monospace, monospace; overflow-wrap: anywhere; white-space: pre-wrap; }
+.tool-call-markdown { max-height: calc(6em + 18px); overflow: auto; padding: 9px 10px; font: 12px/1.55 ui-sans-serif, system-ui, sans-serif; }
+.tool-call-markdown > :first-child { margin-top: 0; }
+.tool-call-markdown > :last-child { margin-bottom: 0; }
+.tool-call-markdown p { margin: 0 0 9px; }
+.tool-call-markdown h1, .tool-call-markdown h2, .tool-call-markdown h3 { margin: 12px 0 7px; line-height: 1.25; }
+.tool-call-markdown :not(pre) > code { padding: 1px 3px; border-radius: 3px; background: rgb(33 68 61 / 10%); font: 11px ui-monospace, monospace; }
+.tool-call-syntax { font: 11px/1.5 ui-monospace, monospace !important; }
 .tool-call-counts { padding: 5px 10px 7px; color: currentColor; font: 10px ui-monospace, monospace; text-align: right; }
 .pi-activity { display: flex; align-items: flex-start; gap: 9px; max-width: 760px; margin: -3px 2px 25px; color: var(--teal); font: 12px/1.55 ui-monospace, monospace; white-space: nowrap; }
 .activity-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; animation: activity-pulse 1.8s ease-in-out infinite; }

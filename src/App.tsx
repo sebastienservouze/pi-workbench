@@ -1,13 +1,22 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import * as Select from '@radix-ui/react-select'
 import ReactMarkdown from 'react-markdown'
+import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
+import bash from 'react-syntax-highlighter/dist/esm/languages/prism/bash'
+import csharp from 'react-syntax-highlighter/dist/esm/languages/prism/csharp'
+import css from 'react-syntax-highlighter/dist/esm/languages/prism/css'
+import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javascript'
+import json from 'react-syntax-highlighter/dist/esm/languages/prism/json'
+import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup'
+import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import './App.css'
 import { commitAndPush, createSession, getGitSnapshot, getSnapshot, listDirectories, listRecentSessions, listSessions, openSession, sendPiCommand } from './api.ts'
 import type { DirectoryListing, GitActionResult, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, readGitSidebarWidth } from './git-sidebar.ts'
-import { formatToolData, isToolCallPending, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, type ToolResult } from './tool-calls.ts'
+import { formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, type ToolResult } from './tool-calls.ts'
 
 interface UiDialog {
   sessionId: string
@@ -32,6 +41,14 @@ interface ToolExecution {
 }
 
 const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [], stats: null }
+
+SyntaxHighlighter.registerLanguage('bash', bash)
+SyntaxHighlighter.registerLanguage('csharp', csharp)
+SyntaxHighlighter.registerLanguage('css', css)
+SyntaxHighlighter.registerLanguage('javascript', javascript)
+SyntaxHighlighter.registerLanguage('json', json)
+SyntaxHighlighter.registerLanguage('markup', markup)
+SyntaxHighlighter.registerLanguage('typescript', typescript)
 
 // Orchestre l'état de l'espace de travail, les événements Pi et les panneaux de l'interface.
 function App() {
@@ -652,13 +669,17 @@ function ToolCallCard({ call, repositoryRoot, result }: { call: { id: string; na
         {pending && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
       </small>
     </div>
-    {result && <ToolCallContent content={output || 'Aucune sortie.'} />}
+    {result && <ToolCallContent call={call} content={output || 'Aucune sortie.'} />}
     <footer className="tool-call-counts">Appel : {input.length} caractères{result && ` · Résultat : ${(output || 'Aucune sortie.').length} caractères`}</footer>
   </article>
 }
 
-// Affiche chaque sortie complète dans une zone de lecture compacte, défilable au-delà de quatre lignes.
-function ToolCallContent({ content }: { content: string }) {
+// Affiche la sortie read selon son type, sans modifier le rendu brut des autres outils.
+function ToolCallContent({ call, content }: { call: { name: string; args: unknown }; content: string }) {
+  const display = call.name === 'read' ? readContentDisplay(call.args) : { kind: 'text' as const }
+
+  if (display.kind === 'markdown') return <section className="tool-call-content tool-call-markdown"><Markdown>{content}</Markdown></section>
+  if (display.kind === 'code') return <section className="tool-call-content"><SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, maxHeight: 'calc(6em + 18px)', overflow: 'auto', padding: '9px 10px' }} language={display.language} PreTag="div" style={oneLight}>{content}</SyntaxHighlighter></section>
   return <section className="tool-call-content"><pre>{content}</pre></section>
 }
 

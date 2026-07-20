@@ -18,6 +18,11 @@ export interface ToolCallPresentation {
   pendingDetail?: string
 }
 
+export interface ReadContentDisplay {
+  kind: 'code' | 'markdown' | 'text'
+  language?: string
+}
+
 export function toolCallsInMessage(message: JsonObject): ToolCall[] {
   if (message.role !== 'assistant' || !Array.isArray(message.content)) return []
 
@@ -65,6 +70,35 @@ export function truncateToolText(text: string, maxLength = 140): { text: string;
 
 export function toolCallPresentation(call: ToolCall, repositoryRoot?: string | null): ToolCallPresentation {
   return toolCallPresentations[call.name]?.(call.args, repositoryRoot) ?? {}
+}
+
+// Détermine le rendu de la sortie read à partir de l'extension du chemin demandé.
+export function readContentDisplay(args: unknown): ReadContentDisplay {
+  if (!isObject(args) || typeof args.path !== 'string') return { kind: 'text' }
+
+  const extension = args.path.match(/\.([^./]+)$/)?.[1]?.toLowerCase()
+  if (extension === 'md' || extension === 'markdown') return { kind: 'markdown' }
+
+  const language = extension ? languageByExtension[extension] : undefined
+  return language ? { kind: 'code', language } : { kind: 'text' }
+}
+
+const languageByExtension: Record<string, string> = {
+  bash: 'bash',
+  cjs: 'javascript',
+  cs: 'csharp',
+  css: 'css',
+  fish: 'bash',
+  htm: 'markup',
+  html: 'markup',
+  js: 'javascript',
+  json: 'json',
+  jsx: 'javascript',
+  mjs: 'javascript',
+  sh: 'bash',
+  ts: 'typescript',
+  tsx: 'typescript',
+  zsh: 'bash',
 }
 
 type ToolCallPresenter = (args: unknown, repositoryRoot?: string | null) => ToolCallPresentation

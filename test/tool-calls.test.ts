@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { formatToolData, isToolCallPending, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, truncateToolText } from '../src/tool-calls.ts'
+import { formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, truncateToolText } from '../src/tool-calls.ts'
 
 test('extracts tool calls and their resolved result from Pi messages', () => {
   const calls = toolCallsInMessage({
@@ -54,6 +54,14 @@ test('truncates text only after 140 characters', () => {
   const limit = 'a'.repeat(140)
   assert.deepEqual(truncateToolText(limit), { text: limit, truncated: false })
   assert.deepEqual(truncateToolText(`${limit}b`), { text: `${limit}…`, truncated: true })
+})
+
+test('detects Markdown and supported code formats read from the repository', () => {
+  assert.deepEqual(readContentDisplay({ path: 'docs/guide.md' }), { kind: 'markdown' })
+  assert.deepEqual(readContentDisplay({ path: 'src/App.tsx' }), { kind: 'code', language: 'typescript' })
+  assert.deepEqual(readContentDisplay({ path: 'src/Program.cs' }), { kind: 'code', language: 'csharp' })
+  assert.deepEqual(readContentDisplay({ path: 'notes.txt' }), { kind: 'text' })
+  assert.deepEqual(readContentDisplay({}), { kind: 'text' })
 })
 
 test('uses the Bash presentation while preserving the generic fallback', () => {
