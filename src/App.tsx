@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState, useTransition, type CSSProperties, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { memo, useCallback, useEffect, useRef, useState, useTransition, type ClipboardEvent as ReactClipboardEvent, type CSSProperties, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import * as Select from '@radix-ui/react-select'
 import ReactMarkdown from 'react-markdown'
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -52,6 +52,71 @@ interface FilePreview {
 }
 
 const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [], stats: null }
+const maxComposerImages = 4
+const maxComposerImageDimension = 1600
+const maxComposerImageBytes = 350 * 1024
+
+interface ComposerImage {
+  id: string
+  data: string
+  mimeType: 'image/jpeg'
+}
+
+// Réduit chaque image collée sous la limite HTTP tout en préservant une résolution utile au modèle.
+async function prepareComposerImage(file: File): Promise<ComposerImage | null> {
+  const source = await loadImageSource(file)
+  let width = Math.min(source.width, maxComposerImageDimension)
+  let height = Math.round(source.height * (width / source.width))
+  if (height > maxComposerImageDimension) {
+    height = maxComposerImageDimension
+    width = Math.round(source.width * (height / source.height))
+  }
+
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error("La compression d'image n'est pas disponible dans ce navigateur.")
+  for (;;) {
+    canvas.width = width
+    canvas.height = height
+    context.fillStyle = 'white'
+    context.fillRect(0, 0, width, height)
+    context.drawImage(source, 0, 0, width, height)
+    for (const quality of [0.84, 0.72, 0.6, 0.5]) {
+      const blob = await canvasToBlob(canvas, quality)
+      if (blob.size <= maxComposerImageBytes) return { id: crypto.randomUUID(), data: await blobToBase64(blob), mimeType: 'image/jpeg' }
+    }
+    if (Math.max(width, height) <= 640) return null
+    width = Math.round(width * 0.8)
+    height = Math.round(height * 0.8)
+  }
+}
+
+// Charge un fichier image dans un élément compatible Canvas et libère son URL temporaire dès le décodage.
+function loadImageSource(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const image = new Image()
+    image.onload = () => { URL.revokeObjectURL(url); resolve(image) }
+    image.onerror = () => { URL.revokeObjectURL(url); reject(new Error("L'image collée est illisible.")) }
+    image.src = url
+  })
+}
+
+// Encode le canvas en JPEG afin d'éviter que les captures PNG ne dépassent la limite de requête locale.
+function canvasToBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
+  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("L'image n'a pas pu être compressée.")), 'image/jpeg', quality))
+}
+
+// Retire l'en-tête data URL, absent du format base64 attendu par le protocole RPC de Pi.
+async function blobToBase64(blob: Blob): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error("L'image n'a pas pu être lue."))
+    reader.onerror = () => reject(reader.error ?? new Error("L'image n'a pas pu être lue."))
+    reader.readAsDataURL(blob)
+  })
+  return dataUrl.slice(dataUrl.indexOf(',') + 1)
+}
 
 SyntaxHighlighter.registerLanguage('bash', bash)
 SyntaxHighlighter.registerLanguage('csharp', csharp)
@@ -418,8 +483,8 @@ function App() {
                 window.localStorage.setItem('pi-workbench.detailed-view', String(next))
                 return next
               })}
-              onSend={async (message, behavior) => {
-                const command: JsonObject = { type: 'prompt', message }
+              onSend={async (message, images, behavior) => {
+                const command: JsonObject = { type: 'prompt', message, images }
                 if (selectedSession.status === 'running') command.streamingBehavior = behavior
                 await sendPiCommand(selectedSession.id, command)
                 await refreshSessions()
@@ -950,18 +1015,27 @@ function ActivityIndicator({ activity, agentName }: { activity: Activity; agentN
 
 function isVisibleConversationMessage(message: JsonObject): boolean {
   const role = message.role
-  return (role === 'user' || role === 'assistant') && hasVisibleText(message.content ?? message.output)
+  return (role === 'user' || role === 'assistant') && hasVisibleContent(message.content ?? message.output)
 }
 
-function hasVisibleText(content: unknown): boolean {
+function hasVisibleContent(content: unknown): boolean {
   if (typeof content === 'string') return content.trim().length > 0
-  return Array.isArray(content) && content.some((part) => isObject(part) && part.type === 'text' && typeof part.text === 'string' && part.text.trim().length > 0)
+  return Array.isArray(content) && content.some((part) => isObject(part) && (
+    (part.type === 'text' && typeof part.text === 'string' && part.text.trim().length > 0)
+    || isImageContent(part)
+  ))
 }
 
 function renderContent(content: unknown): ReactNode {
   if (typeof content === 'string') return <Markdown>{content}</Markdown>
   if (!Array.isArray(content)) return null
-  return content.map((part, index) => isObject(part) && part.type === 'text' && typeof part.text === 'string' ? <Markdown key={index}>{part.text}</Markdown> : null)
+  const images = content.filter(isImageContent)
+  const text = content.filter((part): part is JsonObject => isObject(part) && part.type === 'text' && typeof part.text === 'string')
+  return <>{images.map((image, index) => <img alt={`Image jointe ${index + 1}`} className="message-image" key={`image-${index}`} src={`data:${image.mimeType};base64,${image.data}`} />)}{text.map((part, index) => <Markdown key={`text-${index}`}>{String(part.text)}</Markdown>)}</>
+}
+
+function isImageContent(value: unknown): value is JsonObject & { data: string; mimeType: string } {
+  return isObject(value) && value.type === 'image' && typeof value.data === 'string' && typeof value.mimeType === 'string' && /^image\/(?:gif|jpeg|png|webp)$/.test(value.mimeType)
 }
 
 function Markdown({ children }: { children: string }) {
@@ -983,23 +1057,70 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, a
   running: boolean
   detailedView: boolean
   onDetailedViewChange: () => void
-  onSend: (message: string, behavior: 'steer' | 'followUp') => Promise<void>
+  onSend: (message: string, images: JsonObject[], behavior: 'steer' | 'followUp') => Promise<void>
   onAbort: () => Promise<JsonObject>
   onError: (cause: unknown) => void
 }) {
   const [message, setMessage] = useState('')
+  const [images, setImages] = useState<ComposerImage[]>([])
+  const [preparingImages, setPreparingImages] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [behavior, setBehavior] = useState<'steer' | 'followUp'>('steer')
   const model = isObject(snapshot.state?.model) ? snapshot.state.model : null
   const currentModel = model && typeof model.id === 'string' && typeof model.provider === 'string' ? `${model.provider}/${model.id}` : ''
+  const selectedModel = snapshot.models.find((item) => `${item.provider}/${item.id}` === currentModel)
+  const modelInput = selectedModel?.input ?? model?.input
+  const supportsImages = Array.isArray(modelInput) && modelInput.includes('image')
   const thinking = typeof snapshot.state?.thinkingLevel === 'string' ? snapshot.state.thinkingLevel : 'off'
 
-  // Ignore les messages vides et restaure le brouillon si l'envoi échoue.
+  // Envoie texte et images dans la même commande RPC, puis restaure le brouillon en cas d'échec.
   async function submit(event: FormEvent): Promise<void> {
     event.preventDefault()
     const nextMessage = message.trim()
-    if (!nextMessage) return
+    if (preparingImages || (!nextMessage && images.length === 0)) return
+    if (images.length > 0 && !supportsImages) {
+      onError("Le modèle sélectionné n'accepte pas les images.")
+      return
+    }
+    setSubmitting(true)
     setMessage('')
-    try { await onSend(nextMessage, behavior) } catch (cause) { setMessage(nextMessage); onError(cause) }
+    setImages([])
+    try {
+      await onSend(nextMessage, images.map(({ data, mimeType }) => ({ type: 'image', data, mimeType })), behavior)
+    } catch (cause) {
+      setMessage(nextMessage)
+      setImages(images)
+      onError(cause)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  // Prépare localement les images collées pour borner le corps HTTP et le contexte envoyé au modèle.
+  async function handlePaste(event: ReactClipboardEvent<HTMLTextAreaElement>): Promise<void> {
+    const files = Array.from(event.clipboardData.files).filter((file) => file.type.startsWith('image/'))
+    if (files.length === 0 || submitting) return
+    event.preventDefault()
+    const pastedText = event.clipboardData.getData('text/plain')
+    const { selectionEnd, selectionStart } = event.currentTarget
+    if (pastedText) setMessage((current) => `${current.slice(0, selectionStart)}${pastedText}${current.slice(selectionEnd)}`)
+
+    const remaining = maxComposerImages - images.length
+    if (remaining <= 0) {
+      onError(`Maximum de ${maxComposerImages} images par message.`)
+      return
+    }
+    setPreparingImages(true)
+    try {
+      const prepared = await Promise.all(files.slice(0, remaining).map(prepareComposerImage))
+      const accepted = prepared.filter((image): image is ComposerImage => image !== null)
+      setImages((current) => [...current, ...accepted].slice(0, maxComposerImages))
+      if (accepted.length !== files.length) onError(`Certaines images n'ont pas pu être préparées (maximum : ${maxComposerImages}).`)
+    } catch (cause) {
+      onError(cause)
+    } finally {
+      setPreparingImages(false)
+    }
   }
 
   const stats = snapshot.stats
@@ -1012,7 +1133,13 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, a
 
   return (
     <form className="composer" onSubmit={(event) => void submit(event)}>
-      <textarea aria-label="Message" value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => {
+      {images.length > 0 && <div aria-label="Images à envoyer" className="composer-images">
+        {images.map((image, index) => <div className="composer-image" key={image.id}>
+          <img alt={`Image ${index + 1} à envoyer`} src={`data:${image.mimeType};base64,${image.data}`} />
+          <button aria-label={`Retirer l'image ${index + 1}`} disabled={submitting} onClick={() => setImages((current) => current.filter(({ id }) => id !== image.id))} type="button">×</button>
+        </div>)}
+      </div>}
+      <textarea aria-label="Message" disabled={submitting} onPaste={(event) => void handlePaste(event)} value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => {
         if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit() }
       }} placeholder="Demandez quelque chose à Pi…" rows={3} />
       <div className="composer-footer">
@@ -1067,7 +1194,7 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, a
               <svg aria-hidden="true" viewBox="0 0 16 16"><rect height="8" rx="1.5" width="8" x="4" y="4" /></svg>
             </button>}
           </div>
-          <button aria-label="Envoyer le message" className="icon-button send" title="Envoyer le message (Entrée)" type="submit">
+          <button aria-label="Envoyer le message" className="icon-button send" disabled={submitting || preparingImages} title="Envoyer le message (Entrée)" type="submit">
             <svg aria-hidden="true" viewBox="0 0 16 16"><path d="m2.5 2.5 11 5.5-11 5.5 1.8-5.1L9 8 4.3 7.6z" /></svg>
           </button>
         </div>
