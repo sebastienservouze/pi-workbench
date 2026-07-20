@@ -1,6 +1,6 @@
 export const defaultGitSidebarWidth = 300
 export const minGitSidebarWidth = 240
-export const maxGitSidebarWidth = 480
+export const maxGitSidebarWidth = 720
 
 export interface GitDiffLine {
   content: string
