@@ -19,8 +19,12 @@ test('privilégie le lanceur mémorisé par workspace puis le lanceur par défau
   assert.equal(launcherSnapshot(selected, '/workspace/b').selectedLauncherId, 'idea')
 })
 
-test('lance le sélecteur Windows dans un appartement STA interactif', () => {
-  assert.deepEqual(pickerArguments().slice(0, 3), ['-NoProfile', '-STA', '-Command'])
+test('lance le sélecteur Windows dans un appartement STA et le place au premier plan', () => {
+  const argumentsForPicker = pickerArguments()
+  assert.deepEqual(argumentsForPicker.slice(0, 3), ['-NoProfile', '-STA', '-Command'])
+  assert.match(argumentsForPicker[3], /\$owner\.TopMost = \$true/)
+  assert.match(argumentsForPicker[3], /SetForegroundWindow\(\$owner\.Handle\)/)
+  assert.match(argumentsForPicker[3], /\$dialog\.ShowDialog\(\$owner\)/)
 })
 
 test('réutilise un exécutable déjà connu et lit le dernier choix historique comme défaut', () => {

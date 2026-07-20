@@ -7,6 +7,7 @@ import type { Launcher, LauncherRegistry, LauncherSnapshot } from '../shared/typ
 
 const defaultRegistryPath = process.env.PI_WORKBENCH_LAUNCHER_REGISTRY
   ?? join(homedir(), '.pi-workbench', 'launchers.json')
+const windowsPickerTimeoutMs = 5 * 60_000
 
 interface SelectedExecutable {
   executablePath: string
@@ -68,7 +69,7 @@ export function addPickedLauncher(registry: LauncherRegistry, executable: Select
 
 // Ouvre le sélecteur natif Windows et ne retourne rien lorsque l'utilisateur annule l'opération.
 export async function pickWindowsLauncher(): Promise<SelectedExecutable | null> {
-  const output = await runProcess('powershell.exe', pickerArguments())
+  const output = await runProcess('powershell.exe', pickerArguments(), windowsPickerTimeoutMs)
   if (!output.trim()) return null
   const value: unknown = JSON.parse(output)
   if (!isObject(value) || typeof value.executablePath !== 'string' || !value.executablePath || typeof value.name !== 'string' || !value.name) throw new Error('Invalid executable selected in Windows')
@@ -130,16 +131,26 @@ function isNotFound(error: unknown): boolean {
   return isObject(error) && error.code === 'ENOENT'
 }
 
-// Collecte la sortie d'une commande locale et préserve stderr pour rendre les erreurs Windows actionnables.
-function runProcess(command: string, argumentsForProcess: string[]): Promise<string> {
+// Collecte la sortie d'une commande locale et limite l'attente des interfaces Windows qui ne se rendraient pas visibles.
+function runProcess(command: string, argumentsForProcess: string[], timeoutMs?: number): Promise<string> {
   return new Promise((resolve, reject) => {
     const process = spawn(command, argumentsForProcess, { stdio: ['ignore', 'pipe', 'pipe'] })
     let output = ''
     let errorOutput = ''
+    const timeout = timeoutMs ? setTimeout(() => {
+      process.kill()
+      reject(new Error(`${command} did not respond within ${timeoutMs / 1000} seconds`))
+    }, timeoutMs) : undefined
+
+    function finish(callback: () => void): void {
+      if (timeout) clearTimeout(timeout)
+      callback()
+    }
+
     process.stdout.on('data', (chunk: Buffer) => { output += chunk.toString('utf8') })
     process.stderr.on('data', (chunk: Buffer) => { errorOutput += chunk.toString('utf8') })
-    process.once('error', reject)
-    process.once('exit', (code) => code === 0 ? resolve(output) : reject(new Error(errorOutput.trim() || `${command} exited with code ${code}`)))
+    process.once('error', (error) => finish(() => reject(error)))
+    process.once('exit', (code) => finish(() => code === 0 ? resolve(output) : reject(new Error(errorOutput.trim() || `${command} exited with code ${code}`))))
   })
 }
 
@@ -153,14 +164,34 @@ function spawnDetached(command: string, argumentsForProcess: string[]): Promise<
 }
 
 const pickerScript = `Add-Type -AssemblyName System.Windows.Forms
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+public static class LauncherPickerWindow {
+  [DllImport("user32.dll")]
+  public static extern bool SetForegroundWindow(IntPtr hWnd);
+}
+'@
+$owner = New-Object System.Windows.Forms.Form
+$owner.TopMost = $true
+$owner.ShowInTaskbar = $false
+$owner.Opacity = 0
 $dialog = New-Object System.Windows.Forms.OpenFileDialog
 $dialog.Filter = 'Applications (*.exe)|*.exe'
 $dialog.CheckFileExists = $true
-if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-  $file = Get-Item -LiteralPath $dialog.FileName
-  $name = $file.VersionInfo.FileDescription
-  if ([string]::IsNullOrWhiteSpace($name)) { $name = $file.BaseName }
-  [PSCustomObject]@{ executablePath = $file.FullName; name = $name } | ConvertTo-Json -Compress
+try {
+  $owner.Show()
+  $null = [LauncherPickerWindow]::SetForegroundWindow($owner.Handle)
+  $owner.Activate()
+  if ($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) {
+    $file = Get-Item -LiteralPath $dialog.FileName
+    $name = $file.VersionInfo.FileDescription
+    if ([string]::IsNullOrWhiteSpace($name)) { $name = $file.BaseName }
+    [PSCustomObject]@{ executablePath = $file.FullName; name = $name } | ConvertTo-Json -Compress
+  }
+} finally {
+  $dialog.Dispose()
+  $owner.Dispose()
 }`
 
 const iconScript = `param([string]$executablePath)
