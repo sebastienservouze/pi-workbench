@@ -160,7 +160,7 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .git-back { display: grid; place-items: center; flex: 0 0 auto; width: 29px; height: 29px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-size: 20px; }
 .git-back:hover { background: #edf2ef; color: var(--ink); }
 .git-back:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
-.git-diff { height: 100%; min-height: 0; overflow: auto; margin: 0; padding: 10px 0 18px; font: 11px/1.5 ui-monospace, monospace; }
+.git-diff { overflow-x: auto; margin: 0; padding: 10px 0 18px; font: 11px/1.5 ui-monospace, monospace; }
 .git-diff-line { display: grid; grid-template-columns: 38px 38px 14px minmax(max-content, 1fr); min-width: max-content; padding: 0 14px; white-space: pre; }
 .git-diff-line > span { color: #68756f; text-align: right; user-select: none; }
 .git-diff-line > i { color: #68756f; font-style: normal; text-align: center; user-select: none; }
