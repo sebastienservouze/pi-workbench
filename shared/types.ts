@@ -36,11 +36,18 @@ export interface GitFileChange {
   deletions: number | null
 }
 
+export interface GitCommit {
+  hash: string
+  subject: string
+  files: string[]
+}
+
 export interface GitSnapshot {
   repository: boolean
   branch: string | null
   files: GitFileChange[]
   ahead: number
+  commits: GitCommit[]
 }
 
 export interface GitActionResult {

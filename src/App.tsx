@@ -505,6 +505,15 @@ function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, o
           <span className="git-file-counts"><b>+{file.additions ?? '—'}</b><i>−{file.deletions ?? '—'}</i></span>
         </li>)}
       </ul>}
+      {snapshot.commits.length > 0 && <section className="git-commits" aria-label="Commits non poussés">
+        <h2>Commits non poussés <small>{snapshot.commits.length}</small></h2>
+        {snapshot.commits.map((commit) => <details key={commit.hash}>
+          <summary title={commit.subject}><code>{commit.hash.slice(0, 7)}</code><span>{commit.subject}</span></summary>
+          {commit.files.length > 0
+            ? <ul className="git-commit-files">{commit.files.map((path) => <li key={path} title={path}>{path}</li>)}</ul>
+            : <p className="git-empty">Aucun fichier modifié.</p>}
+        </details>)}
+      </section>}
       {!hasChanges && snapshot.ahead === 0 && <p className="git-empty">Aucun changement à committer.</p>}
     </section>
     {(hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>

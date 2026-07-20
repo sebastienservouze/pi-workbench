@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import type { GitFileChange, GitSnapshot } from '../shared/types.ts'
+import type { GitCommit, GitFileChange, GitSnapshot } from '../shared/types.ts'
 
 interface GitCommandResult {
   exitCode: number
@@ -10,7 +10,7 @@ interface GitCommandResult {
 // Agrège l'état Git, les statistiques de fichiers et le nombre de commits en attente de push.
 export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
   const repository = await runGit(cwd, ['rev-parse', '--is-inside-work-tree'], [0, 128])
-  if (repository.exitCode !== 0 || repository.stdout.trim() !== 'true') return { repository: false, branch: null, files: [], ahead: 0 }
+  if (repository.exitCode !== 0 || repository.stdout.trim() !== 'true') return { repository: false, branch: null, files: [], ahead: 0, commits: [] }
 
   const [status, unstaged, staged, branch, upstream] = await Promise.all([
     runGit(cwd, ['status', '--porcelain=v1', '-z', '--untracked-files=all']),
@@ -28,9 +28,7 @@ export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
     if (count) counts.set(change.path, { additions: count.additions, deletions: count.deletions })
   }))
 
-  const ahead = upstream.exitCode === 0
-    ? Number.parseInt((await runGit(cwd, ['rev-list', '--count', '@{upstream}..HEAD'])).stdout.trim(), 10) || 0
-    : 0
+  const commits = upstream.exitCode === 0 ? await unpushedCommits(cwd) : []
 
   return {
     repository: true,
@@ -39,8 +37,30 @@ export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
       const count = counts.get(change.path)
       return { ...change, additions: count?.additions ?? null, deletions: count?.deletions ?? null }
     }),
-    ahead,
+    ahead: commits.length,
+    commits,
   }
+}
+
+// Liste les commits présents après la branche suivie et les fichiers de chacun.
+async function unpushedCommits(cwd: string): Promise<GitCommit[]> {
+  const result = await runGit(cwd, ['log', '--format=%H%x00%s%x00', '@{upstream}..HEAD'])
+  const fields = result.stdout.split('\0')
+  const commits: GitCommit[] = []
+
+  for (let index = 0; index < fields.length - 1; index += 2) {
+    const hash = fields[index]
+    const subject = fields[index + 1]
+    if (!hash) continue
+    commits.push({ hash, subject, files: [] })
+  }
+
+  await Promise.all(commits.map(async (commit) => {
+    const files = await runGit(cwd, ['diff-tree', '--no-commit-id', '--name-only', '-r', '-m', '--first-parent', '-z', commit.hash])
+    commit.files = files.stdout.split('\0').filter(Boolean)
+  }))
+
+  return commits
 }
 
 // Committe les changements présents puis tente de pousser, ou pousse les commits déjà en avance.
