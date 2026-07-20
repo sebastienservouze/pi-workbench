@@ -29,7 +29,7 @@ export interface DirectoryListing {
   directories: DirectoryEntry[]
 }
 
-export type LauncherProduct = 'vscode' | 'intellij' | 'rider' | 'pycharm' | 'phpstorm' | 'webstorm' | 'androidstudio' | 'custom'
+export type LauncherProduct = 'vscode' | 'visualstudio' | 'intellij' | 'rider' | 'pycharm' | 'phpstorm' | 'webstorm' | 'androidstudio' | 'custom'
 
 export interface Launcher {
   id: string
@@ -38,6 +38,7 @@ export interface Launcher {
   source: 'detected' | 'manual'
   executablePath: string
   arguments: string[]
+  version?: string
 }
 
 export interface LauncherRegistry {

@@ -8,7 +8,7 @@ import { ManagerClient } from './manager-client.ts'
 import { listRecentPiSessions, loadPiSession } from './pi-session-store.ts'
 import { commitAndPush, getGitFileDiff, getGitSnapshot } from './git.ts'
 import { readWorkspaceFile, WorkspaceFileError } from './workspace-file.ts'
-import { createManualLauncher, detectWindowsLaunchers, launchWorkspace, launcherSnapshot, loadLauncherRegistry, mergeDetectedLaunchers, recordLauncherLaunch, saveLauncherRegistry, selectWorkspaceLauncher } from './launchers.ts'
+import { createManualLauncher, detectWindowsLaunchers, launchCodeWorkspace, launchWorkspace, launcherSnapshot, loadLauncherRegistry, mergeDetectedLaunchers, recordLauncherLaunch, saveLauncherRegistry, selectWorkspaceLauncher } from './launchers.ts'
 import type { DirectoryListing, JsonObject, ManagerEvent, SessionSnapshot } from '../shared/types.ts'
 
 const host = '127.0.0.1'
@@ -115,9 +115,13 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
     if (typeof body.cwd !== 'string') throw new HttpError(400, 'Working directory is required')
     const cwd = await resolveWorkingDirectory(body.cwd)
     const registry = await loadLauncherRegistry()
-    const selected = launcherSnapshot(registry, cwd).selectedLauncherId
-    const launcher = registry.launchers.find(({ id }) => id === selected)
-    if (!launcher) throw new HttpError(409, 'No launcher is configured for this workspace')
+    const snapshot = launcherSnapshot(registry, cwd)
+    const launcher = snapshot.launchers.find(({ id }) => id === snapshot.selectedLauncherId)
+    if (!launcher) {
+      await launchCodeWorkspace(cwd)
+      sendJson(response, 200, snapshot)
+      return
+    }
     await launchWorkspace(launcher, cwd)
     const nextRegistry = recordLauncherLaunch(registry, launcher.id)
     await saveLauncherRegistry(nextRegistry)
