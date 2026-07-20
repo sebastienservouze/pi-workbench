@@ -157,7 +157,17 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .git-back { display: grid; place-items: center; flex: 0 0 auto; width: 29px; height: 29px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-size: 20px; }
 .git-back:hover { background: #edf2ef; color: var(--ink); }
 .git-back:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
-.git-diff { min-width: max-content; margin: 0; padding: 10px 14px 18px; font: 11px/1.5 ui-monospace, monospace; white-space: pre; }
+.git-diff { overflow-x: auto; margin: 0; padding: 10px 0 18px; font: 11px/1.5 ui-monospace, monospace; }
+.git-diff-line { display: grid; grid-template-columns: 38px 38px 14px minmax(max-content, 1fr); min-width: max-content; padding: 0 14px; white-space: pre; }
+.git-diff-line > span { color: #68756f; text-align: right; user-select: none; }
+.git-diff-line > i { color: #68756f; font-style: normal; text-align: center; user-select: none; }
+.git-diff-line > code { font: inherit; }
+.git-diff-line.added { background: #e4f4e9; color: #1d613b; }
+.git-diff-line.added > span, .git-diff-line.added > i { color: #30774c; }
+.git-diff-line.removed { background: #fbe9e7; color: #843b31; }
+.git-diff-line.removed > span, .git-diff-line.removed > i { color: #9a554b; }
+.git-diff-line.hunk { margin: 7px 0 3px; background: #edf2ef; color: #356158; }
+.git-diff-line.hunk > span { visibility: hidden; }
 .git-file-status { font-size: 10px; font-weight: 800; text-align: center; }
 .git-file-status.added { color: var(--success); }
 .git-file-status.deleted { color: var(--danger); }

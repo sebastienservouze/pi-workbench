@@ -15,7 +15,7 @@ import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getSnapsh
 import type { DirectoryListing, GitActionResult, GitFileDiff, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
-import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, readGitSidebarWidth } from './git-sidebar.ts'
+import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff, readGitSidebarWidth } from './git-sidebar.ts'
 import { editOperations, formatToolData, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, type EditOperation, type ToolResult } from './tool-calls.ts'
 
 interface UiDialog {
@@ -516,7 +516,7 @@ function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, o
             <button aria-label="Retour aux fichiers Git" className="git-back" onClick={() => { setFileDiff(null); setSelectedPath(null) }} title="Retour" type="button">←</button>
             <strong title={selectedPath ?? undefined}>{selectedPath}</strong>
           </header>
-          {fileDiff ? <pre className="git-diff">{fileDiff.diff || 'Aucune différence textuelle à afficher.'}</pre> : <p className="git-empty">Chargement du diff…</p>}
+          {fileDiff ? <GitDiff diff={fileDiff.diff} /> : <p className="git-empty">Chargement du diff…</p>}
         </> : <>
           <header className="git-heading">
             <div><strong>{snapshot.branch}</strong><span>{hasChanges ? `${snapshot.files.length} fichier${snapshot.files.length > 1 ? 's' : ''} modifié${snapshot.files.length > 1 ? 's' : ''}` : 'Arbre propre'}</span></div>
@@ -572,6 +572,21 @@ function GitFileRow({ file }: { file: GitSnapshot['files'][number] }) {
     <span className="git-file-path" title={file.path}>{file.path}</span>
     <span className="git-file-counts"><b>+{file.additions ?? '—'}</b><i>−{file.deletions ?? '—'}</i></span>
   </>
+}
+
+// Affiche un diff Git avec les numéros de lignes avant et après la modification.
+function GitDiff({ diff }: { diff: string }) {
+  const lines = parseGitDiff(diff)
+  if (lines.length === 0) return <p className="git-empty">Aucune différence textuelle à afficher.</p>
+
+  return <section className="git-diff" aria-label="Diff du fichier">
+    {lines.map((line, index) => <div className={`git-diff-line ${line.kind}`} key={index}>
+      <span>{line.oldLine ?? ''}</span>
+      <span>{line.newLine ?? ''}</span>
+      <i aria-hidden="true">{line.kind === 'added' ? '+' : line.kind === 'removed' ? '−' : ' '}</i>
+      <code>{line.content}</code>
+    </div>)}
+  </section>
 }
 
 function gitStatusLabel(status: 'added' | 'deleted' | 'modified' | 'renamed'): string {
