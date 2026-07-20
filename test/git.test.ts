@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import test from 'node:test'
-import { getGitSnapshot, mergeNumstats, parseGitStatus } from '../server/git.ts'
+import { getGitFileDiff, getGitSnapshot, mergeNumstats, parseGitStatus } from '../server/git.ts'
 
 const execFile = promisify(execFileCallback)
 
@@ -40,6 +40,28 @@ test('reports untracked files and their line additions from a worktree', async (
     assert.equal(snapshot.root, directory)
     assert.deepEqual(snapshot.files, [{ path: 'new-file.ts', status: 'added', additions: 2, deletions: 0 }])
     assert.deepEqual(snapshot.commits, [])
+  } finally {
+    await rm(directory, { force: true, recursive: true })
+  }
+})
+
+test('returns diffs for modified and untracked files', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pi-workbench-git-'))
+  try {
+    await execFile('git', ['init', '--quiet'], { cwd: directory })
+    await execFile('git', ['config', 'user.email', 'test@example.com'], { cwd: directory })
+    await execFile('git', ['config', 'user.name', 'Test User'], { cwd: directory })
+    await writeFile(join(directory, 'tracked.ts'), 'before\n')
+    await execFile('git', ['add', 'tracked.ts'], { cwd: directory })
+    await execFile('git', ['commit', '--quiet', '-m', 'Initial commit'], { cwd: directory })
+    await writeFile(join(directory, 'tracked.ts'), 'after\n')
+    await writeFile(join(directory, 'new.ts'), 'new file\n')
+
+    const modified = await getGitFileDiff(directory, 'tracked.ts')
+    const added = await getGitFileDiff(directory, 'new.ts')
+
+    assert.match(modified.diff, /-before\n\+after/)
+    assert.match(added.diff, /\+new file/)
   } finally {
     await rm(directory, { force: true, recursive: true })
   }

@@ -1,4 +1,4 @@
-import type { DirectoryListing, GitActionResult, GitSnapshot, JsonObject, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
+import type { DirectoryListing, GitActionResult, GitFileDiff, GitSnapshot, JsonObject, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 
 export async function listSessions(): Promise<SessionSummary[]> {
   return request<SessionSummary[]>('/api/sessions')
@@ -14,6 +14,10 @@ export async function listDirectories(path: string): Promise<DirectoryListing> {
 
 export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
   return request<GitSnapshot>(`/api/git?cwd=${encodeURIComponent(cwd)}`)
+}
+
+export async function getGitFileDiff(cwd: string, path: string): Promise<GitFileDiff> {
+  return request<GitFileDiff>(`/api/git/diff?cwd=${encodeURIComponent(cwd)}&path=${encodeURIComponent(path)}`)
 }
 
 export async function commitAndPush(cwd: string, message: string): Promise<GitActionResult> {

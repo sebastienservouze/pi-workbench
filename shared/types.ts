@@ -57,6 +57,11 @@ export interface GitActionResult {
   pushError?: string
 }
 
+export interface GitFileDiff {
+  path: string
+  diff: string
+}
+
 export interface ManagerRequest {
   id: string
   action: 'list' | 'create' | 'open' | 'command'

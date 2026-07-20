@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { ManagerClient } from './manager-client.ts'
 import { listRecentPiSessions, loadPiSession } from './pi-session-store.ts'
-import { commitAndPush, getGitSnapshot } from './git.ts'
+import { commitAndPush, getGitFileDiff, getGitSnapshot } from './git.ts'
 import type { DirectoryListing, JsonObject, ManagerEvent, SessionSnapshot } from '../shared/types.ts'
 
 const host = '127.0.0.1'
@@ -73,6 +73,14 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
   if (method === 'GET' && url.pathname === '/api/git') {
     const cwd = await resolveWorkingDirectory(url.searchParams.get('cwd') ?? '~/.pi')
     sendJson(response, 200, await getGitSnapshot(cwd))
+    return
+  }
+
+  if (method === 'GET' && url.pathname === '/api/git/diff') {
+    const cwd = await resolveWorkingDirectory(url.searchParams.get('cwd') ?? '~/.pi')
+    const path = url.searchParams.get('path')
+    if (!path) throw new HttpError(400, 'File path is required')
+    sendJson(response, 200, await getGitFileDiff(cwd, path))
     return
   }
 

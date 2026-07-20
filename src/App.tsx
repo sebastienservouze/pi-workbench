@@ -11,8 +11,8 @@ import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup'
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import './App.css'
-import { commitAndPush, createSession, getGitSnapshot, getSnapshot, listDirectories, listRecentSessions, listSessions, openSession, sendPiCommand } from './api.ts'
-import type { DirectoryListing, GitActionResult, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
+import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getSnapshot, listDirectories, listRecentSessions, listSessions, openSession, sendPiCommand } from './api.ts'
+import type { DirectoryListing, GitActionResult, GitFileDiff, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, readGitSidebarWidth } from './git-sidebar.ts'
@@ -383,6 +383,7 @@ function App() {
           return result
         }}
         onError={(cause) => showToast('error', messageOf(cause))}
+        onFileSelect={(path) => getGitFileDiff(workspacePath, path)}
         onRefresh={() => void refreshGit(workspacePath, true)}
         onToggle={() => setGitSidebarCollapsed((collapsed) => {
           const nextCollapsed = !collapsed
@@ -416,19 +417,33 @@ function App() {
 }
 
 // Affiche l'état Git et coordonne les actions de commit, push et redimensionnement.
-function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, onRefresh, onToggle }: {
+function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, onFileSelect, onRefresh, onToggle }: {
   collapsed: boolean
   onResize: (width: number) => void
   snapshot: GitSnapshot
   width: number
   onAction: (message: string) => Promise<GitActionResult>
   onError: (cause: unknown) => void
+  onFileSelect: (path: string) => Promise<GitFileDiff>
   onRefresh: () => void
   onToggle: () => void
 }) {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const [fileDiff, setFileDiff] = useState<GitFileDiff | null>(null)
+  const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const hasChanges = snapshot.files.length > 0
+
+  // Charge le diff demandé avant de remplacer la liste de fichiers du widget.
+  async function selectFile(path: string): Promise<void> {
+    setSelectedPath(path)
+    try {
+      setFileDiff(await onFileSelect(path))
+    } catch (cause) {
+      setSelectedPath(null)
+      onError(cause)
+    }
+  }
 
   // Exécute l'action Git demandée et conserve le message si elle échoue.
   async function action(): Promise<void> {
@@ -495,34 +510,38 @@ function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, o
         role="separator"
         tabIndex={0}
       />
-      <section aria-label="Informations Git" className="git-panel" id="git-panel">
-        <header className="git-heading">
-          <div><strong>{snapshot.branch}</strong><span>{hasChanges ? `${snapshot.files.length} fichier${snapshot.files.length > 1 ? 's' : ''} modifié${snapshot.files.length > 1 ? 's' : ''}` : 'Arbre propre'}</span></div>
-          <button aria-label="Actualiser l’état Git" className="git-refresh" onClick={onRefresh} title="Actualiser" type="button">↻</button>
-        </header>
-        {hasChanges && <ul className="git-file-list">
-          {snapshot.files.map((file) => <li key={file.path}>
-            <span className={`git-file-status ${file.status}`} title={gitStatusLabel(file.status)}>{gitStatusInitial(file.status)}</span>
-            <span className="git-file-path" title={file.path}>{file.path}</span>
-            <span className="git-file-counts"><b>+{file.additions ?? '—'}</b><i>−{file.deletions ?? '—'}</i></span>
-          </li>)}
-        </ul>}
-        {snapshot.commits.length > 0 && <section className="git-commits" aria-label="Commits non poussés">
-          <h2>Commits non poussés <small>{snapshot.commits.length}</small></h2>
-          {snapshot.commits.map((commit) => <details key={commit.hash}>
-            <summary title={commit.subject}><code>{commit.hash.slice(0, 7)}</code><span>{commit.subject}</span></summary>
-            {commit.files.length > 0
-              ? <ul className="git-file-list git-commit-files">{commit.files.map((file) => <li key={file.path}>
-                <span className={`git-file-status ${file.status}`} title={gitStatusLabel(file.status)}>{gitStatusInitial(file.status)}</span>
-                <span className="git-file-path" title={file.path}>{file.path}</span>
-                <span className="git-file-counts"><b>+{file.additions ?? '—'}</b><i>−{file.deletions ?? '—'}</i></span>
-              </li>)}</ul>
-              : <p className="git-empty">Aucun fichier modifié.</p>}
-          </details>)}
-        </section>}
-        {!hasChanges && snapshot.ahead === 0 && <p className="git-empty">Aucun changement à committer.</p>}
+      <section aria-label={fileDiff || selectedPath ? 'Diff Git' : 'Informations Git'} className="git-panel" id="git-panel">
+        {fileDiff || selectedPath ? <>
+          <header className="git-heading git-diff-heading">
+            <button aria-label="Retour aux fichiers Git" className="git-back" onClick={() => { setFileDiff(null); setSelectedPath(null) }} title="Retour" type="button">←</button>
+            <strong title={selectedPath ?? undefined}>{selectedPath}</strong>
+          </header>
+          {fileDiff ? <pre className="git-diff">{fileDiff.diff || 'Aucune différence textuelle à afficher.'}</pre> : <p className="git-empty">Chargement du diff…</p>}
+        </> : <>
+          <header className="git-heading">
+            <div><strong>{snapshot.branch}</strong><span>{hasChanges ? `${snapshot.files.length} fichier${snapshot.files.length > 1 ? 's' : ''} modifié${snapshot.files.length > 1 ? 's' : ''}` : 'Arbre propre'}</span></div>
+            <button aria-label="Actualiser l’état Git" className="git-refresh" onClick={onRefresh} title="Actualiser" type="button">↻</button>
+          </header>
+          {hasChanges && <ul className="git-file-list">
+            {snapshot.files.map((file) => <li className="git-file-item" key={file.path}>
+              {file.status === 'added' || file.status === 'modified' ? <button className="git-file-button" onClick={() => void selectFile(file.path)} type="button">
+                <GitFileRow file={file} />
+              </button> : <GitFileRow file={file} />}
+            </li>)}
+          </ul>}
+          {snapshot.commits.length > 0 && <section className="git-commits" aria-label="Commits non poussés">
+            <h2>Commits non poussés <small>{snapshot.commits.length}</small></h2>
+            {snapshot.commits.map((commit) => <details key={commit.hash}>
+              <summary title={commit.subject}><code>{commit.hash.slice(0, 7)}</code><span>{commit.subject}</span></summary>
+              {commit.files.length > 0
+                ? <ul className="git-file-list git-commit-files">{commit.files.map((file) => <li className="git-file-item" key={file.path}><GitFileRow file={file} /></li>)}</ul>
+                : <p className="git-empty">Aucun fichier modifié.</p>}
+            </details>)}
+          </section>}
+          {!hasChanges && snapshot.ahead === 0 && <p className="git-empty">Aucun changement à committer.</p>}
+        </>}
       </section>
-      {(hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>
+      {!selectedPath && (hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>
         {hasChanges && <input aria-label="Message de commit" disabled={busy} onChange={(event) => setMessage(event.target.value)} placeholder="Message de commit" value={message} />}
         <button disabled={busy || (hasChanges && !message.trim())} type="submit">{busy ? 'Git en cours…' : hasChanges ? 'Committer et pousser' : `Pousser ${snapshot.ahead} commit${snapshot.ahead > 1 ? 's' : ''}`}</button>
       </form>}
@@ -542,6 +561,15 @@ function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, o
       </button>
     </div>
   </aside>
+}
+
+// Affiche les métadonnées communes d'un fichier dans les listes Git.
+function GitFileRow({ file }: { file: GitSnapshot['files'][number] }) {
+  return <>
+    <span className={`git-file-status ${file.status}`} title={gitStatusLabel(file.status)}>{gitStatusInitial(file.status)}</span>
+    <span className="git-file-path" title={file.path}>{file.path}</span>
+    <span className="git-file-counts"><b>+{file.additions ?? '—'}</b><i>−{file.deletions ?? '—'}</i></span>
+  </>
 }
 
 function gitStatusLabel(status: 'added' | 'deleted' | 'modified' | 'renamed'): string {

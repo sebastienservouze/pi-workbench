@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import type { GitCommit, GitFileChange, GitSnapshot } from '../shared/types.ts'
+import type { GitCommit, GitFileChange, GitFileDiff, GitSnapshot } from '../shared/types.ts'
 
 interface GitCommandResult {
   exitCode: number
@@ -42,6 +42,19 @@ export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
     ahead: commits.length,
     commits,
   }
+}
+
+// Retourne le diff unifié d'un fichier modifié ou ajouté dans l'arbre de travail.
+export async function getGitFileDiff(cwd: string, path: string): Promise<GitFileDiff> {
+  const snapshot = await getGitSnapshot(cwd)
+  const file = snapshot.files.find((change) => change.path === path)
+  if (!file || (file.status !== 'added' && file.status !== 'modified')) throw new Error('Ce fichier ne peut pas être affiché.')
+
+  const trackedDiff = await runGit(cwd, ['diff', 'HEAD', '--', path], [0, 128])
+  if (trackedDiff.stdout) return { path, diff: trackedDiff.stdout }
+
+  const untrackedDiff = await runGit(cwd, ['diff', '--no-index', '--', '/dev/null', path], [0, 1])
+  return { path, diff: untrackedDiff.stdout }
 }
 
 // Liste les commits présents après la branche suivie et les fichiers de chacun.
