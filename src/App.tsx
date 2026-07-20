@@ -586,7 +586,11 @@ function RightSidebar({ activeWidget, filePreview, onResize, snapshot, width, on
         title="Git"
         type="button"
       >
-        <span aria-hidden="true">⎇</span>
+        <svg aria-hidden="true" className="rail-icon" viewBox="0 0 32 32">
+          <path d="m16 2 14 14-14 14L2 16 16 2Z" fill="currentColor" />
+          <path d="M11 10.5v5.2a2.3 2.3 0 0 0 2.3 2.3h5.2M11 10.5a1.8 1.8 0 1 0 0 .1m7.5 7.4a1.8 1.8 0 1 0 0 .1m-7.5 7.4v-7.2" fill="none" stroke="var(--surface-raised)" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" />
+          <circle cx="11" cy="25.5" r="1.8" fill="var(--surface-raised)" />
+        </svg>
         {(hasChanges || snapshot.ahead > 0) && <small>{snapshot.files.length + snapshot.ahead}</small>}
       </button>}
       <button
@@ -598,7 +602,12 @@ function RightSidebar({ activeWidget, filePreview, onResize, snapshot, width, on
         onClick={() => onWidgetSelect('file')}
         title="Fichier"
         type="button"
-      ><span aria-hidden="true">▤</span></button>
+      >
+        <svg aria-hidden="true" className="rail-icon" fill="none" viewBox="0 0 24 24">
+          <path d="M6.5 2.75h7.12l4.88 4.88v13.62H6.5a2 2 0 0 1-2-2v-14.5a2 2 0 0 1 2-2Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+          <path d="M13.5 2.75v5h5M8.25 12h7.5M8.25 16h5.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      </button>
     </div>
   </aside>
 }

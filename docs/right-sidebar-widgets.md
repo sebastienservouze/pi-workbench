@@ -29,7 +29,7 @@ La structure CSS actuelle est volontairement minimale : `.git-sidebar` aligne `.
 N’ajoutez ni registre, ni système de plugins, ni gestionnaire d’état pour un seul widget. Le Git est aujourd’hui le seul cas réel.
 
 1. Vérifiez que l’information existe déjà dans le snapshot Git, une API HTTP existante ou le flux SSE. Sinon, ajoutez l’API minimale côté backend avant le composant React.
-2. Créez un composant local seulement si le widget a une responsabilité propre. Gardez ses identifiants, props et son code en anglais ; gardez la copie visible en français.
+2. Créez un composant local seulement si le widget a une responsabilité propre. Gardez ses identifiants, props et son code en anglais ; gardez la copie visible en français. Choisissez une icône SVG cohérente avec la responsabilité du widget : elle doit employer `currentColor` pour s’adapter aux états du rail, sans dépendance d’icônes. Utilisez une marque seulement si le widget représente réellement ce service ; si aucune icône ne s’impose, demandez la préférence de l’utilisateur.
 3. Lorsqu’un second widget existe réellement, remplacez `GitSidebar` par un conteneur explicite et simple qui :
    - conserve l’identifiant du widget actif ou l’absence de panneau ;
    - rend une icône par widget dans le rail permanent ;
