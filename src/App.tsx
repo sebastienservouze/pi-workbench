@@ -620,7 +620,7 @@ function FilePreviewContent({ preview }: { preview: FilePreview | null }) {
   if (preview.display.kind === 'markdown') return <section className="file-preview file-preview-markdown"><Markdown>{preview.file.content}</Markdown></section>
   if (preview.display.kind === 'html') return <iframe className="file-preview-html" sandbox="" srcDoc={htmlPreviewDocument(preview.file.content)} title={`Aperçu de ${preview.path}`} />
   if (preview.display.kind === 'code' && canHighlightFile(preview.file.content)) return <section className="file-preview"><SyntaxHighlighter className="file-preview-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '10px 12px' }} language={preview.display.language} PreTag="div" showLineNumbers style={oneLight} wrapLongLines>{preview.file.content}</SyntaxHighlighter></section>
-  if (preview.display.kind === 'code') return <section className="file-preview"><p className="file-preview-notice">Colorisation désactivée au-delà de 10 000 caractères.</p><pre>{preview.file.content}</pre></section>
+  if (preview.display.kind === 'code') return <section className="file-preview"><p className="file-preview-notice">Colorisation désactivée au-delà de 50 000 caractères.</p><pre>{preview.file.content}</pre></section>
   return <section className="file-preview"><pre>{preview.file.content}</pre></section>
 }
 
