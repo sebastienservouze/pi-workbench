@@ -68,7 +68,7 @@ export function addPickedLauncher(registry: LauncherRegistry, executable: Select
 
 // Ouvre le sélecteur natif Windows et ne retourne rien lorsque l'utilisateur annule l'opération.
 export async function pickWindowsLauncher(): Promise<SelectedExecutable | null> {
-  const output = await runProcess('powershell.exe', pickerArguments())
+  const output = await runProcess('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', pickerScript])
   if (!output.trim()) return null
   const value: unknown = JSON.parse(output)
   if (!isObject(value) || typeof value.executablePath !== 'string' || !value.executablePath || typeof value.name !== 'string' || !value.name) throw new Error('Invalid executable selected in Windows')
@@ -100,10 +100,6 @@ export async function launchWorkspace(launcher: Launcher, workspacePath: string)
   const windowsWorkspace = (await runProcess('wslpath', ['-w', workspacePath])).trim()
   if (!windowsWorkspace) throw new Error('Unable to convert workspace path to Windows')
   await spawnDetached('cmd.exe', ['/d', '/s', '/c', `start "" ${quoteForCmd(launcher.executablePath)} ${quoteForCmd(windowsWorkspace)}`])
-}
-
-export function pickerArguments(): string[] {
-  return ['-NoProfile', '-STA', '-Command', pickerScript]
 }
 
 function quoteForCmd(value: string): string {

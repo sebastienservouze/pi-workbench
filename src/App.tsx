@@ -816,27 +816,29 @@ function LauncherControl({ launching, onOpen, onPick, onSelect, snapshot }: {
   const selected = snapshot.launchers.find(({ id }) => id === snapshot.selectedLauncherId)
   const label = selected ? `Ouvrir le dossier dans ${selected.name}` : 'Choisir un éditeur Windows et ouvrir le dossier'
 
-  const menuId = 'launcher-menu'
-
-  function closeMenu(): void {
-    const menu = document.getElementById(menuId)
-    if (menu instanceof HTMLElement) menu.hidePopover()
-  }
-
   return <div className="launcher-control">
     <button aria-label={label} className="icon-button launcher-open" disabled={launching} onClick={onOpen} title={label} type="button">
       <LauncherIcon launcher={selected} />
     </button>
-    <button aria-label="Choisir un autre éditeur" className="launcher-select-trigger" popoverTarget={menuId} title="Choisir un autre éditeur" type="button">
-      <span aria-hidden="true">⌄</span>
-    </button>
-    <div aria-label="Éditeurs configurés" className="launcher-menu" id={menuId} popover="auto">
-      {snapshot.launchers.map((launcher) => <button aria-current={launcher.id === snapshot.selectedLauncherId ? 'true' : undefined} className="launcher-menu-item" key={launcher.id} onClick={() => { closeMenu(); onSelect(launcher.id) }} type="button">
-        <LauncherIcon launcher={launcher} /><span>{launcher.name}</span>{launcher.id === snapshot.selectedLauncherId && <span aria-hidden="true">✓</span>}
-      </button>)}
-      {snapshot.launchers.length > 0 && <div className="launcher-menu-separator" />}
-      <button className="launcher-menu-item launcher-menu-pick" onClick={() => { closeMenu(); onPick() }} type="button">Choisir un autre IDE…</button>
-    </div>
+    <Select.Root onValueChange={(value) => value === '__pick__' ? onPick() : onSelect(value)} value={snapshot.selectedLauncherId ?? ''}>
+      <Select.Trigger aria-label="Choisir un autre éditeur" className="launcher-select-trigger" title="Choisir un autre éditeur">
+        <span aria-hidden="true">⌄</span>
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Content className="composer-select-content launcher-select-content" position="popper" sideOffset={6}>
+          <Select.Viewport>
+            {snapshot.launchers.map((launcher) => <Select.Item className="composer-select-option launcher-select-option" key={launcher.id} value={launcher.id}>
+              <Select.ItemText><span className="launcher-option"><LauncherIcon launcher={launcher} />{launcher.name}</span></Select.ItemText>
+              <Select.ItemIndicator>✓</Select.ItemIndicator>
+            </Select.Item>)}
+            <Select.Separator className="launcher-select-separator" />
+            <Select.Item className="composer-select-option launcher-select-option" value="__pick__">
+              <Select.ItemText>Choisir un autre IDE…</Select.ItemText>
+            </Select.Item>
+          </Select.Viewport>
+        </Select.Content>
+      </Select.Portal>
+    </Select.Root>
   </div>
 }
 
