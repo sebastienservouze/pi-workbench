@@ -654,7 +654,7 @@ function ToolCallContent({ content, label }: { content: string; label: string })
     <div className="tool-call-content-heading">
       <strong>{label}</strong>
       {preview.truncated && <span>
-        {!expanded && <small>Tronqué à 140 caractères</small>}
+        {!expanded && <small>{content.length} caractères</small>}
         <button aria-expanded={expanded} onClick={() => setExpanded((current) => !current)} type="button">{expanded ? 'Réduire' : 'Tout afficher'}</button>
       </span>}
     </div>
