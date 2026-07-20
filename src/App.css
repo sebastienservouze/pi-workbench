@@ -204,13 +204,9 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .tool-call-heading small { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 5px; margin-left: auto; color: currentColor; font: 10px ui-monospace, monospace; }
 .tool-call-spinner { display: inline-block; width: 11px; height: 11px; border-width: 1.5px; }
 .tool-call-content { border-top: 1px solid rgb(33 68 61 / 14%); }
-.tool-call-content-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 10px; font-size: 11px; }
-.tool-call-content-heading > span { display: inline-flex; align-items: center; gap: 8px; }
-.tool-call-content-heading small { color: currentColor; font: 10px ui-monospace, monospace; }
-.tool-call-content button { border: 1px solid currentColor; border-radius: 5px; padding: 2px 6px; background: transparent; color: inherit; font: 10px ui-monospace, monospace; }
-.tool-call-content button:hover { background: rgb(33 68 61 / 10%); }
-.tool-call-content button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-.tool-call pre { margin: 0; overflow-x: auto; border: 0; border-radius: 0; padding: 9px 10px; background: rgb(255 255 255 / 56%); color: inherit; font: 11px/1.5 ui-monospace, monospace; overflow-wrap: anywhere; white-space: pre-wrap; }
+.tool-call-content-heading { padding: 7px 10px; font-size: 11px; }
+.tool-call pre { max-height: calc(4.5em + 18px); margin: 0; overflow-x: auto; overflow-y: auto; border: 0; border-radius: 0; padding: 9px 10px; background: rgb(255 255 255 / 56%); color: inherit; font: 11px/1.5 ui-monospace, monospace; overflow-wrap: anywhere; white-space: pre-wrap; }
+.tool-call-content footer { padding: 5px 10px 7px; color: currentColor; font: 10px ui-monospace, monospace; text-align: right; }
 .pi-activity { display: flex; align-items: flex-start; gap: 9px; max-width: 760px; margin: -3px 2px 25px; color: var(--teal); font: 12px/1.55 ui-monospace, monospace; white-space: nowrap; }
 .activity-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; animation: activity-pulse 1.8s ease-in-out infinite; }
 .spinner { width: 13px; height: 13px; border: 2px solid #b4d3cc; border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite; }

@@ -7,7 +7,7 @@ import type { DirectoryListing, GitActionResult, GitSnapshot, JsonObject, Manage
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, readGitSidebarWidth } from './git-sidebar.ts'
-import { formatToolData, isToolCallPending, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, truncateToolText, type ToolResult } from './tool-calls.ts'
+import { formatToolData, isToolCallPending, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, type ToolResult } from './tool-calls.ts'
 
 interface UiDialog {
   sessionId: string
@@ -654,21 +654,12 @@ function ToolCallCard({ call, result }: { call: { id: string; name: string; args
   </article>
 }
 
-// Affiche une donnée d'outil complète à la demande afin de garder l'historique lisible sans perdre son contenu.
+// Affiche chaque donnée complète dans une zone de lecture compacte, défilable au-delà de trois lignes.
 function ToolCallContent({ content, label }: { content: string; label?: string }) {
-  const [expanded, setExpanded] = useState(false)
-  const preview = truncateToolText(content)
-  const visibleContent = expanded ? content : preview.text
-
   return <section className="tool-call-content">
-    {(label || preview.truncated) && <div className="tool-call-content-heading">
-      {label && <strong>{label}</strong>}
-      {preview.truncated && <span>
-        {!expanded && <small>{content.length} caractères</small>}
-        <button aria-expanded={expanded} onClick={() => setExpanded((current) => !current)} type="button">{expanded ? 'Réduire' : 'Tout afficher'}</button>
-      </span>}
-    </div>}
-    <pre>{visibleContent}</pre>
+    {label && <div className="tool-call-content-heading"><strong>{label}</strong></div>}
+    <pre>{content}</pre>
+    <footer>{content.length} caractères</footer>
   </section>
 }
 
