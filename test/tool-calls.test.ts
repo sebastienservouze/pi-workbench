@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { formatToolData, isToolCallPending, toolCallsInMessage, toolContentText, toolResultInMessage } from '../src/tool-calls.ts'
+import { formatToolData, isToolCallPending, toolCallInUpdate, toolCallsInMessage, toolContentText, toolResultInMessage } from '../src/tool-calls.ts'
 
 test('extracts tool calls and their resolved result from Pi messages', () => {
   const calls = toolCallsInMessage({
@@ -26,6 +26,17 @@ test('extracts tool calls and their resolved result from Pi messages', () => {
     isError: false,
   })
   assert.equal(toolContentText(result?.content), 'import App')
+})
+
+test('extracts a tool call before its execution starts', () => {
+  assert.deepEqual(toolCallInUpdate({
+    type: 'message_update',
+    assistantMessageEvent: {
+      type: 'toolcall_end',
+      toolCall: { type: 'toolCall', id: 'call_1', name: 'read', arguments: { path: 'src/App.tsx' } },
+    },
+  }), { id: 'call_1', name: 'read', args: { path: 'src/App.tsx' } })
+  assert.equal(toolCallInUpdate({ type: 'message_update', assistantMessageEvent: { type: 'text_delta' } }), null)
 })
 
 test('marks a tool call as pending until its result arrives', () => {

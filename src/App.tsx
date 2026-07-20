@@ -7,7 +7,7 @@ import type { DirectoryListing, GitActionResult, GitSnapshot, JsonObject, Manage
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, readGitSidebarWidth } from './git-sidebar.ts'
-import { formatToolData, isToolCallPending, toolCallsInMessage, toolContentText, toolResultInMessage, type ToolResult } from './tool-calls.ts'
+import { formatToolData, isToolCallPending, toolCallInUpdate, toolCallsInMessage, toolContentText, toolResultInMessage, type ToolResult } from './tool-calls.ts'
 
 interface UiDialog {
   sessionId: string
@@ -195,13 +195,10 @@ function App() {
       }
 
       if (sessionId !== selectedIdRef.current) return
+      const streamedToolCall = toolCallInUpdate(event)
+      if (streamedToolCall) startToolExecution(streamedToolCall)
       if (event.type === 'tool_execution_start' && typeof event.toolCallId === 'string' && typeof event.toolName === 'string') {
-        const id = event.toolCallId
-        const name = event.toolName
-        setToolExecutions((current) => [
-          ...current.filter((execution) => execution.id !== id),
-          { id, name, args: event.args },
-        ])
+        startToolExecution({ id: event.toolCallId, name: event.toolName, args: event.args })
       }
       if (event.type === 'tool_execution_end' && typeof event.toolCallId === 'string' && typeof event.toolName === 'string') {
         const id = event.toolCallId
@@ -222,6 +219,13 @@ function App() {
       }
       if (event.type === 'message_end' || event.type === 'agent_settled') {
         void refreshSnapshot(sessionId, true)
+      }
+
+      function startToolExecution(call: { id: string; name: string; args: unknown }): void {
+        setToolExecutions((current) => [
+          ...current.filter((execution) => execution.id !== call.id),
+          call,
+        ])
       }
     }
   }, [refreshGit, refreshSessions, refreshSnapshot, showToast])

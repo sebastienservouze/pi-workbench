@@ -17,9 +17,15 @@ export function toolCallsInMessage(message: JsonObject): ToolCall[] {
   if (message.role !== 'assistant' || !Array.isArray(message.content)) return []
 
   return message.content.flatMap((part) => {
-    if (!isObject(part) || part.type !== 'toolCall' || typeof part.id !== 'string' || typeof part.name !== 'string') return []
-    return [{ id: part.id, name: part.name, args: part.arguments }]
+    const call = toolCallFromValue(part)
+    return call ? [call] : []
   })
+}
+
+export function toolCallInUpdate(event: JsonObject): ToolCall | null {
+  if (event.type !== 'message_update' || !isObject(event.assistantMessageEvent)) return null
+  const update = event.assistantMessageEvent
+  return update.type === 'toolcall_end' ? toolCallFromValue(update.toolCall) : null
 }
 
 export function toolResultInMessage(message: JsonObject): ToolResult | null {
@@ -45,6 +51,11 @@ export function toolContentText(content: unknown): string {
 
 export function formatToolData(value: unknown): string {
   try { return JSON.stringify(value, null, 2) ?? String(value) } catch { return String(value) }
+}
+
+function toolCallFromValue(value: unknown): ToolCall | null {
+  if (!isObject(value) || value.type !== 'toolCall' || typeof value.id !== 'string' || typeof value.name !== 'string') return null
+  return { id: value.id, name: value.name, args: value.arguments }
 }
 
 function isObject(value: unknown): value is JsonObject {
