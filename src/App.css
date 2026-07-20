@@ -68,8 +68,8 @@ button:disabled, select:disabled { cursor: not-allowed; }
 }
 .brand-mark.large { width: 64px; height: 64px; margin: auto; border-radius: 18px; font-size: 38px; }
 
-.workspace-actions { display: flex; align-items: center; gap: 6px; }
-.workspace-actions .workspace-path { flex: 1; min-width: 0; }
+.workspace-actions { display: grid; gap: 6px; }
+.workspace-action-buttons { display: flex; justify-content: flex-end; gap: 6px; }
 .open-vscode-tooltip { display: flex; }
 .open-explorer svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
 .code-symbol { font: 700 15px/1 ui-monospace, monospace; letter-spacing: -2px; }
@@ -90,7 +90,7 @@ button:disabled, select:disabled { cursor: not-allowed; }
 }
 .workspace-path:hover, .workspace-path:focus-visible { border-color: var(--line-strong); background: rgb(255 255 255 / 66%); }
 .workspace-path span { color: var(--muted); font-size: 11px; font-weight: 600; }
-.workspace-path strong { overflow: hidden; font: 12px ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-path strong { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font: 12px/1.45 ui-monospace, monospace; overflow-wrap: anywhere; }
 
 .new-session {
   width: 100%;

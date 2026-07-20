@@ -15,8 +15,25 @@ export function openVsCode(workspacePath: string): Promise<void> {
 }
 
 // Ouvre le dossier WSL dans l'Explorateur Windows sans lier sa durée de vie au backend.
-export function openExplorer(workspacePath: string): Promise<void> {
-  return openApplication('explorer.exe', workspacePath)
+export async function openExplorer(workspacePath: string): Promise<void> {
+  await openApplication('explorer.exe', await windowsWorkspacePath(workspacePath))
+}
+
+// Convertit un chemin WSL en chemin Windows, seul format interprété correctement par l'Explorateur.
+export function windowsWorkspacePath(workspacePath: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const process = spawn('wslpath', ['-w', workspacePath], { stdio: ['ignore', 'pipe', 'pipe'] })
+    let output = ''
+    let errorOutput = ''
+    process.stdout.on('data', (chunk: Buffer) => { output += chunk.toString('utf8') })
+    process.stderr.on('data', (chunk: Buffer) => { errorOutput += chunk.toString('utf8') })
+    process.once('error', reject)
+    process.once('exit', (code) => {
+      const windowsPath = output.trim()
+      if (code === 0 && windowsPath) resolve(windowsPath)
+      else reject(new Error(errorOutput.trim() || `wslpath exited with code ${code}`))
+    })
+  })
 }
 
 // Détache l'application Windows pour que le redémarrage du backend ne la ferme jamais.
