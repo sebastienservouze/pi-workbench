@@ -133,8 +133,8 @@ type ToolCallPresenter = (args: unknown, repositoryRoot?: string | null) => Tool
 const toolCallPresentations: Record<string, ToolCallPresenter> = {
   bash: bashPresentation,
   edit: filePresentation,
-  fffind: searchPresentation,
-  ffgrep: searchPresentation,
+  find: searchPresentation,
+  grep: searchPresentation,
   read: readPresentation,
   write: filePresentation,
 }

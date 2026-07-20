@@ -8,8 +8,8 @@ export interface Activity {
 
 const toolActivityText: Record<string, string> = {
   ask_user_question: 'vous pose une question',
-  fffind: 'repère les fichiers pertinents',
-  ffgrep: 'cherche dans le code',
+  find: 'repère les fichiers pertinents',
+  grep: 'cherche dans le code',
   read: 'lit un fichier',
   write: 'écrit un fichier',
   edit: 'modifie un fichier',

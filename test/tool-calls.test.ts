@@ -78,7 +78,7 @@ test('validates edit operations before rendering their diff', () => {
   assert.equal(editOperations({ edits: [{ oldText: 'before' }] }), null)
 })
 
-test('detects Markdown and supported code formats read from the repository', () => {
+test('detects Markdown, HTML and supported code formats read from the repository', () => {
   assert.deepEqual(readContentDisplay({ path: 'docs/guide.md' }), { kind: 'markdown' })
   assert.deepEqual(readContentDisplay({ path: 'src/App.tsx' }), { kind: 'code', language: 'typescript' })
   assert.deepEqual(readContentDisplay({ path: 'public/preview.html' }), { kind: 'html' })
@@ -105,13 +105,13 @@ test('uses the Bash presentation while preserving the generic fallback', () => {
 test('displays search patterns and their optional paths', () => {
   const root = '/workspace/repository'
 
-  assert.deepEqual(toolCallPresentation({ id: 'call_1', name: 'fffind', args: { pattern: 'tool call', path: `${root}/src` } }, root), {
+  assert.deepEqual(toolCallPresentation({ id: 'call_1', name: 'find', args: { pattern: 'tool call', path: `${root}/src` } }, root), {
     headerDetail: { text: 'tool call · src', title: 'tool call · src' },
   })
-  assert.deepEqual(toolCallPresentation({ id: 'call_2', name: 'ffgrep', args: { pattern: 'toolCallPresentation' } }, root), {
+  assert.deepEqual(toolCallPresentation({ id: 'call_2', name: 'grep', args: { pattern: 'toolCallPresentation' } }, root), {
     headerDetail: { text: 'toolCallPresentation', title: 'toolCallPresentation' },
   })
-  assert.deepEqual(toolCallPresentation({ id: 'call_3', name: 'fffind', args: { path: 'src' } }, root), {})
+  assert.deepEqual(toolCallPresentation({ id: 'call_3', name: 'find', args: { path: 'src' } }, root), {})
 })
 
 test('displays file tool paths relative to the repository and truncates them', () => {

@@ -168,11 +168,21 @@ function App() {
     setGitSidebarWidth(nextWidth)
   }, [])
 
-  // Relit le fichier courant afin que les appels write montrent l'état réellement enregistré sur disque.
+  // Ouvre uniquement les Markdown dans le widget et délègue les documents HTML au navigateur local.
   const openWorkspaceFile = useCallback(async (path: string) => {
+    const display = readContentDisplay({ path })
+    if (display.kind === 'html') {
+      const url = workspaceFileUrl(workspacePath, path)
+      const tab = url ? window.open(url, '_blank') : null
+      if (tab) tab.opener = null
+      else showToast('error', "Le fichier HTML n'a pas pu être ouvert dans un nouvel onglet.")
+      return
+    }
+    if (display.kind !== 'markdown') return
+
     const version = ++fileRequestVersionRef.current
     setActiveRightWidget('file')
-    setFilePreview({ path, display: readContentDisplay({ path }), phase: 'loading' })
+    setFilePreview({ path, display, phase: 'loading' })
     try {
       const file = await getWorkspaceFile(workspacePath, path)
       if (version !== fileRequestVersionRef.current) return
@@ -181,9 +191,9 @@ function App() {
         if (version === fileRequestVersionRef.current) startTransition(() => setFilePreview({ path: file.path, display: readContentDisplay({ path: file.path }), file }))
       }, 0)
     } catch (cause) {
-      if (version === fileRequestVersionRef.current) setFilePreview({ path, display: readContentDisplay({ path }), error: messageOf(cause) })
+      if (version === fileRequestVersionRef.current) setFilePreview({ path, display, error: messageOf(cause) })
     }
-  }, [startTransition, workspacePath])
+  }, [showToast, startTransition, workspacePath])
 
   useEffect(() => {
     let cancelled = false
@@ -459,7 +469,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} onFileOpen={openWorkspaceFile} repositoryRoot={gitSnapshot?.root} toolExecutions={toolExecutions} />
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} onFileOpen={openWorkspaceFile} repositoryRoot={gitSnapshot?.root} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
             <Composer
               session={selectedSession}
@@ -692,13 +702,13 @@ function RightSidebar({ activeWidget, filePreview, onResize, snapshot, width, on
       <button
         aria-controls={activeWidget === 'file' ? 'file-panel' : undefined}
         aria-expanded={activeWidget === 'file'}
-        aria-label={activeWidget === 'file' ? 'Réduire le panneau Fichier' : 'Développer le panneau Fichier'}
+        aria-label={activeWidget === 'file' ? 'Réduire le panneau Markdown' : 'Développer le panneau Markdown'}
         className="rail-tab"
         disabled={!filePreview}
         onClick={() => onWidgetSelect('file')}
-        title="Fichier"
+        title="Markdown"
         type="button"
-      ><span aria-hidden="true">▤</span></button>
+      ><span aria-hidden="true">¶</span></button>
     </div>
   </aside>
 }
@@ -712,21 +722,13 @@ function WidgetLayout({ children, footer, header }: { children: ReactNode; foote
   </>
 }
 
-// Affiche le fichier relu depuis le disque en choisissant un rendu sûr selon son extension.
+// Affiche le contenu Markdown relu depuis le disque.
 function FilePreviewContent({ preview }: { preview: FilePreview | null }) {
-  if (!preview) return <p className="git-empty">Choisissez un appel read ou write pour afficher un fichier.</p>
+  if (!preview) return <p className="git-empty">Choisissez un appel read ou write sur un fichier Markdown.</p>
   if (preview.error) return <p className="file-preview-error" role="alert">{preview.error}</p>
   if (!preview.file) return <p className="git-empty" role="status"><span aria-hidden="true" className="spinner" />{preview.phase === 'rendering' ? 'Colorisation du fichier…' : 'Chargement du fichier…'}</p>
 
-  if (preview.display.kind === 'markdown') return <section className="file-preview file-preview-markdown"><Markdown>{preview.file.content}</Markdown></section>
-  if (preview.display.kind === 'html') return <iframe className="file-preview-html" sandbox="" srcDoc={htmlPreviewDocument(preview.file.content)} title={`Aperçu de ${preview.path}`} />
-  if (preview.display.kind === 'code' && canHighlightFile(preview.file.content)) return <section className="file-preview"><SyntaxHighlighter className="file-preview-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '10px 12px' }} language={preview.display.language} PreTag="div" showLineNumbers style={oneLight} wrapLongLines>{preview.file.content}</SyntaxHighlighter></section>
-  if (preview.display.kind === 'code') return <section className="file-preview"><p className="file-preview-notice">Colorisation désactivée au-delà de 50 000 caractères.</p><pre>{preview.file.content}</pre></section>
-  return <section className="file-preview"><pre>{preview.file.content}</pre></section>
-}
-
-function htmlPreviewDocument(content: string): string {
-  return `<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:">${content}`
+  return <section className="file-preview file-preview-markdown"><Markdown>{preview.file.content}</Markdown></section>
 }
 
 // Affiche les métadonnées communes d'un fichier dans les listes Git.
@@ -880,7 +882,7 @@ function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>
 }
 
 // Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi.
-function Conversation({ messages, liveText, activity, agentName, detailedView, onFileOpen, repositoryRoot, toolExecutions }: {
+function Conversation({ messages, liveText, activity, agentName, detailedView, onFileOpen, repositoryRoot, toolExecutions, workspacePath }: {
   messages: JsonObject[]
   liveText: string
   activity: Activity | null
@@ -889,6 +891,7 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, o
   onFileOpen: (path: string) => void
   repositoryRoot?: string | null
   toolExecutions: ToolExecution[]
+  workspacePath: string
 }) {
   const visibleMessages = messages.filter(isVisibleConversationMessage)
   const usagesByMessage = turnUsageByMessage(messages)
@@ -914,11 +917,11 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, o
           {isVisibleConversationMessage(message) && <MessageCard message={message} usage={usagesByMessage.get(index)} />}
           {calls.map((call) => {
             const result = resultsByCallId.get(call.id) ?? executionsByCallId.get(call.id)?.result
-            return <ToolCallCard args={call.args} hasResult={result !== undefined} id={call.id} key={call.id} name={call.name} onFileOpen={onFileOpen} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} />
+            return <ToolCallCard args={call.args} hasResult={result !== undefined} id={call.id} key={call.id} name={call.name} onFileOpen={onFileOpen} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} workspacePath={workspacePath} />
           })}
         </div>
       })}
-      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard args={execution.args} hasResult={execution.result !== undefined} id={execution.id} key={execution.id} name={execution.name} onFileOpen={onFileOpen} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} />)}
+      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard args={execution.args} hasResult={execution.result !== undefined} id={execution.id} key={execution.id} name={execution.name} onFileOpen={onFileOpen} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} workspacePath={workspacePath} />)}
       {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {activity && activity.kind !== 'writing' && <ActivityIndicator activity={activity} agentName={agentName} />}
       {visibleMessages.length === 0 && !liveText && !activity && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
@@ -928,7 +931,7 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, o
 }
 
 // Regroupe l'appel et son résultat afin que leur état visuel reste cohérent dans l'historique.
-const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, onFileOpen, repositoryRoot, resultContent, resultError }: {
+const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, onFileOpen, repositoryRoot, resultContent, resultError, workspacePath }: {
   args: unknown
   hasResult: boolean
   id: string
@@ -937,45 +940,77 @@ const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, onF
   repositoryRoot?: string | null
   resultContent?: unknown
   resultError?: boolean
+  workspacePath: string
 }) {
   const pending = !hasResult
   const [expanded, setExpanded] = useState(false)
+  const [writtenContent, setWrittenContent] = useState<string>()
+  const [writtenContentError, setWrittenContentError] = useState<string>()
+  const [loadingWrittenContent, setLoadingWrittenContent] = useState(false)
+  const [codeRendered, setCodeRendered] = useState(false)
   const input = formatToolData(args)
   const output = hasResult ? toolContentText(resultContent) : ''
   const displayedOutput = output || 'Aucune sortie.'
   const presentation = toolCallPresentation({ id, name, args }, repositoryRoot)
   const tooltip = formatToolCallTooltip(presentation.headerDetail?.title ?? input, input, hasResult ? displayedOutput : undefined)
   const filePath = name === 'read' || name === 'write' ? toolFilePath(args) : null
+  const display = filePath ? readContentDisplay({ path: filePath }) : { kind: 'text' as const }
+  const specialFile = display.kind === 'markdown' || display.kind === 'html'
+  const codeContent = name === 'write' ? writtenContent : displayedOutput
   const toggleExpanded = () => setExpanded((isExpanded) => !isExpanded)
+
+  useEffect(() => {
+    if (!expanded || display.kind !== 'code' || loadingWrittenContent || writtenContentError || codeRendered) return
+    const timeout = window.setTimeout(() => setCodeRendered(true), 0)
+    return () => window.clearTimeout(timeout)
+  }, [codeRendered, display.kind, expanded, loadingWrittenContent, writtenContentError])
+
   const activate = () => {
-    if (filePath) onFileOpen(filePath)
-    else toggleExpanded()
+    if (filePath && specialFile) {
+      onFileOpen(filePath)
+      return
+    }
+    if (filePath && display.kind === 'code' && name === 'write' && writtenContent === undefined) {
+      setExpanded(true)
+      setLoadingWrittenContent(true)
+      setWrittenContentError(undefined)
+      void getWorkspaceFile(workspacePath, filePath).then((file) => setWrittenContent(file.content)).catch((cause: unknown) => setWrittenContentError(messageOf(cause))).finally(() => setLoadingWrittenContent(false))
+      return
+    }
+    toggleExpanded()
   }
-  return <article className={`tool-call${resultError ? ' error' : ''}`}>
-    <button aria-expanded={filePath ? undefined : hasResult ? expanded : undefined} className="tool-call-heading tool-call-tooltip" data-tooltip={tooltip} disabled={!hasResult} onClick={activate} type="button">
+
+  const content = writtenContentError ?? codeContent ?? displayedOutput
+  const contentError = resultError || Boolean(writtenContentError)
+  const renderingCode = display.kind === 'code' && canHighlightFile(content) && expanded && !loadingWrittenContent && !writtenContentError && !codeRendered
+  return <article className={`tool-call${contentError ? ' error' : ''}`}>
+    <button aria-expanded={specialFile ? undefined : hasResult ? expanded : undefined} className="tool-call-heading tool-call-tooltip" data-tooltip={tooltip} disabled={!hasResult} onClick={activate} type="button">
       <span aria-hidden="true">⌘</span>
       <span><strong aria-label={tooltip}>{name}</strong></span>
       {presentation.headerDetail && <span className="tool-call-command"><code aria-label={`Commande complète : ${presentation.headerDetail.title}`}>{presentation.headerDetail.text}</code></span>}
       {presentation.headerDetail?.suffix && <span className="tool-call-range"><code aria-label={`Plage lue : ${presentation.headerDetail.suffix}`}>{presentation.headerDetail.suffix}</code></span>}
       <small>
         {pending && <span aria-label="Outil en cours" className="spinner tool-call-spinner" role="status" />}
-        {hasResult ? resultError ? 'Échec' : 'Terminé' : 'En cours…'}
+        {hasResult ? contentError ? 'Échec' : 'Terminé' : 'En cours…'}
         {pending && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
       </small>
     </button>
-    {hasResult && !filePath && expanded && <ToolCallContent call={{ name, args }} content={displayedOutput} error={resultError} />}
+    {hasResult && !specialFile && expanded && <ToolCallContent call={{ name, args }} content={content} error={contentError} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} />}
   </article>
 })
 
-// Affiche la sortie complète lorsque son appel a été développé.
-function ToolCallContent({ call, content, error }: { call: { name: string; args: unknown }; content: string; error?: boolean }) {
-  const edits = call.name === 'edit' && !error ? editOperations(call.args) : null
-  if (edits) return <ToolEditDiff edits={edits} />
+// Affiche la sortie complète lorsque son appel a été développé et referme le bloc à son clic.
+function ToolCallContent({ call, content, error, onCollapse, renderingCode }: { call: { name: string; args: unknown }; content: string; error?: boolean; onCollapse: () => void; renderingCode: boolean }) {
+  if (renderingCode) return <section className="tool-call-content tool-call-loading" role="status" onClick={onCollapse}><span aria-hidden="true" className="spinner" />Colorisation du fichier…</section>
 
-  const display = call.name === 'read' ? readContentDisplay(call.args) : { kind: 'text' as const }
-  if (display.kind === 'markdown') return <section className="tool-call-content tool-call-markdown"><Markdown>{content}</Markdown></section>
-  if (display.kind === 'code') return <section className="tool-call-content"><SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px' }} language={display.language} PreTag="div" style={oneLight} wrapLongLines>{content}</SyntaxHighlighter></section>
-  return <section className="tool-call-content"><pre>{content}</pre></section>
+  const edits = call.name === 'edit' && !error ? editOperations(call.args) : null
+  if (edits) return <section className="tool-call-content" onClick={onCollapse}><ToolEditDiff edits={edits} /></section>
+
+  const display = call.name === 'read' || call.name === 'write' ? readContentDisplay(call.args) : { kind: 'text' as const }
+  if (display.kind === 'markdown') return <section className="tool-call-content tool-call-markdown" onClick={onCollapse}><Markdown>{content}</Markdown></section>
+  if (display.kind === 'code' && canHighlightFile(content)) return <section className="tool-call-content" onClick={onCollapse}><SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px' }} language={display.language} PreTag="div" style={oneLight} wrapLongLines>{content}</SyntaxHighlighter></section>
+  if (display.kind === 'code') return <section className="tool-call-content" onClick={onCollapse}><p className="tool-call-notice">Colorisation désactivée au-delà de 50 000 caractères.</p><pre>{content}</pre></section>
+  return <section className="tool-call-content" onClick={onCollapse}><pre>{content}</pre></section>
 }
 
 // Affiche chaque remplacement exact sous la forme compacte d'un diff unifié.
@@ -1408,6 +1443,12 @@ function formatTokens(value: number): string {
 
 function messageOf(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause)
+}
+
+function workspaceFileUrl(workspacePath: string, path: string): string | null {
+  const root = new URL(workspacePath.endsWith('/') ? workspacePath : `${workspacePath}/`, 'file:///')
+  const target = new URL(path, root)
+  return target.pathname.startsWith(root.pathname) ? target.href : null
 }
 
 export default App

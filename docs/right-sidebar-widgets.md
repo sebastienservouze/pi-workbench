@@ -1,6 +1,6 @@
 # Widgets de la sidebar droite
 
-La sidebar droite s’affiche lorsqu’un dépôt Git est détecté ou lorsqu’un fichier doit être prévisualisé. Elle affiche actuellement les widgets Git et Fichier, rendus par `RightSidebar` dans `src/App.tsx`.
+La sidebar droite s’affiche lorsqu’un dépôt Git est détecté ou lorsqu’un fichier Markdown doit être prévisualisé. Elle affiche actuellement les widgets Git et Markdown, rendus par `RightSidebar` dans `src/App.tsx`.
 
 ## Composition et comportement
 
@@ -12,6 +12,8 @@ La sidebar est composée de deux zones côte à côte :
 Le clic sur l’icône d’un widget ouvre son panneau sans masquer le rail. Un second clic sur l’icône active referme le panneau. Le rail reste alors disponible pour rouvrir ce widget ou en choisir un autre.
 
 Le widget Git conserve son état ouvert ou fermé dans `pi-workbench.git-sidebar-collapsed`. Son bouton renseigne `aria-expanded` et, lorsque le panneau est rendu, `aria-controls`.
+
+Le widget Markdown s’ouvre uniquement après un appel `read` ou `write` sur un fichier `.md` ou `.markdown` et rend son contenu interprété. Les fichiers HTML s’ouvrent dans un nouvel onglet local ; les autres fichiers restent dans le résultat de l’appel.
 
 ## Contrat de mise en page
 
