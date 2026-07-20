@@ -29,22 +29,8 @@ export interface DirectoryListing {
   directories: DirectoryEntry[]
 }
 
-export interface Launcher {
-  id: string
-  name: string
-  executablePath: string
-  iconDataUrl?: string
-}
-
-export interface LauncherRegistry {
-  launchers: Launcher[]
-  defaultLauncherId?: string
-  workspaceLauncherIds: Record<string, string>
-}
-
-export interface LauncherSnapshot {
-  launchers: Launcher[]
-  selectedLauncherId?: string
+export interface VsCodeStatus {
+  available: boolean
 }
 
 export interface GitFileChange {

@@ -70,18 +70,9 @@ button:disabled, select:disabled { cursor: not-allowed; }
 
 .workspace-actions { display: flex; align-items: stretch; gap: 6px; }
 .workspace-actions .workspace-path { flex: 1; min-width: 0; }
-.launcher-control { display: flex; flex: 0 0 auto; align-self: center; }
-.launcher-open { border-radius: 8px 0 0 8px; }
-.launcher-open:disabled { opacity: .45; }
-.launcher-select-trigger { display: grid; place-items: center; width: 27px; border: 1px solid var(--line-strong); border-left: 0; border-radius: 0 8px 8px 0; padding: 0; background: var(--surface); color: var(--muted); font-size: 14px; font-weight: 800; line-height: 1; }
-.launcher-select-trigger:hover { border-color: #9caea3; color: var(--ink); }
-.launcher-select-trigger:focus-visible { z-index: 1; outline: 2px solid var(--teal); outline-offset: -2px; }
-.launcher-select-content { min-width: 190px; }
-.launcher-select-option { gap: 12px; }
-.launcher-option { display: flex; align-items: center; gap: 8px; }
-.launcher-icon, .launcher-fallback-icon { flex: 0 0 auto; width: 18px; height: 18px; object-fit: contain; }
-.launcher-fallback-icon { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
-.launcher-select-separator { height: 1px; margin: 4px 0; background: var(--line); }
+.open-vscode-tooltip { display: flex; align-self: center; }
+.open-vscode svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
+.open-vscode:disabled { opacity: .45; }
 
 .workspace-path {
   display: grid;

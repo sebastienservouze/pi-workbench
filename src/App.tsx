@@ -11,8 +11,8 @@ import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup'
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import './App.css'
-import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getLaunchers, getSnapshot, getWorkspaceFile, listDirectories, listRecentSessions, listSessions, openLauncher, openSession, pickLauncher, revertGitCommit, selectLauncher, sendPiCommand } from './api.ts'
-import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, LauncherSnapshot, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
+import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getSnapshot, getVsCodeStatus, getWorkspaceFile, listDirectories, listRecentSessions, listSessions, openSession, openVsCode, revertGitCommit, sendPiCommand } from './api.ts'
+import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { canHighlightFile } from './file-preview.ts'
@@ -134,8 +134,7 @@ function App() {
   const [workspacePath, setWorkspacePath] = useState(() => window.localStorage.getItem('pi-workbench.workspace-path') ?? '~/.pi')
   const [recentWorkspacePaths, setRecentWorkspacePaths] = useState(() => recentWorkspaces(window.localStorage.getItem('pi-workbench.workspace-path') ?? '~/.pi', readRecentWorkspaces()))
   const [directoryPickerOpen, setDirectoryPickerOpen] = useState(false)
-  const [launcherSnapshot, setLauncherSnapshot] = useState<LauncherSnapshot>({ launchers: [] })
-  const [launchingWorkspace, setLaunchingWorkspace] = useState(false)
+  const [vsCodeAvailable, setVsCodeAvailable] = useState<boolean | null>(null)
   const [openingSessionPath, setOpeningSessionPath] = useState('')
   const [selectedId, setSelectedId] = useState('')
   const [snapshot, setSnapshot] = useState<SessionSnapshot>(emptySnapshot)
@@ -200,27 +199,15 @@ function App() {
 
   useEffect(() => {
     let cancelled = false
-    void getLaunchers(workspacePath)
-      .then((nextSnapshot) => {
-        if (!cancelled) setLauncherSnapshot(nextSnapshot)
+    void getVsCodeStatus()
+      .then(({ available }) => {
+        if (!cancelled) setVsCodeAvailable(available)
       })
-      .catch((cause) => {
-        if (!cancelled) showToast('error', messageOf(cause))
+      .catch(() => {
+        if (!cancelled) setVsCodeAvailable(false)
       })
     return () => { cancelled = true }
-  }, [showToast, workspacePath])
-
-  // Ouvre le choix mémorisé ou laisse Windows demander un exécutable lors de la première utilisation.
-  const openWorkspaceInLauncher = useCallback(async () => {
-    setLaunchingWorkspace(true)
-    try {
-      setLauncherSnapshot(await openLauncher(workspacePath))
-    } catch (cause) {
-      showToast('error', messageOf(cause))
-    } finally {
-      setLaunchingWorkspace(false)
-    }
-  }, [showToast, workspacePath])
+  }, [])
 
   useEffect(() => {
     if (!toast) return
@@ -422,13 +409,23 @@ function App() {
           <button className="workspace-path" onClick={() => setDirectoryPickerOpen(true)} title={workspacePath} type="button">
             <span>Dossier courant</span><strong>{workspacePath}</strong>
           </button>
-          <LauncherControl
-            launching={launchingWorkspace}
-            onOpen={() => void openWorkspaceInLauncher()}
-            onPick={() => void pickLauncher(workspacePath).then(setLauncherSnapshot).catch((cause) => showToast('error', messageOf(cause)))}
-            onSelect={(launcherId) => void selectLauncher(workspacePath, launcherId).then(setLauncherSnapshot).catch((cause) => showToast('error', messageOf(cause)))}
-            snapshot={launcherSnapshot}
-          />
+          <span className="open-vscode-tooltip" title={vsCodeAvailable === null ? 'Vérification de VS Code…' : vsCodeAvailable ? 'Ouvrir le dossier dans VS Code' : 'VS Code est indisponible. Tapez code dans WSL, puis rechargez la page.'}>
+            <button
+              aria-label="Ouvrir le dossier dans VS Code"
+              className="icon-button open-vscode"
+              disabled={vsCodeAvailable !== true}
+              onClick={() => {
+                void openVsCode(workspacePath)
+                  .catch((cause) => {
+                    setVsCodeAvailable(false)
+                    showToast('error', messageOf(cause))
+                  })
+              }}
+              type="button"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 3h7v7M21 3l-9 9M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1 2-2h6" /></svg>
+            </button>
+          </span>
         </div>
         <NewSessionButton
           onCreate={async () => {
@@ -803,48 +800,6 @@ function readRecentWorkspaces(): string[] {
   } catch {
     return []
   }
-}
-
-// Réunit l'ouverture immédiate et le choix explicite sans afficher une configuration permanente dans la sidebar.
-function LauncherControl({ launching, onOpen, onPick, onSelect, snapshot }: {
-  launching: boolean
-  onOpen: () => void
-  onPick: () => void
-  onSelect: (launcherId: string) => void
-  snapshot: LauncherSnapshot
-}) {
-  const selected = snapshot.launchers.find(({ id }) => id === snapshot.selectedLauncherId)
-  const label = selected ? `Ouvrir le dossier dans ${selected.name}` : 'Choisir un éditeur Windows et ouvrir le dossier'
-
-  return <div className="launcher-control">
-    <button aria-label={label} className="icon-button launcher-open" disabled={launching} onClick={onOpen} title={label} type="button">
-      <LauncherIcon launcher={selected} />
-    </button>
-    <Select.Root onValueChange={(value) => value === '__pick__' ? onPick() : onSelect(value)} value={snapshot.selectedLauncherId ?? ''}>
-      <Select.Trigger aria-label="Choisir un autre éditeur" className="launcher-select-trigger" title="Choisir un autre éditeur">
-        <span aria-hidden="true">⌄</span>
-      </Select.Trigger>
-      <Select.Portal>
-        <Select.Content className="composer-select-content launcher-select-content" position="popper" sideOffset={6}>
-          <Select.Viewport>
-            {snapshot.launchers.map((launcher) => <Select.Item className="composer-select-option launcher-select-option" key={launcher.id} value={launcher.id}>
-              <Select.ItemText><span className="launcher-option"><LauncherIcon launcher={launcher} />{launcher.name}</span></Select.ItemText>
-              <Select.ItemIndicator>✓</Select.ItemIndicator>
-            </Select.Item>)}
-            <Select.Separator className="launcher-select-separator" />
-            <Select.Item className="composer-select-option launcher-select-option" value="__pick__">
-              <Select.ItemText>Choisir un autre IDE…</Select.ItemText>
-            </Select.Item>
-          </Select.Viewport>
-        </Select.Content>
-      </Select.Portal>
-    </Select.Root>
-  </div>
-}
-
-function LauncherIcon({ launcher }: { launcher?: LauncherSnapshot['launchers'][number] }) {
-  if (launcher?.iconDataUrl) return <img alt="" aria-hidden="true" className="launcher-icon" src={launcher.iconDataUrl} />
-  return <svg aria-hidden="true" className="launcher-fallback-icon" viewBox="0 0 24 24"><path d="M14 3h7v7M21 3l-9 9M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6" /></svg>
 }
 
 // Permet de compléter puis valider un chemin local avant de changer l'espace de travail.
