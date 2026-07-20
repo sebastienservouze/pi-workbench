@@ -48,7 +48,7 @@ Consultez [`docs/right-sidebar-widgets.md`](docs/right-sidebar-widgets.md) avant
 
 - Écrivez les identifiants, noms de fichiers et le code en anglais.
 - Gardez le code aéré, simple et lisible; donnez aux variables des noms explicites.
-- Documentez une fonction en français seulement pour expliquer un contrat, un invariant, un effet de bord ou une raison non évidente. Ne paraphrasez jamais le code.
+- Documentez en français toute fonction applicative de plus de 4 lignes, sauf les fonctions utilitaires évidentes (garde de type, conversion, formatage ou parsing local) et celles déjà commentées. Décrivez son rôle, son contrat, son invariant, son effet de bord ou une raison non évidente; ne paraphrasez jamais le code.
 - Respectez TypeScript strict et Oxlint avant de proposer un changement.
 - Utilisez des commits au format `<gitmoji> sujet impératif concis`, sans préfixe conventionnel tel que `feat:`.
 - Ne revendiquez jamais un test ou un contrôle qui n’a pas été réellement exécuté.

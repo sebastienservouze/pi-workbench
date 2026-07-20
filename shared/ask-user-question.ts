@@ -30,6 +30,7 @@ export interface AskUserQuestionResponse {
   cancelled: boolean
 }
 
+// Valide le protocole, les bornes et l'unicité des options avant exposition à l'interface.
 export function parseAskUserQuestionRequest(value: unknown): AskUserQuestionRequest | null {
   if (!isObject(value) || value.protocol !== askUserQuestionProtocol || value.version !== askUserQuestionVersion || !Array.isArray(value.questions)) return null
   if (value.questions.length < 1 || value.questions.length > 4) return null
@@ -40,6 +41,7 @@ export function parseAskUserQuestionRequest(value: unknown): AskUserQuestionRequ
     : null
 }
 
+// Vérifie qu'une réponse respecte exactement les questions et les choix autorisés par la requête.
 export function parseAskUserQuestionResponse(value: unknown, request: AskUserQuestionRequest): AskUserQuestionResponse | null {
   if (!isObject(value) || typeof value.cancelled !== 'boolean' || !Array.isArray(value.answers)) return null
   if (value.cancelled) return value.answers.length === 0 ? { answers: [], cancelled: true } : null

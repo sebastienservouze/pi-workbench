@@ -33,6 +33,7 @@ interface ToolExecution {
 
 const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [], stats: null }
 
+// Orchestre l'état de l'espace de travail, les événements Pi et les panneaux de l'interface.
 function App() {
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
@@ -78,6 +79,7 @@ function App() {
     return () => window.clearTimeout(timeout)
   }, [toast])
 
+  // Recharge les sessions et leurs demandes UI en ignorant les réponses obsolètes.
   const refreshSessions = useCallback(async (cwd = workspacePath) => {
     const version = ++refreshVersionRef.current
     try {
@@ -95,6 +97,7 @@ function App() {
     }
   }, [showToast, workspacePath])
 
+  // Actualise l'état Git du dossier courant sans afficher les erreurs des rafraîchissements silencieux.
   const refreshGit = useCallback(async (cwd = workspacePath, notifyOnError = false) => {
     const version = ++gitRefreshVersionRef.current
     try {
@@ -105,6 +108,7 @@ function App() {
     }
   }, [showToast, workspacePath])
 
+  // Synchronise l'instantané de session et efface le texte diffusé lorsqu'un tour est terminé.
   const refreshSnapshot = useCallback(async (sessionId: string, clearLiveText = false) => {
     if (!sessionId) {
       setSnapshot(emptySnapshot)
@@ -120,6 +124,7 @@ function App() {
     }
   }, [showToast])
 
+  // Demande la sélection d'un agent en évitant les requêtes concurrentes pour une session.
   const requestAgent = useCallback((sessionId: string, value?: string) => {
     if (agentIntentsRef.current.has(sessionId)) return
     agentIntentsRef.current.set(sessionId, value ? { value } : {})
@@ -158,6 +163,7 @@ function App() {
     events.onerror = () => showToast('error', 'Connexion au backend interrompue; nouvelle tentative en cours.')
     return () => events.close()
 
+    // Traduit les événements reçus en mises à jour d'interface et en réponses UI éventuelles.
     function handlePiEvent(sessionId: string, event: JsonObject): void {
       if (event.type === 'session_info_changed') {
         const name = typeof event.name === 'string' && event.name.trim() ? event.name.trim() : 'Nouvelle session'
@@ -221,6 +227,7 @@ function App() {
         void refreshSnapshot(sessionId, true)
       }
 
+      // Remplace une exécution existante afin de conserver un seul état par appel d'outil.
       function startToolExecution(call: { id: string; name: string; args: unknown }): void {
         setToolExecutions((current) => [
           ...current.filter((execution) => execution.id !== call.id),
@@ -391,6 +398,7 @@ function App() {
   )
 }
 
+// Affiche l'état Git et coordonne les actions de commit, push et redimensionnement.
 function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, onRefresh, onToggle }: {
   collapsed: boolean
   onResize: (width: number) => void
@@ -405,6 +413,7 @@ function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, o
   const [busy, setBusy] = useState(false)
   const hasChanges = snapshot.files.length > 0
 
+  // Exécute l'action Git demandée et conserve le message si elle échoue.
   async function action(): Promise<void> {
     setBusy(true)
     try {
@@ -426,6 +435,7 @@ function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, o
     </aside>
   }
 
+  // Installe les écouteurs temporaires nécessaires au redimensionnement pointer du panneau.
   function startResize(event: ReactPointerEvent<HTMLDivElement>): void {
     const handle = event.currentTarget
     const initialX = event.clientX
@@ -512,6 +522,7 @@ function gitStatusInitial(status: 'added' | 'deleted' | 'modified' | 'renamed'):
   return { added: 'A', deleted: 'D', modified: 'M', renamed: 'R' }[status]
 }
 
+// Permet de parcourir les dossiers accessibles avant de changer l'espace de travail.
 function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {
   initialPath: string
   onClose: () => void
@@ -548,9 +559,11 @@ function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {
   )
 }
 
+// Encapsule l'état occupé et la gestion d'erreur du démarrage d'une session.
 function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>; onError: (cause: unknown) => void }) {
   const [busy, setBusy] = useState(false)
 
+  // Empêche les doubles démarrages et transmet les erreurs au conteneur de notifications.
   async function create(): Promise<void> {
     setBusy(true)
     try {
@@ -565,6 +578,7 @@ function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>
   return <button className="new-session" disabled={busy} onClick={() => void create()} type="button">{busy ? 'Démarrage…' : '＋ Nouvelle session'}</button>
 }
 
+// Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi.
 function Conversation({ messages, liveText, activity, agentName, detailedView, toolExecutions }: {
   messages: JsonObject[]
   liveText: string
@@ -653,6 +667,7 @@ function Markdown({ children }: { children: string }) {
   return <ReactMarkdown>{children}</ReactMarkdown>
 }
 
+// Fournit la saisie utilisateur et les commandes de session tout en reflétant l'état Pi courant.
 function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, onAgentChange, onCommand, commands, running, detailedView, onDetailedViewChange, onSend, onAbort, onError }: {
   session: SessionSummary
   snapshot: SessionSnapshot
@@ -675,6 +690,7 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, o
   const currentModel = model && typeof model.id === 'string' && typeof model.provider === 'string' ? `${model.provider}/${model.id}` : ''
   const thinking = typeof snapshot.state?.thinkingLevel === 'string' ? snapshot.state.thinkingLevel : 'off'
 
+  // Ignore les messages vides et restaure le brouillon si l'envoi échoue.
   async function submit(event: FormEvent): Promise<void> {
     event.preventDefault()
     const nextMessage = message.trim()
@@ -792,11 +808,13 @@ function ComposerSelect({ ariaLabel, disabled, onValueChange, options, placehold
   )
 }
 
+// Présente le questionnaire structuré et valide sa complétude avant de répondre à Pi.
 function AskUserQuestionDialog({ dialog, onClose, onError }: { dialog: UiDialog; onClose: () => void; onError: (cause: unknown) => void }) {
   const request = parseQuestionnaire(dialog.request)
   const [selectedOptions, setSelectedOptions] = useState<string[][]>(() => request.questions.map(() => []))
   const [freeText, setFreeText] = useState<string[]>(() => request.questions.map(() => ''))
 
+  // Applique les règles mono-sélection ou multi-sélection propres à la question.
   function toggle(questionIndex: number, option: string): void {
     setSelectedOptions((current) => current.map((selected, index) => {
       if (index !== questionIndex) return selected
@@ -805,6 +823,7 @@ function AskUserQuestionDialog({ dialog, onClose, onError }: { dialog: UiDialog;
     }))
   }
 
+  // Sérialise la réponse du questionnaire et la transmet à la session en cours.
   async function respond(cancelled: boolean): Promise<void> {
     try {
       const value = cancelled
@@ -857,10 +876,12 @@ function safeJsonParse(value: string): unknown {
   try { return JSON.parse(value) } catch { return null }
 }
 
+// Affiche les demandes d'interface Pi génériques et renvoie l'action choisie par l'utilisateur.
 function ExtensionDialog({ dialog, onClose, onError }: { dialog: UiDialog; onClose: () => void; onError: (cause: unknown) => void }) {
   const request = dialog.request
   const [value, setValue] = useState(typeof request.prefill === 'string' ? request.prefill : '')
 
+  // Envoie la réponse RPC puis ferme la boîte de dialogue après confirmation du backend.
   async function respond(fields: JsonObject): Promise<void> {
     try {
       await sendPiCommand(dialog.sessionId, { type: 'extension_ui_response', id: request.id, ...fields })

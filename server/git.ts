@@ -7,6 +7,7 @@ interface GitCommandResult {
   stdout: string
 }
 
+// Agrège l'état Git, les statistiques de fichiers et le nombre de commits en attente de push.
 export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
   const repository = await runGit(cwd, ['rev-parse', '--is-inside-work-tree'], [0, 128])
   if (repository.exitCode !== 0 || repository.stdout.trim() !== 'true') return { repository: false, branch: null, files: [], ahead: 0 }
@@ -42,6 +43,7 @@ export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
   }
 }
 
+// Committe les changements présents puis tente de pousser, ou pousse les commits déjà en avance.
 export async function commitAndPush(cwd: string, message: string): Promise<{ committed: boolean; pushed: boolean; pushError?: string }> {
   const snapshot = await getGitSnapshot(cwd)
   if (!snapshot.repository) throw new Error('Le dossier courant n’est pas un dépôt Git.')
