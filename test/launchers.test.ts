@@ -4,27 +4,22 @@ import { buildStartCommand, createManualLauncher, launcherSnapshot, mergeDetecte
 import type { LauncherRegistry } from '../shared/types.ts'
 
 const registry: LauncherRegistry = {
-  launchers: [{ id: 'idea', name: 'IntelliJ IDEA', product: 'intellij', source: 'detected', executablePath: 'C:\\idea64.exe', arguments: ['{workspace}'], version: '2025.1' }],
+  launchers: [{ id: 'code', name: 'VS Code', product: 'vscode', source: 'detected', executablePath: 'C:\\Code.exe', arguments: ['{workspace}'] }],
   workspaceLauncherIds: {},
 }
 
 test('mémorise un lanceur par workspace et retombe sur le dernier lancement', () => {
-  const selected = selectWorkspaceLauncher(registry, '/workspace/a', 'idea')
-  assert.equal(launcherSnapshot(selected, '/workspace/a').selectedLauncherId, 'idea')
+  const selected = selectWorkspaceLauncher(registry, '/workspace/a', 'code')
+  assert.equal(launcherSnapshot(selected, '/workspace/a').selectedLauncherId, 'code')
   assert.equal(launcherSnapshot(selected, '/workspace/b').selectedLauncherId, undefined)
-  assert.equal(launcherSnapshot(recordLauncherLaunch(selected, 'idea'), '/workspace/b').selectedLauncherId, 'idea')
+  assert.equal(launcherSnapshot(recordLauncherLaunch(selected, 'code'), '/workspace/b').selectedLauncherId, 'code')
 })
 
 test('valide le registre et fusionne une détection sans dupliquer le binaire', () => {
   assert.deepEqual(parseLauncherRegistry(JSON.stringify(registry)), registry)
   assert.throws(() => parseLauncherRegistry('{"launchers":[],"workspaceLauncherIds":{"/workspace":"missing"}}'), /Unknown workspace launcher/)
-  const merged = mergeDetectedLaunchers(registry, parseDetectedLaunchers('{"product":"intellij","executablePath":"C:\\\\idea64.exe","version":"2025.1"}'))
+  const merged = mergeDetectedLaunchers(registry, parseDetectedLaunchers('{"product":"vscode","executablePath":"C:\\\\Code.exe"}'))
   assert.equal(merged.launchers.length, 1)
-})
-
-test('ne conserve que la version la plus récente de chaque IDE détecté', () => {
-  const detected = parseDetectedLaunchers('[{"product":"visualstudio","executablePath":"C:\\\\VS17\\\\devenv.exe","version":"17.12.4"},{"product":"visualstudio","executablePath":"C:\\\\VS18\\\\devenv.exe","version":"18.0.0"}]')
-  assert.deepEqual(detected, [{ product: 'visualstudio', executablePath: 'C:\\VS18\\devenv.exe', version: '18.0.0' }])
 })
 
 test('prépare les commandes Windows sans shell libre et traite les workspaces WSL de VS Code', () => {

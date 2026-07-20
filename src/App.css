@@ -77,7 +77,6 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .launcher-select-content { z-index: 40; min-width: 210px; }
 .launcher-option { display: flex; align-items: center; gap: 7px; }
 .launcher-mark { display: inline-grid; place-items: center; flex: 0 0 auto; width: 20px; height: 20px; border: 1px solid #b5c8c0; border-radius: 5px; background: #edf4f1; color: #18584f; font: 800 8px ui-sans-serif, system-ui, sans-serif; letter-spacing: -.04em; }
-.launcher-vscode-icon { border: 0; border-radius: 0; background: transparent; object-fit: contain; }
 .launcher-select-separator { height: 1px; margin: 4px 0; background: var(--line); }
 .launcher-configure { width: 100%; border: 0; padding: 8px 10px; background: transparent; color: var(--teal); font-size: 12px; font-weight: 700; text-align: left; }
 .launcher-configure:hover, .launcher-configure:focus-visible { background: #edf2ef; outline: 0; }

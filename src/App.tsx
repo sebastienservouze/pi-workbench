@@ -209,17 +209,26 @@ function App() {
     return () => { cancelled = true }
   }, [showToast, workspacePath])
 
-  // Ouvre immédiatement VS Code via PATH tant qu'aucun lanceur explicite n'est associé au workspace.
+  // Détecte les IDE au premier usage, puis laisse l'utilisateur confirmer le lanceur du workspace.
   const openWorkspaceInLauncher = useCallback(async () => {
     setLaunchingWorkspace(true)
     try {
+      if (launcherSnapshot.launchers.length === 0) {
+        setLauncherSnapshot(await detectLaunchers(workspacePath))
+        setLauncherDialogOpen(true)
+        return
+      }
+      if (!launcherSnapshot.selectedLauncherId) {
+        setLauncherDialogOpen(true)
+        return
+      }
       setLauncherSnapshot(await openLauncher(workspacePath))
     } catch (cause) {
       showToast('error', messageOf(cause))
     } finally {
       setLaunchingWorkspace(false)
     }
-  }, [showToast, workspacePath])
+  }, [launcherSnapshot, showToast, workspacePath])
 
   useEffect(() => {
     if (!toast) return
@@ -423,10 +432,7 @@ function App() {
           </button>
           <LauncherControl
             launching={launchingWorkspace}
-            onConfigure={() => {
-              setLauncherDialogOpen(true)
-              if (launcherSnapshot.launchers.length === 0) void detectLaunchers(workspacePath).then(setLauncherSnapshot).catch((cause) => showToast('error', messageOf(cause)))
-            }}
+            onConfigure={() => setLauncherDialogOpen(true)}
             onOpen={() => void openWorkspaceInLauncher()}
             onSelect={(launcherId) => {
               void selectLauncher(workspacePath, launcherId)
@@ -801,15 +807,15 @@ function LauncherControl({ launching, onConfigure, onOpen, onSelect, snapshot }:
   snapshot: LauncherSnapshot
 }) {
   const selected = snapshot.launchers.find((launcher) => launcher.id === snapshot.selectedLauncherId)
-  const label = selected ? `Ouvrir le dossier dans ${selected.name}` : 'Ouvrir le dossier dans VS Code'
+  const label = selected ? `Ouvrir le dossier dans ${selected.name}` : snapshot.launchers.length === 0 ? 'Détecter un IDE pour ouvrir le dossier' : 'Choisir un IDE pour ouvrir le dossier'
 
   return <div className="launcher-control">
     <button aria-label={label} className="icon-button launcher-open" disabled={launching} onClick={onOpen} title={label} type="button">
-      <LauncherMark product={selected?.product ?? 'vscode'} />
+      <LauncherMark product={selected?.product} />
     </button>
     <Select.Root onValueChange={onSelect} value={snapshot.selectedLauncherId ?? ''}>
       <Select.Trigger aria-label="Choisir un IDE" className="launcher-select-trigger" title="Choisir un IDE">
-        {selected && <Select.Value>{selected.name}</Select.Value>}<span aria-hidden="true">⌄</span>
+        <Select.Value>{selected?.name ?? 'IDE'}</Select.Value><span aria-hidden="true">⌄</span>
       </Select.Trigger>
       <Select.Portal>
         <Select.Content className="composer-select-content launcher-select-content" position="popper" sideOffset={6}>
@@ -827,10 +833,9 @@ function LauncherControl({ launching, onConfigure, onOpen, onSelect, snapshot }:
   </div>
 }
 
-// Affiche l'icône officielle de VS Code et des marques textuelles compactes pour les autres IDE.
+// Utilise une marque textuelle provisoire, remplacée ultérieurement par les icônes officielles téléchargées.
 function LauncherMark({ product }: { product?: LauncherSnapshot['launchers'][number]['product'] }) {
-  if (product === 'vscode') return <img alt="" aria-hidden="true" className="launcher-mark launcher-vscode-icon" src="/vscode.ico" />
-  const marks = { visualstudio: 'VS', intellij: 'IJ', rider: 'RD', pycharm: 'PC', phpstorm: 'PS', webstorm: 'WS', androidstudio: 'AS', custom: '⋯' }
+  const marks = { vscode: 'VS', intellij: 'IJ', rider: 'RD', pycharm: 'PC', phpstorm: 'PS', webstorm: 'WS', androidstudio: 'AS', custom: '⋯' }
   return <span aria-hidden="true" className="launcher-mark">{marks[product ?? 'custom']}</span>
 }
 
