@@ -120,12 +120,12 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .session-item strong { font-size: 13px; letter-spacing: -.01em; }
 .session-item small { margin-top: 4px; color: var(--muted); font: 11px ui-monospace, monospace; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px rgb(35 119 109 / 15%); }
-.session-item .status-dot { animation: status-pulse 1.8s ease-out infinite; }
+.session-item .status-dot, .composer-session .status-dot { animation: status-pulse 1.8s ease-out infinite; }
 @keyframes status-pulse {
   50% { box-shadow: 0 0 0 7px rgb(35 119 109 / 0%); transform: scale(1.08); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .session-item .status-dot { animation: none; }
+  .session-item .status-dot, .composer-session .status-dot { animation: none; }
 }
 .empty-sidebar { padding: 14px; color: var(--muted); font-size: 13px; line-height: 1.5; text-align: center; }
 
