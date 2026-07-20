@@ -8,7 +8,7 @@ import { ManagerClient } from './manager-client.ts'
 import { listRecentPiSessions, loadPiSession } from './pi-session-store.ts'
 import { commitAndPush, getGitFileDiff, getGitSnapshot } from './git.ts'
 import { readWorkspaceFile, WorkspaceFileError } from './workspace-file.ts'
-import { isVsCodeAvailable, openVsCode } from './vscode.ts'
+import { addPickedLauncher, ensureLauncherIcons, executableIcon, launcherSnapshot, launchWorkspace, loadLauncherRegistry, pickWindowsLauncher, saveLauncherRegistry, selectWorkspaceLauncher } from './launchers.ts'
 import type { DirectoryListing, JsonObject, ManagerEvent, SessionSnapshot } from '../shared/types.ts'
 
 const host = '127.0.0.1'
@@ -72,17 +72,66 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
     return
   }
 
-  if (method === 'GET' && url.pathname === '/api/vscode') {
-    sendJson(response, 200, { available: await isVsCodeAvailable() })
+  if (method === 'GET' && url.pathname === '/api/launchers') {
+    const cwd = await resolveWorkingDirectory(url.searchParams.get('cwd') ?? '~/.pi')
+    const registry = await loadLauncherRegistry()
+    const withIcons = await ensureLauncherIcons(registry)
+    if (withIcons !== registry) await saveLauncherRegistry(withIcons)
+    sendJson(response, 200, launcherSnapshot(withIcons, cwd))
     return
   }
 
-  if (method === 'POST' && url.pathname === '/api/vscode') {
+  if (method === 'POST' && url.pathname === '/api/launchers/pick') {
     const body = await readJsonBody(request)
     if (typeof body.cwd !== 'string') throw new HttpError(400, 'Working directory is required')
-    if (!(await isVsCodeAvailable())) throw new HttpError(409, 'VS Code is unavailable')
-    await openVsCode(await resolveWorkingDirectory(body.cwd))
-    sendJson(response, 200, { available: true })
+    const cwd = await resolveWorkingDirectory(body.cwd)
+    const picked = await pickWindowsLauncher()
+    if (!picked) {
+      sendJson(response, 200, launcherSnapshot(await loadLauncherRegistry(), cwd))
+      return
+    }
+    const registry = await loadLauncherRegistry()
+    const withLauncher = addPickedLauncher(registry, picked, await executableIcon(picked.executablePath).catch(() => undefined))
+    const launcher = withLauncher.launchers.find(({ executablePath }) => executablePath.toLowerCase() === picked.executablePath.toLowerCase())
+    if (!launcher) throw new Error('Selected launcher was not registered')
+    const selected = selectWorkspaceLauncher(withLauncher, cwd, launcher.id)
+    await saveLauncherRegistry(selected)
+    sendJson(response, 200, launcherSnapshot(selected, cwd))
+    return
+  }
+
+  if (method === 'POST' && url.pathname === '/api/launchers/select') {
+    const body = await readJsonBody(request)
+    if (typeof body.cwd !== 'string' || typeof body.launcherId !== 'string') throw new HttpError(400, 'Working directory and launcher are required')
+    const cwd = await resolveWorkingDirectory(body.cwd)
+    const registry = selectWorkspaceLauncher(await loadLauncherRegistry(), cwd, body.launcherId)
+    await saveLauncherRegistry(registry)
+    sendJson(response, 200, launcherSnapshot(registry, cwd))
+    return
+  }
+
+  if (method === 'POST' && url.pathname === '/api/launchers/open') {
+    const body = await readJsonBody(request)
+    if (typeof body.cwd !== 'string') throw new HttpError(400, 'Working directory is required')
+    const cwd = await resolveWorkingDirectory(body.cwd)
+    let registry = await loadLauncherRegistry()
+    let snapshot = launcherSnapshot(registry, cwd)
+    let launcher = snapshot.launchers.find(({ id }) => id === snapshot.selectedLauncherId)
+    if (!launcher) {
+      const picked = await pickWindowsLauncher()
+      if (!picked) {
+        sendJson(response, 200, snapshot)
+        return
+      }
+      registry = addPickedLauncher(registry, picked, await executableIcon(picked.executablePath).catch(() => undefined))
+      launcher = registry.launchers.find(({ executablePath }) => executablePath.toLowerCase() === picked.executablePath.toLowerCase())
+      if (!launcher) throw new Error('Selected launcher was not registered')
+      registry = selectWorkspaceLauncher(registry, cwd, launcher.id)
+      snapshot = launcherSnapshot(registry, cwd)
+    }
+    await launchWorkspace(launcher, cwd)
+    await saveLauncherRegistry(registry)
+    sendJson(response, 200, snapshot)
     return
   }
 

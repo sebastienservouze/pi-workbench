@@ -1,4 +1,4 @@
-import type { DirectoryListing, GitActionResult, GitFileDiff, GitSnapshot, JsonObject, RecentSession, SessionSnapshot, SessionSummary, VsCodeStatus, WorkspaceFile } from '../shared/types.ts'
+import type { DirectoryListing, GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, LauncherSnapshot, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
 
 export async function listSessions(): Promise<SessionSummary[]> {
   return request<SessionSummary[]>('/api/sessions')
@@ -12,12 +12,26 @@ export async function listDirectories(path: string): Promise<DirectoryListing> {
   return request<DirectoryListing>(`/api/directories?path=${encodeURIComponent(path)}`)
 }
 
-export async function getVsCodeStatus(): Promise<VsCodeStatus> {
-  return request<VsCodeStatus>('/api/vscode')
+export async function getLaunchers(cwd: string): Promise<LauncherSnapshot> {
+  return request<LauncherSnapshot>(`/api/launchers?cwd=${encodeURIComponent(cwd)}`)
 }
 
-export async function openVsCode(cwd: string): Promise<VsCodeStatus> {
-  return request<VsCodeStatus>('/api/vscode', {
+export async function pickLauncher(cwd: string): Promise<LauncherSnapshot> {
+  return request<LauncherSnapshot>('/api/launchers/pick', {
+    method: 'POST',
+    body: JSON.stringify({ cwd }),
+  })
+}
+
+export async function selectLauncher(cwd: string, launcherId: string): Promise<LauncherSnapshot> {
+  return request<LauncherSnapshot>('/api/launchers/select', {
+    method: 'POST',
+    body: JSON.stringify({ cwd, launcherId }),
+  })
+}
+
+export async function openLauncher(cwd: string): Promise<LauncherSnapshot> {
+  return request<LauncherSnapshot>('/api/launchers/open', {
     method: 'POST',
     body: JSON.stringify({ cwd }),
   })
@@ -40,6 +54,13 @@ export async function commitAndPush(cwd: string, message: string): Promise<GitAc
   return request<GitActionResult>('/api/git/action', {
     method: 'POST',
     body: JSON.stringify({ cwd, message }),
+  })
+}
+
+export async function revertGitCommit(cwd: string, hash: string): Promise<GitRevertResult> {
+  return request<GitRevertResult>('/api/git/revert', {
+    method: 'POST',
+    body: JSON.stringify({ cwd, hash }),
   })
 }
 
