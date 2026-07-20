@@ -13,18 +13,13 @@ interface PiSessionHeader {
 }
 
 /** Lit uniquement les métadonnées nécessaires à la reprise d'une session Pi. */
-export async function listRecentPiSessions(cwd: string, limit = 10, directory = sessionDirectory): Promise<RecentSession[]> {
+export async function listRecentPiSessions(cwd: string, directory = sessionDirectory): Promise<RecentSession[]> {
   const paths = await listSessionFiles(directory)
-  const files = await Promise.all(paths.map(async (path) => ({ path, updatedAt: (await stat(path)).mtimeMs })))
-  files.sort((left, right) => right.updatedAt - left.updatedAt)
+  const sessions = await Promise.all(paths.map(async (path) => readPiSession(path, (await stat(path)).mtimeMs)))
 
-  const sessions: RecentSession[] = []
-  for (const file of files) {
-    const session = await readPiSession(file.path, file.updatedAt)
-    if (session?.cwd === cwd) sessions.push(session)
-    if (sessions.length === limit) break
-  }
   return sessions
+    .filter((session): session is RecentSession => session?.cwd === cwd)
+    .sort((left, right) => right.updatedAt - left.updatedAt)
 }
 
 export async function loadPiSession(path: string): Promise<RecentSession> {
@@ -65,12 +60,17 @@ async function readPiSession(path: string, updatedAt: number): Promise<RecentSes
   if (!header) return null
   const name = lines.reduce<string | undefined>((current, line) => parseSessionName(line) ?? current, undefined)
   const prompt = lines.reduce<string | undefined>((current, line) => current ?? parseUserPrompt(line), undefined)
+  const lastMessageAt = lines.reduce<number | undefined>((current, line) => {
+    const timestamp = parseMessageTimestamp(line)
+    return timestamp === undefined || (current !== undefined && timestamp <= current) ? current : timestamp
+  }, undefined)
+  const createdAt = Date.parse(header.timestamp)
   return {
     id: header.id,
     cwd: header.cwd,
     name: name || prompt || 'Nouvelle session',
     sessionPath: path,
-    updatedAt,
+    updatedAt: lastMessageAt ?? (Number.isNaN(createdAt) ? updatedAt : createdAt),
   }
 }
 
@@ -81,6 +81,17 @@ function parseHeader(line: string | undefined): PiSessionHeader | null {
     return { type: 'session', id: value.id, timestamp: value.timestamp, cwd: value.cwd }
   } catch {
     return null
+  }
+}
+
+function parseMessageTimestamp(line: string): number | undefined {
+  try {
+    const value: unknown = JSON.parse(line)
+    if (!isObject(value) || value.type !== 'message' || typeof value.timestamp !== 'string') return undefined
+    const timestamp = Date.parse(value.timestamp)
+    return Number.isNaN(timestamp) ? undefined : timestamp
+  } catch {
+    return undefined
   }
 }
 

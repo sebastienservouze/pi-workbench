@@ -99,7 +99,8 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .new-session:hover { background: var(--accent-hover); box-shadow: 0 3px 0 #124a43, 0 6px 12px rgb(35 119 109 / 19%); transform: translateY(1px); }
 .new-session:disabled { opacity: .65; transform: none; }
 
-.session-list { display: flex; flex: 1; flex-direction: column; gap: 4px; min-height: 0; overflow-y: auto; padding-right: 2px; }
+.session-list { display: flex; flex: 1; flex-direction: column; gap: 4px; min-height: 0; overflow-y: auto; padding-right: 2px; -ms-overflow-style: none; scrollbar-width: none; }
+.session-list::-webkit-scrollbar { display: none; }
 .session-item {
   display: flex;
   align-items: center;
