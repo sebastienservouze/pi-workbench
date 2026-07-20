@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { addPickedLauncher, launcherSnapshot, parseLauncherRegistry, selectWorkspaceLauncher } from '../server/launchers.ts'
+import { addPickedLauncher, launcherSnapshot, parseLauncherRegistry, pickerArguments, selectWorkspaceLauncher } from '../server/launchers.ts'
 import type { LauncherRegistry } from '../shared/types.ts'
 
 const registry: LauncherRegistry = {
@@ -17,6 +17,10 @@ test('privilégie le lanceur mémorisé par workspace puis le lanceur par défau
   const selected = selectWorkspaceLauncher(withSecond, '/workspace/a', rider.id)
   assert.equal(launcherSnapshot(selected, '/workspace/a').selectedLauncherId, rider.id)
   assert.equal(launcherSnapshot(selected, '/workspace/b').selectedLauncherId, 'idea')
+})
+
+test('lance le sélecteur Windows dans un appartement STA interactif', () => {
+  assert.deepEqual(pickerArguments().slice(0, 3), ['-NoProfile', '-STA', '-Command'])
 })
 
 test('réutilise un exécutable déjà connu et lit le dernier choix historique comme défaut', () => {

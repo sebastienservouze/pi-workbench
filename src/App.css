@@ -73,15 +73,19 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .launcher-control { display: flex; flex: 0 0 auto; align-self: center; }
 .launcher-open { border-radius: 8px 0 0 8px; }
 .launcher-open:disabled { opacity: .45; }
-.launcher-select-trigger { display: grid; place-items: center; width: 27px; border: 1px solid var(--line-strong); border-left: 0; border-radius: 0 8px 8px 0; padding: 0; background: var(--surface); color: var(--muted); font-size: 14px; font-weight: 800; line-height: 1; }
+.launcher-select-trigger { display: grid; place-items: center; width: 24px; border: 1px solid var(--line-strong); border-left: 0; border-radius: 0 8px 8px 0; padding: 0; background: var(--surface); color: var(--muted); font-size: 13px; font-weight: 800; line-height: 1; }
 .launcher-select-trigger:hover { border-color: #9caea3; color: var(--ink); }
 .launcher-select-trigger:focus-visible { z-index: 1; outline: 2px solid var(--teal); outline-offset: -2px; }
-.launcher-select-content { min-width: 190px; }
-.launcher-select-option { gap: 12px; }
-.launcher-option { display: flex; align-items: center; gap: 8px; }
+.launcher-menu { position-anchor: --launcher-menu-anchor; top: anchor(bottom); right: anchor(right); width: max-content; min-width: 190px; max-width: min(300px, calc(100vw - 24px)); margin: 6px 0 0; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 9px; padding: 4px; background: var(--surface); color: var(--ink); box-shadow: 0 15px 32px rgb(29 41 36 / 16%); }
+.launcher-select-trigger { anchor-name: --launcher-menu-anchor; }
+.launcher-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 32px; border: 0; border-radius: 6px; padding: 6px 7px; background: transparent; color: inherit; font-size: 12px; text-align: left; }
+.launcher-menu-item:hover, .launcher-menu-item:focus-visible { background: #edf2ef; outline: 0; }
+.launcher-menu-item[aria-current='true'] { background: var(--teal-soft); color: #18584f; font-weight: 700; }
+.launcher-menu-item > span:nth-child(2) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.launcher-menu-pick { color: var(--teal); font-weight: 700; }
+.launcher-menu-separator { height: 1px; margin: 4px 0; background: var(--line); }
 .launcher-icon, .launcher-fallback-icon { flex: 0 0 auto; width: 18px; height: 18px; object-fit: contain; }
 .launcher-fallback-icon { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
-.launcher-select-separator { height: 1px; margin: 4px 0; background: var(--line); }
 
 .workspace-path {
   display: grid;
