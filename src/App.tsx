@@ -11,7 +11,7 @@ import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup'
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import './App.css'
-import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getSnapshot, getVsCodeStatus, getWorkspaceFile, listDirectories, listRecentSessions, listSessions, openSession, openVsCode, revertGitCommit, sendPiCommand } from './api.ts'
+import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getSnapshot, getVsCodeStatus, getWorkspaceFile, listDirectories, listRecentSessions, listSessions, openExplorer, openSession, openVsCode, revertGitCommit, sendPiCommand } from './api.ts'
 import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
@@ -409,6 +409,15 @@ function App() {
           <button className="workspace-path" onClick={() => setDirectoryPickerOpen(true)} title={workspacePath} type="button">
             <span>Dossier courant</span><strong>{workspacePath}</strong>
           </button>
+          <button
+            aria-label="Ouvrir le dossier dans l’Explorateur Windows"
+            className="icon-button open-explorer"
+            onClick={() => void openExplorer(workspacePath).catch((cause) => showToast('error', messageOf(cause)))}
+            title="Ouvrir le dossier dans l’Explorateur Windows"
+            type="button"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h4l2 2h7A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z" /><path d="M3 9h18" /></svg>
+          </button>
           <span className="open-vscode-tooltip" title={vsCodeAvailable === null ? 'Vérification de VS Code…' : vsCodeAvailable ? 'Ouvrir le dossier dans VS Code' : 'VS Code est indisponible. Tapez code dans WSL, puis rechargez la page.'}>
             <button
               aria-label="Ouvrir le dossier dans VS Code"
@@ -423,7 +432,7 @@ function App() {
               }}
               type="button"
             >
-              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 3h7v7M21 3l-9 9M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1 2-2h6" /></svg>
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 5-6 7 6 7M16 5l6 7-6 7M14 3l-4 18" /></svg>
             </button>
           </span>
         </div>

@@ -71,7 +71,7 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .workspace-actions { display: flex; align-items: stretch; gap: 6px; }
 .workspace-actions .workspace-path { flex: 1; min-width: 0; }
 .open-vscode-tooltip { display: flex; align-self: center; }
-.open-vscode svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
+.open-explorer svg, .open-vscode svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
 .open-vscode:disabled { opacity: .45; }
 
 .workspace-path {

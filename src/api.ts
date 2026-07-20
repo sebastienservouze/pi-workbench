@@ -12,6 +12,13 @@ export async function listDirectories(path: string): Promise<DirectoryListing> {
   return request<DirectoryListing>(`/api/directories?path=${encodeURIComponent(path)}`)
 }
 
+export async function openExplorer(cwd: string): Promise<void> {
+  await request<void>('/api/explorer', {
+    method: 'POST',
+    body: JSON.stringify({ cwd }),
+  })
+}
+
 export async function getVsCodeStatus(): Promise<VsCodeStatus> {
   return request<VsCodeStatus>('/api/vscode')
 }

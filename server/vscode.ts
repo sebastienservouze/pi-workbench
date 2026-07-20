@@ -10,9 +10,19 @@ export async function isVsCodeAvailable(command = 'code'): Promise<boolean> {
 }
 
 // Lance VS Code de façon détachée afin que le backend ne soit pas lié à la durée de l'éditeur.
-export async function openVsCode(workspacePath: string): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    const process = spawn('code', [workspacePath], { detached: true, stdio: 'ignore' })
+export function openVsCode(workspacePath: string): Promise<void> {
+  return openApplication('code', workspacePath)
+}
+
+// Ouvre le dossier WSL dans l'Explorateur Windows sans lier sa durée de vie au backend.
+export function openExplorer(workspacePath: string): Promise<void> {
+  return openApplication('explorer.exe', workspacePath)
+}
+
+// Détache l'application Windows pour que le redémarrage du backend ne la ferme jamais.
+function openApplication(command: string, workspacePath: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const process = spawn(command, [workspacePath], { detached: true, stdio: 'ignore' })
     process.once('error', reject)
     process.once('spawn', () => {
       process.unref()
