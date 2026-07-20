@@ -16,6 +16,7 @@ import type { DirectoryListing, GitActionResult, GitFileDiff, GitSnapshot, JsonO
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { canHighlightFile } from './file-preview.ts'
+import { formatTurnCost, messageUsage, type MessageUsage } from './message-usage.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff, readGitSidebarWidth } from './git-sidebar.ts'
 import { editOperations, formatToolCallTooltip, formatToolData, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolFilePath, toolResultInMessage, type EditOperation, type ReadContentDisplay, type ToolResult } from './tool-calls.ts'
 
@@ -832,8 +833,19 @@ const MessageCard = memo(function MessageCard({ message }: { message: JsonObject
   const role = String(message.role)
   const timestamp = typeof message.timestamp === 'number' ? new Date(message.timestamp) : null
   const time = timestamp && !Number.isNaN(timestamp.getTime()) ? timestamp : null
-  return <article className={`message ${role}`}><div className="content">{renderContent(message.content ?? message.output)}</div>{role === 'user' && time && <time className="message-time" dateTime={time.toISOString()}>{time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time>}</article>
+  const usage = role === 'assistant' ? messageUsage(message) : null
+  return <article className={`message ${role}`}><div className="content">{renderContent(message.content ?? message.output)}</div>{usage && <TurnUsage usage={usage} />}{role === 'user' && time && <time className="message-time" dateTime={time.toISOString()}>{time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time>}</article>
 })
+
+// Affiche les compteurs facturés par Pi pour une réponse assistant terminée.
+function TurnUsage({ usage }: { usage: MessageUsage }) {
+  return <dl className="turn-usage">
+    <div><dt>Coût</dt><dd>{formatTurnCost(usage.cost)}</dd></div>
+    <div><dt>Cache read</dt><dd>{formatTokens(usage.cacheRead)}</dd></div>
+    <div><dt>Cache miss</dt><dd>{formatTokens(usage.cacheMiss)}</dd></div>
+    <div><dt>Output</dt><dd>{formatTokens(usage.output)}</dd></div>
+  </dl>
+}
 
 function ActivityIndicator({ activity, agentName }: { activity: Activity; agentName?: string }) {
   return <div className="pi-activity" role="status"><span aria-hidden="true" className="spinner" /><span className="activity-text">{activityText(activity, agentName)}</span></div>

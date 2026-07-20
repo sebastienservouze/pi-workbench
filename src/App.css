@@ -216,6 +216,10 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .message { margin: 0 0 26px; }
 .message.user { width: fit-content; max-width: 78%; margin-left: auto; padding: 13px 16px; border-radius: 14px 14px 4px; background: var(--accent); color: white; box-shadow: var(--shadow-soft); }
 .message.assistant { max-width: 760px; padding: 0 2px; }
+.turn-usage { display: flex; flex-wrap: wrap; gap: 5px 12px; margin: 11px 0 0; color: var(--muted); font: 10px ui-monospace, monospace; }
+.turn-usage div { display: inline-flex; gap: 4px; }
+.turn-usage dt { color: var(--subtle); }
+.turn-usage dd { margin: 0; color: var(--ink); }
 .message-time { display: block; margin-top: 8px; color: rgb(255 255 255 / 76%); font: 10px ui-monospace, monospace; text-align: right; }
 .content { overflow-wrap: anywhere; font: 14px/1.7 ui-sans-serif, system-ui, sans-serif; }
 .content > :first-child, .content details > :first-child { margin-top: 0; }
