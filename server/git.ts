@@ -10,9 +10,10 @@ interface GitCommandResult {
 // Agrège l'état Git, les statistiques de fichiers et le nombre de commits en attente de push.
 export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
   const repository = await runGit(cwd, ['rev-parse', '--is-inside-work-tree'], [0, 128])
-  if (repository.exitCode !== 0 || repository.stdout.trim() !== 'true') return { repository: false, branch: null, files: [], ahead: 0, commits: [] }
+  if (repository.exitCode !== 0 || repository.stdout.trim() !== 'true') return { repository: false, root: null, branch: null, files: [], ahead: 0, commits: [] }
 
-  const [status, unstaged, staged, branch, upstream] = await Promise.all([
+  const [root, status, unstaged, staged, branch, upstream] = await Promise.all([
+    runGit(cwd, ['rev-parse', '--show-toplevel']),
     runGit(cwd, ['status', '--porcelain=v1', '-z', '--untracked-files=all']),
     runGit(cwd, ['diff', '--numstat', '-z']),
     runGit(cwd, ['diff', '--cached', '--numstat', '-z']),
@@ -32,6 +33,7 @@ export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
 
   return {
     repository: true,
+    root: root.stdout.trim() || null,
     branch: branch.stdout.trim() || 'HEAD',
     files: changes.map((change) => {
       const count = counts.get(change.path)

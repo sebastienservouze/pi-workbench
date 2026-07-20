@@ -63,12 +63,17 @@ export function truncateToolText(text: string, maxLength = 140): { text: string;
   return { text: `${text.slice(0, maxLength)}…`, truncated: true }
 }
 
-export function toolCallPresentation(call: ToolCall): ToolCallPresentation {
-  return toolCallPresentations[call.name]?.(call.args) ?? {}
+export function toolCallPresentation(call: ToolCall, repositoryRoot?: string | null): ToolCallPresentation {
+  return toolCallPresentations[call.name]?.(call.args, repositoryRoot) ?? {}
 }
 
-const toolCallPresentations: Record<string, (args: unknown) => ToolCallPresentation> = {
+type ToolCallPresenter = (args: unknown, repositoryRoot?: string | null) => ToolCallPresentation
+
+const toolCallPresentations: Record<string, ToolCallPresenter> = {
   bash: bashPresentation,
+  edit: filePresentation,
+  read: filePresentation,
+  write: filePresentation,
 }
 
 // Adapte Bash en plaçant sa commande dans l'en-tête et son timeout dans le statut.
@@ -81,6 +86,22 @@ function bashPresentation(args: unknown): ToolCallPresentation {
     headerDetail: { text: truncateToolText(command, 80).text, title: command },
     pendingDetail: timeout === undefined ? undefined : `timeout : ${timeout}s`,
   }
+}
+
+// Affiche un chemin de fichier relatif au dépôt sans masquer un accès extérieur au dépôt.
+function filePresentation(args: unknown, repositoryRoot?: string | null): ToolCallPresentation {
+  if (!isObject(args) || typeof args.path !== 'string') return {}
+
+  const path = pathFromRepositoryRoot(args.path, repositoryRoot)
+  return { headerDetail: { text: truncateToolText(path, 80).text, title: path } }
+}
+
+function pathFromRepositoryRoot(path: string, repositoryRoot?: string | null): string {
+  if (!repositoryRoot) return path
+
+  const root = repositoryRoot.replace(/\/+$/, '')
+  if (path === root) return '.'
+  return path.startsWith(`${root}/`) ? path.slice(root.length + 1) : path
 }
 
 function toolCallFromValue(value: unknown): ToolCall | null {

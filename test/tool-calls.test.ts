@@ -62,6 +62,20 @@ test('uses the Bash presentation while preserving the generic fallback', () => {
     headerDetail: { text: `${'a'.repeat(80)}…`, title: command },
     pendingDetail: 'timeout : 30s',
   })
-  assert.deepEqual(toolCallPresentation({ id: 'call_2', name: 'read', args: { path: 'src/App.tsx' } }), {})
-  assert.deepEqual(toolCallPresentation({ id: 'call_3', name: 'bash', args: { timeout: 30 } }), {})
+  assert.deepEqual(toolCallPresentation({ id: 'call_2', name: 'bash', args: { timeout: 30 } }), {})
+})
+
+test('displays file tool paths relative to the repository and truncates them', () => {
+  const root = '/workspace/repository'
+  const path = `${root}/src/${'a'.repeat(80)}`
+
+  for (const name of ['read', 'edit', 'write']) {
+    assert.deepEqual(toolCallPresentation({ id: 'call_1', name, args: { path } }, root), {
+      headerDetail: { text: `src/${'a'.repeat(76)}…`, title: `src/${'a'.repeat(80)}` },
+    })
+  }
+  assert.deepEqual(toolCallPresentation({ id: 'call_2', name: 'read', args: { path: '/tmp/file.txt' } }, root), {
+    headerDetail: { text: '/tmp/file.txt', title: '/tmp/file.txt' },
+  })
+  assert.deepEqual(toolCallPresentation({ id: 'call_3', name: 'read', args: {} }, root), {})
 })

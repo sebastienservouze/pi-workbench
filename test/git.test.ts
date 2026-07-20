@@ -37,6 +37,7 @@ test('reports untracked files and their line additions from a worktree', async (
     const snapshot = await getGitSnapshot(directory)
 
     assert.equal(snapshot.repository, true)
+    assert.equal(snapshot.root, directory)
     assert.deepEqual(snapshot.files, [{ path: 'new-file.ts', status: 'added', additions: 2, deletions: 0 }])
     assert.deepEqual(snapshot.commits, [])
   } finally {

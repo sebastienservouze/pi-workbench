@@ -44,6 +44,7 @@ export interface GitCommit {
 
 export interface GitSnapshot {
   repository: boolean
+  root: string | null
   branch: string | null
   files: GitFileChange[]
   ahead: number

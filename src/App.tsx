@@ -312,7 +312,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} toolExecutions={toolExecutions} />
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} toolExecutions={toolExecutions} />
             {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
             <Composer
               session={selectedSession}
@@ -592,12 +592,13 @@ function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>
 }
 
 // Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi.
-function Conversation({ messages, liveText, activity, agentName, detailedView, toolExecutions }: {
+function Conversation({ messages, liveText, activity, agentName, detailedView, repositoryRoot, toolExecutions }: {
   messages: JsonObject[]
   liveText: string
   activity: Activity | null
   agentName?: string
   detailedView: boolean
+  repositoryRoot?: string | null
   toolExecutions: ToolExecution[]
 }) {
   const visibleMessages = messages.filter(isVisibleConversationMessage)
@@ -621,10 +622,10 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, t
         if (!isVisibleConversationMessage(message) && calls.length === 0) return null
         return <div key={`${String(message.timestamp ?? '')}-${index}`}>
           {isVisibleConversationMessage(message) && <MessageCard message={message} />}
-          {calls.map((call) => <ToolCallCard key={call.id} call={call} result={resultsByCallId.get(call.id) ?? executionsByCallId.get(call.id)?.result} />)}
+          {calls.map((call) => <ToolCallCard key={call.id} call={call} repositoryRoot={repositoryRoot} result={resultsByCallId.get(call.id) ?? executionsByCallId.get(call.id)?.result} />)}
         </div>
       })}
-      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard key={execution.id} call={execution} result={execution.result} />)}
+      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard key={execution.id} call={execution} repositoryRoot={repositoryRoot} result={execution.result} />)}
       {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {activity && activity.kind !== 'writing' && <ActivityIndicator activity={activity} agentName={agentName} />}
       {visibleMessages.length === 0 && !liveText && !activity && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
@@ -634,11 +635,11 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, t
 }
 
 // Regroupe l'appel et son résultat afin que leur état visuel reste cohérent dans l'historique.
-function ToolCallCard({ call, result }: { call: { id: string; name: string; args: unknown }; result?: ToolResult }) {
+function ToolCallCard({ call, repositoryRoot, result }: { call: { id: string; name: string; args: unknown }; repositoryRoot?: string | null; result?: ToolResult }) {
   const pending = isToolCallPending(result)
   const input = formatToolData(call.args)
   const output = result ? toolContentText(result.content) : ''
-  const presentation = toolCallPresentation(call)
+  const presentation = toolCallPresentation(call, repositoryRoot)
   const inputLabel = presentation.headerDetail ? undefined : input
   return <article className={`tool-call${result?.isError ? ' error' : ''}`}>
     <div className="tool-call-heading">
