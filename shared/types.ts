@@ -39,7 +39,7 @@ export interface GitFileChange {
 export interface GitCommit {
   hash: string
   subject: string
-  files: string[]
+  files: GitFileChange[]
 }
 
 export interface GitSnapshot {

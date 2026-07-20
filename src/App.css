@@ -170,10 +170,8 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .git-commits summary:hover { background: #f1f5f2; }
 .git-commits summary:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
 .git-commits summary code { flex: 0 0 auto; color: var(--teal); font: 700 10px ui-monospace, monospace; }
-.git-commits summary span, .git-commit-files li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.git-commits summary span { min-width: 0; }
-.git-commit-files { display: grid; gap: 2px; margin: 0; padding: 0 6px 7px 20px; list-style: none; color: var(--muted); font: 11px ui-monospace, monospace; }
-.git-commit-files li { padding: 3px 0; }
+.git-commits summary span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.git-commit-files { padding: 0 0 7px; }
 .git-empty { margin: 4px 14px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .git-actions { display: grid; gap: 7px; margin-top: auto; border-top: 1px solid var(--line); padding: 10px; background: var(--surface-raised); }
 .git-actions input { width: 100%; min-width: 0; border: 1px solid var(--line-strong); border-radius: 7px; padding: 8px 9px; background: var(--surface); color: var(--ink); font-size: 12px; outline: 0; }

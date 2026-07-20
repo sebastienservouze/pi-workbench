@@ -510,7 +510,11 @@ function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, o
         {snapshot.commits.map((commit) => <details key={commit.hash}>
           <summary title={commit.subject}><code>{commit.hash.slice(0, 7)}</code><span>{commit.subject}</span></summary>
           {commit.files.length > 0
-            ? <ul className="git-commit-files">{commit.files.map((path) => <li key={path} title={path}>{path}</li>)}</ul>
+            ? <ul className="git-file-list git-commit-files">{commit.files.map((file) => <li key={file.path}>
+              <span className={`git-file-status ${file.status}`} title={gitStatusLabel(file.status)}>{gitStatusInitial(file.status)}</span>
+              <span className="git-file-path" title={file.path}>{file.path}</span>
+              <span className="git-file-counts"><b>+{file.additions ?? '—'}</b><i>−{file.deletions ?? '—'}</i></span>
+            </li>)}</ul>
             : <p className="git-empty">Aucun fichier modifié.</p>}
         </details>)}
       </section>}

@@ -56,8 +56,15 @@ async function unpushedCommits(cwd: string): Promise<GitCommit[]> {
   }
 
   await Promise.all(commits.map(async (commit) => {
-    const files = await runGit(cwd, ['diff-tree', '--no-commit-id', '--name-only', '-r', '-m', '--first-parent', '-z', commit.hash])
-    commit.files = files.stdout.split('\0').filter(Boolean)
+    const [status, stats] = await Promise.all([
+      runGit(cwd, ['diff-tree', '--no-commit-id', '--name-status', '-r', '-m', '--first-parent', '-z', commit.hash]),
+      runGit(cwd, ['diff-tree', '--no-commit-id', '--numstat', '-r', '-m', '--first-parent', '-z', commit.hash]),
+    ])
+    const counts = mergeNumstats(stats.stdout)
+    commit.files = parseGitNameStatus(status.stdout).map((change) => {
+      const count = counts.get(change.path)
+      return { ...change, additions: count?.additions ?? null, deletions: count?.deletions ?? null }
+    })
   }))
 
   return commits
@@ -96,6 +103,25 @@ export function parseGitStatus(output: string): Omit<GitFileChange, 'additions' 
     if (code.includes('R') || code.includes('C')) index += 1
     changes.push({ path, status: statusFor(code) })
   }
+  return changes
+}
+
+export function parseGitNameStatus(output: string): Omit<GitFileChange, 'additions' | 'deletions'>[] {
+  const fields = output.split('\0')
+  const changes: Omit<GitFileChange, 'additions' | 'deletions'>[] = []
+
+  for (let index = 0; index < fields.length - 1; index += 1) {
+    const code = fields[index]
+    const path = fields[++index]
+    if (!code || !path) continue
+    if (code.startsWith('R') || code.startsWith('C')) {
+      const newPath = fields[++index]
+      if (newPath) changes.push({ path: newPath, status: statusFor(code) })
+      continue
+    }
+    changes.push({ path, status: statusFor(code) })
+  }
+
   return changes
 }
 
