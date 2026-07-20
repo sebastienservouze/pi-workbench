@@ -16,7 +16,7 @@ import type { DirectoryListing, GitActionResult, GitFileDiff, GitSnapshot, JsonO
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { canHighlightFile } from './file-preview.ts'
-import { formatTurnCost, messageUsage, type MessageUsage } from './message-usage.ts'
+import { formatTurnCost, turnUsageByMessage, type MessageUsage } from './message-usage.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff, readGitSidebarWidth } from './git-sidebar.ts'
 import { editOperations, formatToolCallTooltip, formatToolData, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolFilePath, toolResultInMessage, type EditOperation, type ReadContentDisplay, type ToolResult } from './tool-calls.ts'
 
@@ -738,6 +738,7 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, o
   toolExecutions: ToolExecution[]
 }) {
   const visibleMessages = messages.filter(isVisibleConversationMessage)
+  const usagesByMessage = turnUsageByMessage(messages)
   const toolCalls = messages.flatMap(toolCallsInMessage)
   const toolCallIds = new Set(toolCalls.map((call) => call.id))
   const resultsByCallId = new Map(messages.flatMap((message) => {
@@ -757,7 +758,7 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, o
         const calls = detailedView ? toolCallsInMessage(message) : []
         if (!isVisibleConversationMessage(message) && calls.length === 0) return null
         return <div key={`${String(message.timestamp ?? '')}-${index}`}>
-          {isVisibleConversationMessage(message) && <MessageCard message={message} />}
+          {isVisibleConversationMessage(message) && <MessageCard message={message} usage={usagesByMessage.get(index)} />}
           {calls.map((call) => {
             const result = resultsByCallId.get(call.id) ?? executionsByCallId.get(call.id)?.result
             return <ToolCallCard args={call.args} hasResult={result !== undefined} id={call.id} key={call.id} name={call.name} onFileOpen={onFileOpen} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} />
@@ -838,11 +839,10 @@ function diffLines(text: string): string[] {
   return text === '' ? [] : text.split('\n')
 }
 
-const MessageCard = memo(function MessageCard({ message }: { message: JsonObject }) {
+const MessageCard = memo(function MessageCard({ message, usage }: { message: JsonObject; usage?: MessageUsage }) {
   const role = String(message.role)
   const timestamp = typeof message.timestamp === 'number' ? new Date(message.timestamp) : null
   const time = timestamp && !Number.isNaN(timestamp.getTime()) ? timestamp : null
-  const usage = role === 'assistant' ? messageUsage(message) : null
   return <article className={`message ${role}`}><div className="content">{renderContent(message.content ?? message.output)}</div>{usage && <TurnUsage usage={usage} />}{role === 'user' && time && <time className="message-time" dateTime={time.toISOString()}>{time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time>}</article>
 })
 
