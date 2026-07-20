@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { memo, useCallback, useEffect, useRef, useState, useTransition, type CSSProperties, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import * as Select from '@radix-ui/react-select'
 import ReactMarkdown from 'react-markdown'
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -15,6 +15,7 @@ import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getSnapsh
 import type { DirectoryListing, GitActionResult, GitFileDiff, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
+import { canHighlightFile } from './file-preview.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff, readGitSidebarWidth } from './git-sidebar.ts'
 import { editOperations, formatToolCallTooltip, formatToolData, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolFilePath, toolResultInMessage, type EditOperation, type ReadContentDisplay, type ToolResult } from './tool-calls.ts'
 
@@ -45,6 +46,7 @@ interface FilePreview {
   display: ReadContentDisplay
   file?: WorkspaceFile
   error?: string
+  phase?: 'loading' | 'rendering'
 }
 
 const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [], stats: null }
@@ -78,6 +80,7 @@ function App() {
   const [gitSnapshot, setGitSnapshot] = useState<GitSnapshot | null>(null)
   const [activeRightWidget, setActiveRightWidget] = useState<'file' | 'git' | null>(() => window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git')
   const [filePreview, setFilePreview] = useState<FilePreview | null>(null)
+  const [, startTransition] = useTransition()
   const [gitSidebarWidth, setGitSidebarWidth] = useState(() => readGitSidebarWidth(window.localStorage.getItem('pi-workbench.git-sidebar-width')))
   const selectedIdRef = useRef(selectedId)
   const fileRequestVersionRef = useRef(0)
@@ -101,14 +104,18 @@ function App() {
   const openWorkspaceFile = useCallback(async (path: string) => {
     const version = ++fileRequestVersionRef.current
     setActiveRightWidget('file')
-    setFilePreview({ path, display: readContentDisplay({ path }) })
+    setFilePreview({ path, display: readContentDisplay({ path }), phase: 'loading' })
     try {
       const file = await getWorkspaceFile(workspacePath, path)
-      if (version === fileRequestVersionRef.current) setFilePreview({ path: file.path, display: readContentDisplay({ path: file.path }), file })
+      if (version !== fileRequestVersionRef.current) return
+      setFilePreview({ path: file.path, display: readContentDisplay({ path: file.path }), phase: 'rendering' })
+      window.setTimeout(() => {
+        if (version === fileRequestVersionRef.current) startTransition(() => setFilePreview({ path: file.path, display: readContentDisplay({ path: file.path }), file }))
+      }, 0)
     } catch (cause) {
       if (version === fileRequestVersionRef.current) setFilePreview({ path, display: readContentDisplay({ path }), error: messageOf(cause) })
     }
-  }, [workspacePath])
+  }, [startTransition, workspacePath])
 
   useEffect(() => {
     if (!toast) return
@@ -541,42 +548,32 @@ function RightSidebar({ activeWidget, filePreview, onResize, snapshot, width, on
         tabIndex={0}
       />
       <section aria-label={activeWidget === 'file' ? 'Fichier' : fileDiff || selectedPath ? 'Diff Git' : 'Informations Git'} className="git-panel" id={activeWidget === 'file' ? 'file-panel' : 'git-panel'}>
-        {activeWidget === 'file' ? <FilePreviewPanel preview={filePreview} /> : snapshot && <>{fileDiff || selectedPath ? <>
-          <header className="git-heading git-diff-heading">
-            <button aria-label="Retour aux fichiers Git" className="git-back" onClick={() => { setFileDiff(null); setSelectedPath(null) }} title="Retour" type="button">←</button>
-            <strong title={selectedPath ?? undefined}>{selectedPath}</strong>
-          </header>
-          {fileDiff ? <GitDiff diff={fileDiff.diff} /> : <p className="git-empty">Chargement du diff…</p>}
-        </> : <>
-          <header className="git-heading">
-            <div><strong>{snapshot.branch}</strong><span>{hasChanges ? `${snapshot.files.length} fichier${snapshot.files.length > 1 ? 's' : ''} modifié${snapshot.files.length > 1 ? 's' : ''}` : 'Arbre propre'}</span></div>
-            <button aria-label="Actualiser l’état Git" className="git-refresh" onClick={onRefresh} title="Actualiser" type="button">↻</button>
-          </header>
-          {hasChanges && <ul className="git-file-list">
-            {snapshot.files.map((file) => <li className="git-file-item" key={file.path}>
-              {file.status === 'added' || file.status === 'modified' ? <button className="git-file-button" onClick={() => void selectFile(file.path)} type="button">
-                <GitFileRow file={file} />
-              </button> : <GitFileRow file={file} />}
-            </li>)}
-          </ul>}
-          {snapshot.commits.length > 0 && <section className="git-commits" aria-label="Commits non poussés">
-            <h2>Commits non poussés <small>{snapshot.commits.length}</small></h2>
-            {snapshot.commits.map((commit) => <details key={commit.hash}>
-              <summary title={commit.subject}><code>{commit.hash.slice(0, 7)}</code><span>{commit.subject}</span></summary>
-              {commit.files.length > 0
-                ? <ul className="git-file-list git-commit-files">{commit.files.map((file) => <li className="git-file-item" key={file.path}>
+        {activeWidget === 'file' ? <WidgetLayout header={<strong title={filePreview?.path}>{filePreview?.path}</strong>}><FilePreviewContent preview={filePreview} /></WidgetLayout> : snapshot && <WidgetLayout
+          footer={activeWidget === 'git' && !selectedPath && (hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>
+            {hasChanges && <input aria-label="Message de commit" disabled={busy} onChange={(event) => setMessage(event.target.value)} placeholder="Message de commit" value={message} />}
+            <button disabled={busy || (hasChanges && !message.trim())} type="submit">{busy ? 'Git en cours…' : hasChanges ? 'Committer et pousser' : `Pousser ${snapshot.ahead} commit${snapshot.ahead > 1 ? 's' : ''}`}</button>
+          </form>}
+          header={fileDiff || selectedPath ? <><button aria-label="Retour aux fichiers Git" className="git-back" onClick={() => { setFileDiff(null); setSelectedPath(null) }} title="Retour" type="button">←</button><strong title={selectedPath ?? undefined}>{selectedPath}</strong></> : <><div><strong>{snapshot.branch}</strong><span>{hasChanges ? `${snapshot.files.length} fichier${snapshot.files.length > 1 ? 's' : ''} modifié${snapshot.files.length > 1 ? 's' : ''}` : 'Arbre propre'}</span></div><button aria-label="Actualiser l’état Git" className="git-refresh" onClick={onRefresh} title="Actualiser" type="button">↻</button></>}
+        >
+          {fileDiff || selectedPath ? fileDiff ? <GitDiff diff={fileDiff.diff} /> : <p className="git-empty">Chargement du diff…</p> : <>
+            {hasChanges && <ul className="git-file-list">
+              {snapshot.files.map((file) => <li className="git-file-item" key={file.path}>
+                {file.status === 'added' || file.status === 'modified' ? <button className="git-file-button" onClick={() => void selectFile(file.path)} type="button"><GitFileRow file={file} /></button> : <GitFileRow file={file} />}
+              </li>)}
+            </ul>}
+            {snapshot.commits.length > 0 && <section className="git-commits" aria-label="Commits non poussés">
+              <h2>Commits non poussés <small>{snapshot.commits.length}</small></h2>
+              {snapshot.commits.map((commit) => <details key={commit.hash}>
+                <summary title={commit.subject}><code>{commit.hash.slice(0, 7)}</code><span>{commit.subject}</span></summary>
+                {commit.files.length > 0 ? <ul className="git-file-list git-commit-files">{commit.files.map((file) => <li className="git-file-item" key={file.path}>
                   {file.status === 'added' || file.status === 'modified' ? <button className="git-file-button" onClick={() => void selectFile(file.path, commit.hash)} type="button"><GitFileRow file={file} /></button> : <GitFileRow file={file} />}
-                </li>)}</ul>
-                : <p className="git-empty">Aucun fichier modifié.</p>}
-            </details>)}
-          </section>}
-          {!hasChanges && snapshot.ahead === 0 && <p className="git-empty">Aucun changement à committer.</p>}
-        </>}</>}
+                </li>)}</ul> : <p className="git-empty">Aucun fichier modifié.</p>}
+              </details>)}
+            </section>}
+            {!hasChanges && snapshot.ahead === 0 && <p className="git-empty">Aucun changement à committer.</p>}
+          </>}
+        </WidgetLayout>}
       </section>
-      {activeWidget === 'git' && snapshot && !selectedPath && (hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>
-        {hasChanges && <input aria-label="Message de commit" disabled={busy} onChange={(event) => setMessage(event.target.value)} placeholder="Message de commit" value={message} />}
-        <button disabled={busy || (hasChanges && !message.trim())} type="submit">{busy ? 'Git en cours…' : hasChanges ? 'Committer et pousser' : `Pousser ${snapshot.ahead} commit${snapshot.ahead > 1 ? 's' : ''}`}</button>
-      </form>}
     </div>}
     <div className="git-rail">
       {snapshot && <button
@@ -605,19 +602,26 @@ function RightSidebar({ activeWidget, filePreview, onResize, snapshot, width, on
   </aside>
 }
 
-// Affiche le fichier relu depuis le disque en choisissant un rendu sûr selon son extension.
-function FilePreviewPanel({ preview }: { preview: FilePreview | null }) {
-  if (!preview) return <p className="git-empty">Choisissez un appel read ou write pour afficher un fichier.</p>
-
+// Garantit une structure stable : en-tête et actions fixes, contenu seul défilant.
+function WidgetLayout({ children, footer, header }: { children: ReactNode; footer?: ReactNode | false; header: ReactNode }) {
   return <>
-    <header className="git-heading file-heading"><strong title={preview.path}>{preview.path}</strong></header>
-    {preview.error && <p className="file-preview-error" role="alert">{preview.error}</p>}
-    {!preview.file && !preview.error && <p className="git-empty">Chargement du fichier…</p>}
-    {preview.file && preview.display.kind === 'markdown' && <section className="file-preview file-preview-markdown"><Markdown>{preview.file.content}</Markdown></section>}
-    {preview.file && preview.display.kind === 'html' && <iframe className="file-preview-html" sandbox="" srcDoc={htmlPreviewDocument(preview.file.content)} title={`Aperçu de ${preview.path}`} />}
-    {preview.file && preview.display.kind === 'code' && <section className="file-preview"><SyntaxHighlighter className="file-preview-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '10px 12px' }} language={preview.display.language} PreTag="div" showLineNumbers style={oneLight} wrapLongLines>{preview.file.content}</SyntaxHighlighter></section>}
-    {preview.file && preview.display.kind === 'text' && <section className="file-preview"><pre>{preview.file.content}</pre></section>}
+    <header className="widget-header">{header}</header>
+    <div className="widget-content">{children}</div>
+    {footer && <footer className="widget-footer">{footer}</footer>}
   </>
+}
+
+// Affiche le fichier relu depuis le disque en choisissant un rendu sûr selon son extension.
+function FilePreviewContent({ preview }: { preview: FilePreview | null }) {
+  if (!preview) return <p className="git-empty">Choisissez un appel read ou write pour afficher un fichier.</p>
+  if (preview.error) return <p className="file-preview-error" role="alert">{preview.error}</p>
+  if (!preview.file) return <p className="git-empty" role="status"><span aria-hidden="true" className="spinner" />{preview.phase === 'rendering' ? 'Colorisation du fichier…' : 'Chargement du fichier…'}</p>
+
+  if (preview.display.kind === 'markdown') return <section className="file-preview file-preview-markdown"><Markdown>{preview.file.content}</Markdown></section>
+  if (preview.display.kind === 'html') return <iframe className="file-preview-html" sandbox="" srcDoc={htmlPreviewDocument(preview.file.content)} title={`Aperçu de ${preview.path}`} />
+  if (preview.display.kind === 'code' && canHighlightFile(preview.file.content)) return <section className="file-preview"><SyntaxHighlighter className="file-preview-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '10px 12px' }} language={preview.display.language} PreTag="div" showLineNumbers style={oneLight} wrapLongLines>{preview.file.content}</SyntaxHighlighter></section>
+  if (preview.display.kind === 'code') return <section className="file-preview"><p className="file-preview-notice">Colorisation désactivée au-delà de 10 000 caractères.</p><pre>{preview.file.content}</pre></section>
+  return <section className="file-preview"><pre>{preview.file.content}</pre></section>
 }
 
 function htmlPreviewDocument(content: string): string {
