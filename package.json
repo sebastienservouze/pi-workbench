@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently --kill-others --kill-timeout 3000 --names manager,backend,frontend npm:dev:manager npm:dev:backend npm:dev:frontend",
+    "start": "npm run build && concurrently --kill-others --kill-timeout 3000 --names manager,backend npm:start:manager npm:start:backend",
     "dev:frontend": "vite --host 127.0.0.1",
     "dev:backend": "node --watch server/backend.ts",
     "dev:manager": "node --watch server/manager.ts",

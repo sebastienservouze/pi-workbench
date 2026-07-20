@@ -68,23 +68,13 @@ Ouvrez ensuite [http://127.0.0.1:5173](http://127.0.0.1:5173). Utilisez `Ctrl+C`
 
 ### Construire et lancer la version de production
 
-Construisez l’interface, puis démarrez le gestionnaire et le backend dans deux terminaux :
+Une seule commande construit l’interface, puis démarre le gestionnaire et le backend. `Ctrl+C` arrête les deux services :
 
 ```bash
-npm run build
+npm start
 ```
 
-```bash
-# Terminal 1
-npm run start:manager
-```
-
-```bash
-# Terminal 2
-npm run start:backend
-```
-
-L’interface est alors disponible sur [http://127.0.0.1:43121](http://127.0.0.1:43121).
+L’interface est disponible sur [http://127.0.0.1:43121](http://127.0.0.1:43121).
 
 ## Première utilisation
 
