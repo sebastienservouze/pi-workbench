@@ -353,9 +353,8 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .composer-toggle.active { border-color: #a9d6cd; background: var(--teal-soft); color: #18584f; font-weight: 700; }
 .composer-select[data-state='open'] { border-color: var(--teal); box-shadow: 0 0 0 3px rgb(35 119 109 / 14%); }
 .composer-select:disabled { opacity: .55; }
-.composer-select-icon { flex: 0 0 auto; width: 12px; color: currentColor; font-size: 12px; font-weight: 800; line-height: 1; text-align: center; }
+.composer-select-icon { display: block; flex: 0 0 auto; width: 14px; height: 14px; color: currentColor; font-size: 12px; font-weight: 800; line-height: 1; text-align: center; }
 .composer-select-icon::before { content: '◇'; }
-.composer-select.thinking .composer-select-icon::before { content: '◐'; }
 .composer-select.agent .composer-select-icon::before { content: '✦'; }
 .composer-select.command .composer-select-icon::before { content: '#'; }
 .composer-select.behavior .composer-select-icon::before { content: '↳'; }

@@ -377,6 +377,8 @@ function App() {
                 return result
               }}
               commands={snapshot.commands}
+              agentLoading={snapshotSessionId !== selectedSession.id}
+              showAgentSelector={snapshotSessionId !== selectedSession.id || snapshot.commands.some((command) => command.name === 'agent')}
               running={selectedSession.status === 'running'}
               detailedView={detailedView}
               onDetailedViewChange={() => setDetailedView((current) => {
@@ -935,12 +937,14 @@ function Markdown({ children }: { children: string }) {
 }
 
 // Fournit la saisie utilisateur et les commandes de session tout en reflétant l'état Pi courant.
-function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, onAgentChange, onCommand, commands, running, detailedView, onDetailedViewChange, onSend, onAbort, onError }: {
+function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, agentLoading, showAgentSelector, onAgentChange, onCommand, commands, running, detailedView, onDetailedViewChange, onSend, onAbort, onError }: {
   session: SessionSummary
   snapshot: SessionSnapshot
   agentBusy: boolean
   agentOptions: string[]
   selectedAgent: string
+  agentLoading: boolean
+  showAgentSelector: boolean
   onAgentChange: (agent: string) => void
   onCommand: (command: JsonObject) => Promise<JsonObject>
   commands: JsonObject[]
@@ -982,6 +986,15 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, o
       <div className="composer-footer">
         <div className="composer-actions">
           <div className="composer-tools">
+            {showAgentSelector && <ComposerSelect
+              ariaLabel="Agent"
+              disabled={agentLoading || agentBusy || agentOptions.length === 0}
+              onValueChange={onAgentChange}
+              options={agentOptions.map((agent) => ({ label: capitalizeLabel(agent), value: agent }))}
+              placeholder={agentLoading || agentBusy ? 'Chargement…' : 'Choisir un agent'}
+              tone="agent"
+              value={selectedAgent}
+            />}
             <ComposerSelect
               ariaLabel="Modèle"
               onValueChange={(value) => {
@@ -996,18 +1009,9 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, o
             <ComposerSelect
               ariaLabel="Niveau de réflexion"
               onValueChange={(value) => void onCommand({ type: 'set_thinking_level', level: value }).catch(onError)}
-              options={['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].map((level) => ({ label: level, value: level }))}
+              options={['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].map((level) => ({ label: capitalizeLabel(level), value: level }))}
               tone="thinking"
               value={thinking}
-            />
-            <ComposerSelect
-              ariaLabel="Agent"
-              disabled={agentBusy || agentOptions.length === 0}
-              onValueChange={onAgentChange}
-              options={agentOptions.map((agent) => ({ label: agent, value: agent }))}
-              placeholder={agentBusy ? 'Chargement…' : 'Choisir un agent'}
-              tone="agent"
-              value={selectedAgent}
             />
             {commands.length > 0 && <ComposerSelect
               ariaLabel="Insérer une commande Pi"
@@ -1056,7 +1060,7 @@ function ComposerSelect({ ariaLabel, disabled, onValueChange, options, placehold
   return (
     <Select.Root disabled={disabled} onValueChange={onValueChange} value={value}>
       <Select.Trigger aria-label={ariaLabel} className={`composer-select ${tone}`}>
-        <span className="composer-select-icon" aria-hidden="true" />
+        <ComposerSelectIcon tone={tone} />
         <Select.Value placeholder={placeholder} />
       </Select.Trigger>
       <Select.Portal>
@@ -1221,6 +1225,18 @@ function isAgentSelector(value: JsonObject): value is JsonObject & { id: string;
 
 function isBlockingDialog(value: JsonObject): boolean {
   return value.method === 'select' || value.method === 'confirm' || value.method === 'input' || value.method === 'editor'
+}
+
+// Rend les valeurs techniques lisibles dans les libellés du composer sans modifier les valeurs RPC.
+function capitalizeLabel(value: string): string {
+  return value ? `${value[0].toUpperCase()}${value.slice(1)}` : value
+}
+
+// Utilise des pictogrammes SVG cohérents et indépendants d'une police ou d'un jeu d'emoji.
+function ComposerSelectIcon({ tone }: { tone: 'agent' | 'behavior' | 'command' | 'model' | 'thinking' }) {
+  if (tone === 'model') return <svg aria-hidden="true" className="composer-select-icon" viewBox="0 0 16 16"><path d="m2.5 5 5.5-2.5L13.5 5 8 7.5 2.5 5Zm0 3L8 10.5 13.5 8M2.5 11 8 13.5l5.5-2.5" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.4" /></svg>
+  if (tone === 'thinking') return <svg aria-hidden="true" className="composer-select-icon" viewBox="0 0 16 16"><path d="m8 2 1.4 4.6L14 8l-4.6 1.4L8 14 6.6 9.4 2 8l4.6-1.4L8 2Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.4" /></svg>
+  return <span className="composer-select-icon" aria-hidden="true" />
 }
 
 function isObject(value: unknown): value is JsonObject {
