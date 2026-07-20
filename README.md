@@ -4,6 +4,14 @@ Pi Workbench est une interface web locale pour utiliser plusieurs sessions [Pi](
 
 L’application écoute uniquement sur `127.0.0.1` : elle n’est pas exposée au réseau.
 
+## Un projet à adapter
+
+Pi Workbench n’a pas vocation à être une boîte noire ni une architecture figée. C’est un outil local que vous pouvez modifier pour l’adapter à votre façon de travailler, à votre environnement ou à vos propres extensions Pi.
+
+Les forks sont les bienvenus : partez de ce dépôt, simplifiez-le, ajoutez vos idées ou faites-en une version très différente. Gardez simplement un œil sur les contrats existants et les changements de compatibilité. Le manager est notamment le lien avec les processus Pi : le modifier peut interrompre une connexion et une réponse en cours. Dans ce cas, la session peut généralement être reprise via l’historique de Pi.
+
+L’objectif est de rester assez simple pour être compris, corrigé et transformé. Si votre adaptation répond mieux à un autre besoin, elle mérite d’exister comme fork plutôt que d’attendre de rentrer dans le projet principal.
+
 ## Ce que permet l’interface
 
 - créer une session Pi ou rouvrir une session existante pour le dossier choisi ;

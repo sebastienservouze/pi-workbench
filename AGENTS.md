@@ -9,6 +9,18 @@
 - L’application est locale et écoute uniquement sur `127.0.0.1`. N’élargissez pas cette exposition sans authentification et cadrage explicites.
 - N’ajoutez ni base de données, routeur frontend, gestionnaire d’état ou bibliothèque UI sans besoin démontré.
 
+## Auto-modification du projet
+
+Pi Workbench est conçu pour être modifié par les agents qui l’utilisent. Avant d’éditer, analysez le flux existant, réutilisez les conventions du dépôt et cherchez la cause racine plutôt que de contourner un symptôme.
+
+- Préférez le changement le plus petit qui répond au besoin, sans nouvelle dépendance ni abstraction spéculative.
+- Préservez les contrats existants, les API, les formats de données et les comportements attendus lorsque c’est possible.
+- Examinez les appelants, les tests et les composants voisins avant de modifier une fonction partagée.
+- Validez les changements avec les contrôles pertinents et ne mélangez pas vos modifications avec celles déjà présentes dans le dépôt.
+- Si une modification introduit une rupture de compatibilité, signalez-la clairement avant de l’appliquer : décrivez le comportement supprimé ou modifié, l’impact attendu et la manière de reprendre ou de migrer.
+- `server/manager.ts` est le propriétaire des processus `pi --mode rpc`. Il peut être modifié si le besoin le justifie, mais demandez d’abord l’accord de l’utilisateur : un changement ou un redémarrage du manager peut interrompre la connexion avec Pi et la réponse en cours. La session reste normalement récupérable via l’historique de Pi et doit alors être reprise avec Pi.
+- Ne déplacez pas la gestion des processus Pi dans une autre couche et ne modifiez pas le protocole RPC sans nécessité démontrée.
+
 ## Commandes
 
 ```bash
