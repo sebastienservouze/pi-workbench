@@ -68,10 +68,11 @@ button:disabled, select:disabled { cursor: not-allowed; }
 }
 .brand-mark.large { width: 64px; height: 64px; margin: auto; border-radius: 18px; font-size: 38px; }
 
-.workspace-actions { display: flex; align-items: stretch; gap: 6px; }
+.workspace-actions { display: flex; align-items: center; gap: 6px; }
 .workspace-actions .workspace-path { flex: 1; min-width: 0; }
-.open-vscode-tooltip { display: flex; align-self: center; }
-.open-explorer svg, .open-vscode svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
+.open-vscode-tooltip { display: flex; }
+.open-explorer svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
+.code-symbol { font: 700 15px/1 ui-monospace, monospace; letter-spacing: -2px; }
 .open-vscode:disabled { opacity: .45; }
 
 .workspace-path {

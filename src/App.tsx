@@ -432,7 +432,7 @@ function App() {
               }}
               type="button"
             >
-              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m8 5-6 7 6 7M16 5l6 7-6 7M14 3l-4 18" /></svg>
+              <span aria-hidden="true" className="code-symbol">{'<>'}</span>
             </button>
           </span>
         </div>
