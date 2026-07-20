@@ -116,6 +116,7 @@ button:disabled, select:disabled { cursor: not-allowed; }
 }
 .session-item:hover { background: rgb(255 255 255 / 54%); }
 .session-item.selected { border-color: rgb(255 255 255 / 82%); background: var(--surface); box-shadow: var(--shadow-soft); }
+.session-item > span:last-child { grid-column: 2; min-width: 0; }
 .session-item strong, .session-item small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .session-item strong { font-size: 13px; letter-spacing: -.01em; }
 .session-item small { margin-top: 4px; color: var(--muted); font: 11px ui-monospace, monospace; }
