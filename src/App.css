@@ -183,7 +183,8 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .tool-call.error { border-color: #e4beb7; background: var(--danger-soft); color: #843b31; }
 .tool-call-heading { display: flex; align-items: center; gap: 7px; padding: 8px 10px; }
 .tool-call-heading > span { color: var(--teal); font-size: 14px; }
-.tool-call-heading small { margin-left: auto; color: currentColor; font: 10px ui-monospace, monospace; }
+.tool-call-heading small { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; color: currentColor; font: 10px ui-monospace, monospace; }
+.tool-call-spinner { display: inline-block; width: 11px; height: 11px; border-width: 1.5px; }
 .tool-call details { border-top: 1px solid rgb(33 68 61 / 14%); }
 .tool-call summary { cursor: pointer; padding: 7px 10px; font-size: 11px; }
 .tool-call pre { max-height: 260px; margin: 0; overflow: auto; border: 0; border-radius: 0; padding: 9px 10px; background: rgb(255 255 255 / 56%); color: inherit; font: 11px/1.5 ui-monospace, monospace; white-space: pre-wrap; }

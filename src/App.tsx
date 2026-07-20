@@ -7,7 +7,7 @@ import type { DirectoryListing, GitActionResult, GitSnapshot, JsonObject, Manage
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, readGitSidebarWidth } from './git-sidebar.ts'
-import { formatToolData, toolCallsInMessage, toolContentText, toolResultInMessage, type ToolResult } from './tool-calls.ts'
+import { formatToolData, isToolCallPending, toolCallsInMessage, toolContentText, toolResultInMessage, type ToolResult } from './tool-calls.ts'
 
 interface UiDialog {
   sessionId: string
@@ -602,9 +602,10 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, t
 }
 
 function ToolCallCard({ call, result }: { call: { id: string; name: string; args: unknown }; result?: ToolResult }) {
+  const pending = isToolCallPending(result)
   const output = result ? toolContentText(result.content) : ''
   return <article className={`tool-call${result?.isError ? ' error' : ''}`}>
-    <div className="tool-call-heading"><span aria-hidden="true">⌘</span><strong>{call.name}</strong><small>{result ? result.isError ? 'Échec' : 'Terminé' : 'En cours…'}</small></div>
+    <div className="tool-call-heading"><span aria-hidden="true">⌘</span><strong>{call.name}</strong><small>{pending && <span aria-label="Outil en cours" className="spinner tool-call-spinner" role="status" />} {result ? result.isError ? 'Échec' : 'Terminé' : 'En cours…'}</small></div>
     <details>
       <summary>Appel</summary>
       <pre>{formatToolData(call.args)}</pre>

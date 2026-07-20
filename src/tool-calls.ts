@@ -32,6 +32,10 @@ export function toolResultInMessage(message: JsonObject): ToolResult | null {
   }
 }
 
+export function isToolCallPending(result: ToolResult | undefined): boolean {
+  return result === undefined
+}
+
 export function toolContentText(content: unknown): string {
   if (typeof content === 'string') return content
   if (isObject(content) && 'content' in content) return toolContentText(content.content)
