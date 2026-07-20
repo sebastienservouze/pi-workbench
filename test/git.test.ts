@@ -103,6 +103,10 @@ test('reports unpushed commits and the files they contain', async () => {
       },
     ])
     assert.match(snapshot.commits[0]?.hash ?? '', /^[0-9a-f]{40}$/)
+
+    const commit = snapshot.commits.find(({ subject }) => subject === 'Local commit')
+    const diff = await getGitFileDiff(directory, 'tracked.ts', commit?.hash)
+    assert.match(diff.diff, /\+changed/)
   } finally {
     await rm(directory, { force: true, recursive: true })
     await rm(remote, { force: true, recursive: true })

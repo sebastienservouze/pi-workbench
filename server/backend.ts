@@ -80,7 +80,7 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
     const cwd = await resolveWorkingDirectory(url.searchParams.get('cwd') ?? '~/.pi')
     const path = url.searchParams.get('path')
     if (!path) throw new HttpError(400, 'File path is required')
-    sendJson(response, 200, await getGitFileDiff(cwd, path))
+    sendJson(response, 200, await getGitFileDiff(cwd, path, url.searchParams.get('commit') ?? undefined))
     return
   }
 

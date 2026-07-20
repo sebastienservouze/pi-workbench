@@ -16,8 +16,9 @@ export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
   return request<GitSnapshot>(`/api/git?cwd=${encodeURIComponent(cwd)}`)
 }
 
-export async function getGitFileDiff(cwd: string, path: string): Promise<GitFileDiff> {
-  return request<GitFileDiff>(`/api/git/diff?cwd=${encodeURIComponent(cwd)}&path=${encodeURIComponent(path)}`)
+export async function getGitFileDiff(cwd: string, path: string, commitHash?: string): Promise<GitFileDiff> {
+  const commit = commitHash ? `&commit=${encodeURIComponent(commitHash)}` : ''
+  return request<GitFileDiff>(`/api/git/diff?cwd=${encodeURIComponent(cwd)}&path=${encodeURIComponent(path)}${commit}`)
 }
 
 export async function commitAndPush(cwd: string, message: string): Promise<GitActionResult> {

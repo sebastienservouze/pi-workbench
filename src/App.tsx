@@ -383,7 +383,7 @@ function App() {
           return result
         }}
         onError={(cause) => showToast('error', messageOf(cause))}
-        onFileSelect={(path) => getGitFileDiff(workspacePath, path)}
+        onFileSelect={(path, commitHash) => getGitFileDiff(workspacePath, path, commitHash)}
         onRefresh={() => void refreshGit(workspacePath, true)}
         onToggle={() => setGitSidebarCollapsed((collapsed) => {
           const nextCollapsed = !collapsed
@@ -424,7 +424,7 @@ function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, o
   width: number
   onAction: (message: string) => Promise<GitActionResult>
   onError: (cause: unknown) => void
-  onFileSelect: (path: string) => Promise<GitFileDiff>
+  onFileSelect: (path: string, commitHash?: string) => Promise<GitFileDiff>
   onRefresh: () => void
   onToggle: () => void
 }) {
@@ -435,10 +435,10 @@ function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, o
   const hasChanges = snapshot.files.length > 0
 
   // Charge le diff demandé avant de remplacer la liste de fichiers du widget.
-  async function selectFile(path: string): Promise<void> {
+  async function selectFile(path: string, commitHash?: string): Promise<void> {
     setSelectedPath(path)
     try {
-      setFileDiff(await onFileSelect(path))
+      setFileDiff(await onFileSelect(path, commitHash))
     } catch (cause) {
       setSelectedPath(null)
       onError(cause)
@@ -534,7 +534,9 @@ function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, o
             {snapshot.commits.map((commit) => <details key={commit.hash}>
               <summary title={commit.subject}><code>{commit.hash.slice(0, 7)}</code><span>{commit.subject}</span></summary>
               {commit.files.length > 0
-                ? <ul className="git-file-list git-commit-files">{commit.files.map((file) => <li className="git-file-item" key={file.path}><GitFileRow file={file} /></li>)}</ul>
+                ? <ul className="git-file-list git-commit-files">{commit.files.map((file) => <li className="git-file-item" key={file.path}>
+                  {file.status === 'added' || file.status === 'modified' ? <button className="git-file-button" onClick={() => void selectFile(file.path, commit.hash)} type="button"><GitFileRow file={file} /></button> : <GitFileRow file={file} />}
+                </li>)}</ul>
                 : <p className="git-empty">Aucun fichier modifié.</p>}
             </details>)}
           </section>}

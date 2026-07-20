@@ -44,9 +44,17 @@ export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
   }
 }
 
-// Retourne le diff unifié d'un fichier modifié ou ajouté dans l'arbre de travail.
-export async function getGitFileDiff(cwd: string, path: string): Promise<GitFileDiff> {
+// Retourne le diff unifié d'un fichier modifié ou ajouté dans l'arbre ou un commit non poussé.
+export async function getGitFileDiff(cwd: string, path: string, commitHash?: string): Promise<GitFileDiff> {
   const snapshot = await getGitSnapshot(cwd)
+  if (commitHash) {
+    const commit = snapshot.commits.find(({ hash }) => hash === commitHash)
+    const file = commit?.files.find((change) => change.path === path)
+    if (!file || (file.status !== 'added' && file.status !== 'modified')) throw new Error('Ce fichier ne peut pas être affiché.')
+    const result = await runGit(cwd, ['diff-tree', '--no-commit-id', '--root', '--first-parent', '-m', '-p', commitHash, '--', path])
+    return { path, diff: result.stdout }
+  }
+
   const file = snapshot.files.find((change) => change.path === path)
   if (!file || (file.status !== 'added' && file.status !== 'modified')) throw new Error('Ce fichier ne peut pas être affiché.')
 
