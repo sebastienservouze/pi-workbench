@@ -636,6 +636,7 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, t
 // Regroupe l'appel et son résultat afin que leur état visuel reste cohérent dans l'historique.
 function ToolCallCard({ call, result }: { call: { id: string; name: string; args: unknown }; result?: ToolResult }) {
   const pending = isToolCallPending(result)
+  const input = formatToolData(call.args)
   const output = result ? toolContentText(result.content) : ''
   const presentation = toolCallPresentation(call)
   return <article className={`tool-call${result?.isError ? ' error' : ''}`}>
@@ -649,8 +650,9 @@ function ToolCallCard({ call, result }: { call: { id: string; name: string; args
         {pending && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
       </small>
     </div>
-    {presentation.showInput && <ToolCallContent content={formatToolData(call.args)} label="Appel" />}
+    {presentation.showInput && <ToolCallContent content={input} label="Appel" />}
     {result && <ToolCallContent content={output || 'Aucune sortie.'} label={presentation.outputLabel} />}
+    <footer className="tool-call-counts">Appel : {input.length} caractères{result && ` · Résultat : ${(output || 'Aucune sortie.').length} caractères`}</footer>
   </article>
 }
 
@@ -659,7 +661,6 @@ function ToolCallContent({ content, label }: { content: string; label?: string }
   return <section className="tool-call-content">
     {label && <div className="tool-call-content-heading"><strong>{label}</strong></div>}
     <pre>{content}</pre>
-    <footer>{content.length} caractères</footer>
   </section>
 }
 
