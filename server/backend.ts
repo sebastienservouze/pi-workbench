@@ -8,6 +8,7 @@ import { ManagerClient } from './manager-client.ts'
 import { listRecentPiSessions, loadPiSession } from './pi-session-store.ts'
 import { commitAndPush, getGitFileDiff, getGitSnapshot } from './git.ts'
 import { readWorkspaceFile, WorkspaceFileError } from './workspace-file.ts'
+import { isVsCodeAvailable, openVsCode } from './vscode.ts'
 import type { DirectoryListing, JsonObject, ManagerEvent, SessionSnapshot } from '../shared/types.ts'
 
 const host = '127.0.0.1'
@@ -68,6 +69,20 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
 
   if (method === 'GET' && url.pathname === '/api/directories') {
     sendJson(response, 200, await listDirectories(url.searchParams.get('path') ?? '~/.pi'))
+    return
+  }
+
+  if (method === 'GET' && url.pathname === '/api/vscode') {
+    sendJson(response, 200, { available: await isVsCodeAvailable() })
+    return
+  }
+
+  if (method === 'POST' && url.pathname === '/api/vscode') {
+    const body = await readJsonBody(request)
+    if (typeof body.cwd !== 'string') throw new HttpError(400, 'Working directory is required')
+    if (!(await isVsCodeAvailable())) throw new HttpError(409, 'VS Code is unavailable')
+    await openVsCode(await resolveWorkingDirectory(body.cwd))
+    sendJson(response, 200, { available: true })
     return
   }
 

@@ -1,4 +1,4 @@
-import type { DirectoryListing, GitActionResult, GitFileDiff, GitSnapshot, JsonObject, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
+import type { DirectoryListing, GitActionResult, GitFileDiff, GitSnapshot, JsonObject, RecentSession, SessionSnapshot, SessionSummary, VsCodeStatus, WorkspaceFile } from '../shared/types.ts'
 
 export async function listSessions(): Promise<SessionSummary[]> {
   return request<SessionSummary[]>('/api/sessions')
@@ -10,6 +10,17 @@ export async function listRecentSessions(cwd: string): Promise<RecentSession[]> 
 
 export async function listDirectories(path: string): Promise<DirectoryListing> {
   return request<DirectoryListing>(`/api/directories?path=${encodeURIComponent(path)}`)
+}
+
+export async function getVsCodeStatus(): Promise<VsCodeStatus> {
+  return request<VsCodeStatus>('/api/vscode')
+}
+
+export async function openVsCode(cwd: string): Promise<VsCodeStatus> {
+  return request<VsCodeStatus>('/api/vscode', {
+    method: 'POST',
+    body: JSON.stringify({ cwd }),
+  })
 }
 
 export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {

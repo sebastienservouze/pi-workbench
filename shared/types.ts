@@ -29,6 +29,10 @@ export interface DirectoryListing {
   directories: DirectoryEntry[]
 }
 
+export interface VsCodeStatus {
+  available: boolean
+}
+
 export interface GitFileChange {
   path: string
   status: 'added' | 'deleted' | 'modified' | 'renamed'

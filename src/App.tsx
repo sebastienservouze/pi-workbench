@@ -11,7 +11,7 @@ import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup'
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import './App.css'
-import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getSnapshot, getWorkspaceFile, listDirectories, listRecentSessions, listSessions, openSession, sendPiCommand } from './api.ts'
+import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getSnapshot, getVsCodeStatus, getWorkspaceFile, listDirectories, listRecentSessions, listSessions, openSession, openVsCode, sendPiCommand } from './api.ts'
 import type { GitActionResult, GitFileDiff, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
@@ -67,6 +67,7 @@ function App() {
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
   const [workspacePath, setWorkspacePath] = useState(() => window.localStorage.getItem('pi-workbench.workspace-path') ?? '~/.pi')
   const [directoryPickerOpen, setDirectoryPickerOpen] = useState(false)
+  const [vsCodeAvailable, setVsCodeAvailable] = useState<boolean | null>(null)
   const [openingSessionPath, setOpeningSessionPath] = useState('')
   const [selectedId, setSelectedId] = useState('')
   const [snapshot, setSnapshot] = useState<SessionSnapshot>(emptySnapshot)
@@ -118,6 +119,18 @@ function App() {
       if (version === fileRequestVersionRef.current) setFilePreview({ path, display: readContentDisplay({ path }), error: messageOf(cause) })
     }
   }, [startTransition, workspacePath])
+
+  useEffect(() => {
+    let cancelled = false
+    void getVsCodeStatus()
+      .then(({ available }) => {
+        if (!cancelled) setVsCodeAvailable(available)
+      })
+      .catch(() => {
+        if (!cancelled) setVsCodeAvailable(false)
+      })
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     if (!toast) return
@@ -315,9 +328,28 @@ function App() {
           <span className="brand-mark">π</span>
           <div><strong>Pi Workbench</strong><small>Local workspace</small></div>
         </div>
-        <button className="workspace-path" onClick={() => setDirectoryPickerOpen(true)} title={workspacePath} type="button">
-          <span>Dossier courant</span><strong>{workspacePath}</strong>
-        </button>
+        <div className="workspace-actions">
+          <button className="workspace-path" onClick={() => setDirectoryPickerOpen(true)} title={workspacePath} type="button">
+            <span>Dossier courant</span><strong>{workspacePath}</strong>
+          </button>
+          <span className="open-vscode-tooltip" title={vsCodeAvailable === null ? 'Vérification de VS Code…' : vsCodeAvailable ? 'Ouvrir le dossier dans VS Code' : 'VS Code est indisponible. Tapez code dans WSL, puis rechargez la page.'}>
+            <button
+              aria-label="Ouvrir le dossier dans VS Code"
+              className="icon-button open-vscode"
+              disabled={vsCodeAvailable !== true}
+              onClick={() => {
+                void openVsCode(workspacePath)
+                  .catch((cause) => {
+                    setVsCodeAvailable(false)
+                    showToast('error', messageOf(cause))
+                  })
+              }}
+              type="button"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 3h7v7M21 3l-9 9M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6" /></svg>
+            </button>
+          </span>
+        </div>
         <NewSessionButton
           onCreate={async () => {
             const session = await createSession(workspacePath)
