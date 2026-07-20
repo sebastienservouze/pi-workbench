@@ -672,9 +672,9 @@ const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, rep
   return <article className={`tool-call${resultError ? ' error' : ''}`}>
     <div className="tool-call-heading">
       <span aria-hidden="true">⌘</span>
-      <strong aria-label={inputLabel ? `Appel complet : ${inputLabel}` : undefined} title={inputLabel}>{name}</strong>
-      {presentation.headerDetail && <code aria-label={`Commande complète : ${presentation.headerDetail.title}`} className="tool-call-command" title={presentation.headerDetail.title}>{presentation.headerDetail.text}</code>}
-      {presentation.headerDetail?.suffix && <code aria-label={`Plage lue : ${presentation.headerDetail.suffix}`} className="tool-call-range">{presentation.headerDetail.suffix}</code>}
+      <span className="tool-call-tooltip" data-tooltip={inputLabel}><strong aria-label={inputLabel ? `Appel complet : ${inputLabel}` : undefined}>{name}</strong></span>
+      {presentation.headerDetail && <span className="tool-call-command tool-call-tooltip" data-tooltip={presentation.headerDetail.title}><code aria-label={`Commande complète : ${presentation.headerDetail.title}`}>{presentation.headerDetail.text}</code></span>}
+      {presentation.headerDetail?.suffix && <span className="tool-call-range tool-call-tooltip" data-tooltip={presentation.headerDetail.suffix}><code aria-label={`Plage lue : ${presentation.headerDetail.suffix}`}>{presentation.headerDetail.suffix}</code></span>}
       <small>
         {pending && <span aria-label="Outil en cours" className="spinner tool-call-spinner" role="status" />}
         {hasResult ? resultError ? 'Échec' : 'Terminé' : 'En cours…'}
