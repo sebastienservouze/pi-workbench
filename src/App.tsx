@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import * as Select from '@radix-ui/react-select'
 import ReactMarkdown from 'react-markdown'
 import './App.css'
@@ -6,6 +6,7 @@ import { commitAndPush, createSession, getGitSnapshot, getSnapshot, listDirector
 import type { DirectoryListing, GitActionResult, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
+import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, readGitSidebarWidth } from './git-sidebar.ts'
 
 interface UiDialog {
   sessionId: string
@@ -41,6 +42,7 @@ function App() {
   const [toast, setToast] = useState<Toast | null>(null)
   const [gitSnapshot, setGitSnapshot] = useState<GitSnapshot | null>(null)
   const [gitSidebarCollapsed, setGitSidebarCollapsed] = useState(() => window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true')
+  const [gitSidebarWidth, setGitSidebarWidth] = useState(() => readGitSidebarWidth(window.localStorage.getItem('pi-workbench.git-sidebar-width')))
   const selectedIdRef = useRef(selectedId)
   const refreshVersionRef = useRef(0)
   const gitRefreshVersionRef = useRef(0)
@@ -50,6 +52,12 @@ function App() {
 
   const showToast = useCallback((kind: Toast['kind'], message: string) => {
     setToast({ id: ++toastIdRef.current, kind, message })
+  }, [])
+
+  const updateGitSidebarWidth = useCallback((width: number) => {
+    const nextWidth = clampGitSidebarWidth(width)
+    window.localStorage.setItem('pi-workbench.git-sidebar-width', String(nextWidth))
+    setGitSidebarWidth(nextWidth)
   }, [])
 
   useEffect(() => {
@@ -207,7 +215,10 @@ function App() {
   const questionnaire = dialog && dialog.sessionId === selectedId && isAskUserQuestionDialog(dialog.request) ? dialog : null
 
   return (
-    <div className={`app-shell${gitSnapshot?.repository ? gitSidebarCollapsed ? ' git-sidebar-collapsed' : ' git-sidebar-visible' : ''}`}>
+    <div
+      className={`app-shell${gitSnapshot?.repository ? gitSidebarCollapsed ? ' git-sidebar-collapsed' : ' git-sidebar-visible' : ''}`}
+      style={{ '--git-sidebar-width': `${gitSidebarWidth}px` } as CSSProperties}
+    >
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-mark">π</span>
@@ -296,7 +307,9 @@ function App() {
 
       {gitSnapshot?.repository && <GitSidebar
         collapsed={gitSidebarCollapsed}
+        onResize={updateGitSidebarWidth}
         snapshot={gitSnapshot}
+        width={gitSidebarWidth}
         onAction={async (message) => {
           const result = await commitAndPush(workspacePath, message)
           await refreshGit(workspacePath, true)
@@ -337,9 +350,11 @@ function App() {
   )
 }
 
-function GitSidebar({ collapsed, snapshot, onAction, onError, onRefresh, onToggle }: {
+function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, onRefresh, onToggle }: {
   collapsed: boolean
+  onResize: (width: number) => void
   snapshot: GitSnapshot
+  width: number
   onAction: (message: string) => Promise<GitActionResult>
   onError: (cause: unknown) => void
   onRefresh: () => void
@@ -370,7 +385,56 @@ function GitSidebar({ collapsed, snapshot, onAction, onError, onRefresh, onToggl
     </aside>
   }
 
+  function startResize(event: ReactPointerEvent<HTMLDivElement>): void {
+    const handle = event.currentTarget
+    const initialX = event.clientX
+    const initialWidth = width
+    handle.setPointerCapture(event.pointerId)
+
+    const resize = (moveEvent: PointerEvent): void => onResize(initialWidth + initialX - moveEvent.clientX)
+    const stop = (): void => {
+      handle.removeEventListener('pointermove', resize)
+      handle.removeEventListener('pointerup', stop)
+      handle.removeEventListener('pointercancel', stop)
+      handle.removeEventListener('lostpointercapture', stop)
+    }
+
+    handle.addEventListener('pointermove', resize)
+    handle.addEventListener('pointerup', stop)
+    handle.addEventListener('pointercancel', stop)
+    handle.addEventListener('lostpointercapture', stop)
+  }
+
+  function resizeWithKeyboard(event: ReactKeyboardEvent<HTMLDivElement>): void {
+    const adjustment = event.key === 'ArrowLeft' ? 16 : event.key === 'ArrowRight' ? -16 : 0
+    if (adjustment) {
+      event.preventDefault()
+      onResize(width + adjustment)
+    }
+    if (event.key === 'Home') {
+      event.preventDefault()
+      onResize(minGitSidebarWidth)
+    }
+    if (event.key === 'End') {
+      event.preventDefault()
+      onResize(maxGitSidebarWidth)
+    }
+  }
+
   return <aside className="git-sidebar" aria-label="Informations Git">
+    <div
+      aria-controls="git-panel"
+      aria-label="Redimensionner le panneau Git"
+      aria-orientation="vertical"
+      aria-valuemax={maxGitSidebarWidth}
+      aria-valuemin={minGitSidebarWidth}
+      aria-valuenow={width}
+      className="git-resize-handle"
+      onKeyDown={resizeWithKeyboard}
+      onPointerDown={startResize}
+      role="separator"
+      tabIndex={0}
+    />
     <div className="git-tabs" role="tablist" aria-label="Panneaux latéraux">
       <button aria-controls="git-panel" aria-selected="true" className="git-tab" id="git-tab" role="tab" type="button">
         <span aria-hidden="true">⎇</span> Git

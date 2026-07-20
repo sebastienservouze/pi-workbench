@@ -35,7 +35,7 @@ button:disabled, select:disabled { cursor: not-allowed; }
   background: var(--canvas);
   color: var(--ink);
 }
-.app-shell.git-sidebar-visible { grid-template-columns: 296px minmax(0, 1fr) 300px; }
+.app-shell.git-sidebar-visible { grid-template-columns: 296px minmax(0, 1fr) var(--git-sidebar-width, 300px); }
 .app-shell.git-sidebar-collapsed { grid-template-columns: 296px minmax(0, 1fr) 48px; }
 
 .sidebar {
@@ -125,7 +125,11 @@ button:disabled, select:disabled { cursor: not-allowed; }
 
 .workspace { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: var(--surface-raised); }
 
-.git-sidebar { display: flex; flex-direction: column; min-width: 0; border-left: 1px solid var(--line); background: var(--surface); }
+.git-sidebar { position: relative; display: flex; flex-direction: column; min-width: 0; border-left: 1px solid var(--line); background: var(--surface); }
+.git-resize-handle { position: absolute; z-index: 1; top: 0; bottom: 0; left: -5px; width: 10px; cursor: col-resize; touch-action: none; outline: 0; }
+.git-resize-handle::after { position: absolute; top: 50%; left: 4px; width: 2px; height: 40px; border-radius: 2px; background: transparent; content: ''; transform: translateY(-50%); transition: background 180ms ease; }
+.git-resize-handle:hover::after, .git-resize-handle:focus-visible::after { background: var(--teal); }
+.git-resize-handle:focus-visible::after { box-shadow: 0 0 0 3px rgb(35 119 109 / 20%); }
 .git-tabs { display: flex; align-items: stretch; min-height: 52px; border-bottom: 1px solid var(--line); background: var(--surface-raised); }
 .git-tab { display: inline-flex; align-items: center; gap: 7px; min-width: 0; border: 0; border-bottom: 2px solid var(--teal); padding: 0 14px; background: transparent; color: var(--ink); font-size: 12px; font-weight: 750; }
 .git-tab > span { color: var(--teal); font: 16px ui-monospace, monospace; }
@@ -328,6 +332,7 @@ button:disabled, select:disabled { cursor: not-allowed; }
   .app-shell { grid-template-columns: 238px minmax(0, 1fr); }
   .app-shell.git-sidebar-visible { grid-template-columns: 238px minmax(0, 1fr) 260px; }
   .app-shell.git-sidebar-collapsed { grid-template-columns: 238px minmax(0, 1fr) 48px; }
+  .git-resize-handle { display: none; }
   .conversation { padding: 28px 20px; }
   .composer, .ask-user-question { width: calc(100% - 32px); }
 }

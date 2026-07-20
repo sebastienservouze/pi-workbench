@@ -40,6 +40,10 @@ Le test d’intégration attend une commande `pi` configurée et l’extension `
 
 La documentation de Pi est disponible localement dans `$(npm root -g)/@earendil-works/pi-coding-agent/docs/`.
 
+## Widgets de la sidebar droite
+
+Consultez [`docs/right-sidebar-widgets.md`](docs/right-sidebar-widgets.md) avant de créer ou modifier un widget de la sidebar droite.
+
 ## Conventions
 
 - Écrivez les identifiants, noms de fichiers et le code en anglais.
