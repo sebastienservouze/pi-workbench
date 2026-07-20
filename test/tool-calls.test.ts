@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { editOperations, formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, truncateToolText } from '../src/tool-calls.ts'
+import { editOperations, formatToolCallTooltip, formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, truncateToolText } from '../src/tool-calls.ts'
 
 test('extracts tool calls and their resolved result from Pi messages', () => {
   const calls = toolCallsInMessage({
@@ -48,6 +48,11 @@ test('ignores non-tool content and formats tool arguments safely', () => {
   assert.deepEqual(toolCallsInMessage({ role: 'assistant', content: [{ type: 'text', text: 'Bonjour' }] }), [])
   assert.equal(toolResultInMessage({ role: 'user', content: 'Bonjour' }), null)
   assert.equal(formatToolData({ command: 'pwd' }), '{\n  "command": "pwd"\n}')
+})
+
+test('includes tool input and output sizes in the title tooltip', () => {
+  assert.equal(formatToolCallTooltip('abc'), 'Appel complet : abc\nAppel : 3 caractères')
+  assert.equal(formatToolCallTooltip('abc', 'de'), 'Appel complet : abc\nAppel : 3 caractères\nRésultat : 2 caractères')
 })
 
 test('truncates text only after 140 characters', () => {

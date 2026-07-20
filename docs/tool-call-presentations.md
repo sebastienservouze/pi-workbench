@@ -2,7 +2,7 @@
 
 Les appels d’outils sont affichés par `ToolCallCard` dans `src/App.tsx`. La présentation dépend de `toolCallPresentation()` dans `src/tool-calls.ts`.
 
-Par défaut, le nom de l’outil expose ses arguments formatés au survol et au lecteur d’écran. Sa sortie est affichée directement, dans une zone défilable de quatre lignes au plus. Le pied de carte indique les tailles de l’appel et de la sortie.
+Par défaut, le nom de l’outil expose ses arguments formatés et les tailles de l’appel et de la sortie au survol et au lecteur d’écran. Sa sortie est affichée directement, dans une zone défilable de quatre lignes au plus.
 
 ## Ajouter une présentation
 
