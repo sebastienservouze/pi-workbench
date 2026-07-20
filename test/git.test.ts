@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import test from 'node:test'
-import { getGitFileDiff, getGitSnapshot, mergeNumstats, parseGitStatus } from '../server/git.ts'
+import { getGitFileDiff, getGitSnapshot, mergeNumstats, parseGitStatus, revertGitCommit } from '../server/git.ts'
 
 const execFile = promisify(execFileCallback)
 
@@ -67,7 +67,7 @@ test('returns diffs for modified and untracked files', async () => {
   }
 })
 
-test('reports unpushed commits and the files they contain', async () => {
+test('reports and reverts unpushed commits', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'pi-workbench-git-'))
   const remote = await mkdtemp(join(tmpdir(), 'pi-workbench-git-remote-'))
   try {
@@ -107,6 +107,15 @@ test('reports unpushed commits and the files they contain', async () => {
     const commit = snapshot.commits.find(({ subject }) => subject === 'Local commit')
     const diff = await getGitFileDiff(directory, 'tracked.ts', commit?.hash)
     assert.match(diff.diff, /\+changed/)
+
+    await revertGitCommit(directory, commit?.hash ?? '')
+    const reverted = await getGitSnapshot(directory)
+    const tracked = await execFile('git', ['show', 'HEAD:tracked.ts'], { cwd: directory })
+
+    assert.equal(reverted.ahead, 3)
+    assert.equal(reverted.files.length, 0)
+    assert.match(reverted.commits[0]?.subject ?? '', /^Revert "Local commit"$/)
+    assert.equal(tracked.stdout, 'initial\n')
   } finally {
     await rm(directory, { force: true, recursive: true })
     await rm(remote, { force: true, recursive: true })

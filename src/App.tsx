@@ -11,8 +11,8 @@ import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup'
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import './App.css'
-import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getLaunchers, getSnapshot, getWorkspaceFile, listDirectories, listRecentSessions, listSessions, openLauncher, openSession, pickLauncher, selectLauncher, sendPiCommand } from './api.ts'
-import type { GitActionResult, GitFileDiff, GitSnapshot, JsonObject, LauncherSnapshot, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
+import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getLaunchers, getSnapshot, getWorkspaceFile, listDirectories, listRecentSessions, listSessions, openLauncher, openSession, pickLauncher, revertGitCommit, selectLauncher, sendPiCommand } from './api.ts'
+import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, LauncherSnapshot, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { canHighlightFile } from './file-preview.ts'
@@ -533,6 +533,12 @@ function App() {
         onError={(cause) => showToast('error', messageOf(cause))}
         onFileSelect={(path, commitHash) => getGitFileDiff(workspacePath, path, commitHash)}
         onRefresh={() => void refreshGit(workspacePath, true)}
+        onRevert={async (hash) => {
+          const result = await revertGitCommit(workspacePath, hash)
+          await refreshGit(workspacePath, true)
+          showToast('notice', `Commit ${hash.slice(0, 7)} revert.`)
+          return result
+        }}
         onWidgetSelect={(widget) => setActiveRightWidget((current) => {
           const next = current === widget ? null : widget
           if (widget === 'git') window.localStorage.setItem('pi-workbench.git-sidebar-collapsed', String(next === null))
@@ -572,7 +578,7 @@ function App() {
 }
 
 // Coordonne les panneaux Git et fichier, leur rail commun et le redimensionnement du panneau actif.
-function RightSidebar({ activeWidget, filePreview, onResize, snapshot, width, onAction, onError, onFileSelect, onRefresh, onWidgetSelect }: {
+function RightSidebar({ activeWidget, filePreview, onResize, snapshot, width, onAction, onError, onFileSelect, onRefresh, onRevert, onWidgetSelect }: {
   activeWidget: 'file' | 'git' | null
   filePreview: FilePreview | null
   onResize: (width: number) => void
@@ -582,6 +588,7 @@ function RightSidebar({ activeWidget, filePreview, onResize, snapshot, width, on
   onError: (cause: unknown) => void
   onFileSelect: (path: string, commitHash?: string) => Promise<GitFileDiff>
   onRefresh: () => void
+  onRevert: (hash: string) => Promise<GitRevertResult>
   onWidgetSelect: (widget: 'file' | 'git') => void
 }) {
   const [message, setMessage] = useState('')
@@ -608,6 +615,19 @@ function RightSidebar({ activeWidget, filePreview, onResize, snapshot, width, on
     try {
       const result = await onAction(message)
       if (result.committed) setMessage('')
+    } catch (cause) {
+      onError(cause)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Revert le commit choisi après confirmation et laisse Git signaler les éventuels conflits.
+  async function revertCommit(hash: string): Promise<void> {
+    if (!window.confirm(`Revert le commit ${hash.slice(0, 7)} ?`)) return
+    setBusy(true)
+    try {
+      await onRevert(hash)
     } catch (cause) {
       onError(cause)
     } finally {
@@ -683,12 +703,15 @@ function RightSidebar({ activeWidget, filePreview, onResize, snapshot, width, on
             </ul>}
             {snapshot.commits.length > 0 && <section className="git-commits" aria-label="Commits non poussés">
               <h2>Commits non poussés <small>{snapshot.commits.length}</small></h2>
-              {snapshot.commits.map((commit) => <details key={commit.hash}>
-                <summary title={commit.subject}><code>{commit.hash.slice(0, 7)}</code><span>{commit.subject}</span></summary>
-                {commit.files.length > 0 ? <ul className="git-file-list git-commit-files">{commit.files.map((file) => <li className="git-file-item" key={file.path}>
-                  {file.status === 'added' || file.status === 'modified' ? <button className="git-file-button" onClick={() => void selectFile(file.path, commit.hash)} type="button"><GitFileRow file={file} /></button> : <GitFileRow file={file} />}
-                </li>)}</ul> : <p className="git-empty">Aucun fichier modifié.</p>}
-              </details>)}
+              {snapshot.commits.map((commit) => <div className="git-commit" key={commit.hash}>
+                <details>
+                  <summary title={commit.subject}><code>{commit.hash.slice(0, 7)}</code><span>{commit.subject}</span></summary>
+                  {commit.files.length > 0 ? <ul className="git-file-list git-commit-files">{commit.files.map((file) => <li className="git-file-item" key={file.path}>
+                    {file.status === 'added' || file.status === 'modified' ? <button className="git-file-button" onClick={() => void selectFile(file.path, commit.hash)} type="button"><GitFileRow file={file} /></button> : <GitFileRow file={file} />}
+                  </li>)}</ul> : <p className="git-empty">Aucun fichier modifié.</p>}
+                </details>
+                <button aria-label={`Revert le commit ${commit.hash.slice(0, 7)}`} className="git-revert" disabled={busy} onClick={() => void revertCommit(commit.hash)} title="Revert ce commit" type="button">↶</button>
+              </div>)}
             </section>}
             {!hasChanges && snapshot.ahead === 0 && <p className="git-empty">Aucun changement à committer.</p>}
           </>}

@@ -75,6 +75,10 @@ export interface GitActionResult {
   pushError?: string
 }
 
+export interface GitRevertResult {
+  hash: string
+}
+
 export interface GitFileDiff {
   path: string
   diff: string

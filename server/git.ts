@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import type { GitCommit, GitFileChange, GitFileDiff, GitSnapshot } from '../shared/types.ts'
+import type { GitCommit, GitFileChange, GitFileDiff, GitRevertResult, GitSnapshot } from '../shared/types.ts'
 
 interface GitCommandResult {
   exitCode: number
@@ -91,6 +91,17 @@ async function unpushedCommits(cwd: string): Promise<GitCommit[]> {
   }))
 
   return commits
+}
+
+// Annule un commit local affiché en créant son commit inverse, sans réécrire l'historique.
+export async function revertGitCommit(cwd: string, hash: string): Promise<GitRevertResult> {
+  const snapshot = await getGitSnapshot(cwd)
+  if (!snapshot.repository) throw new Error('Le dossier courant n’est pas un dépôt Git.')
+  if (snapshot.files.length > 0) throw new Error('Le dépôt doit être propre avant de revert un commit.')
+  if (!snapshot.commits.some((commit) => commit.hash === hash)) throw new Error('Ce commit ne peut pas être revert.')
+
+  await runGit(cwd, ['revert', '--no-edit', hash])
+  return { hash }
 }
 
 // Committe les changements présents puis tente de pousser, ou pousse les commits déjà en avance.
