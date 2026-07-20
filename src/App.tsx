@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { memo, useCallback, useEffect, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import * as Select from '@radix-ui/react-select'
 import ReactMarkdown from 'react-markdown'
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -16,7 +16,7 @@ import type { DirectoryListing, GitActionResult, GitSnapshot, JsonObject, Manage
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, readGitSidebarWidth } from './git-sidebar.ts'
-import { formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, type ToolResult } from './tool-calls.ts'
+import { formatToolData, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, type ToolResult } from './tool-calls.ts'
 
 interface UiDialog {
   sessionId: string
@@ -639,10 +639,13 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, r
         if (!isVisibleConversationMessage(message) && calls.length === 0) return null
         return <div key={`${String(message.timestamp ?? '')}-${index}`}>
           {isVisibleConversationMessage(message) && <MessageCard message={message} />}
-          {calls.map((call) => <ToolCallCard key={call.id} call={call} repositoryRoot={repositoryRoot} result={resultsByCallId.get(call.id) ?? executionsByCallId.get(call.id)?.result} />)}
+          {calls.map((call) => {
+            const result = resultsByCallId.get(call.id) ?? executionsByCallId.get(call.id)?.result
+            return <ToolCallCard args={call.args} hasResult={result !== undefined} id={call.id} key={call.id} name={call.name} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} />
+          })}
         </div>
       })}
-      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard key={execution.id} call={execution} repositoryRoot={repositoryRoot} result={execution.result} />)}
+      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard args={execution.args} hasResult={execution.result !== undefined} id={execution.id} key={execution.id} name={execution.name} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} />)}
       {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {activity && activity.kind !== 'writing' && <ActivityIndicator activity={activity} agentName={agentName} />}
       {visibleMessages.length === 0 && !liveText && !activity && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
@@ -652,28 +655,36 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, r
 }
 
 // Regroupe l'appel et son résultat afin que leur état visuel reste cohérent dans l'historique.
-function ToolCallCard({ call, repositoryRoot, result }: { call: { id: string; name: string; args: unknown }; repositoryRoot?: string | null; result?: ToolResult }) {
-  const pending = isToolCallPending(result)
-  const input = formatToolData(call.args)
-  const output = result ? toolContentText(result.content) : ''
-  const presentation = toolCallPresentation(call, repositoryRoot)
+const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, repositoryRoot, resultContent, resultError }: {
+  args: unknown
+  hasResult: boolean
+  id: string
+  name: string
+  repositoryRoot?: string | null
+  resultContent?: unknown
+  resultError?: boolean
+}) {
+  const pending = !hasResult
+  const input = formatToolData(args)
+  const output = hasResult ? toolContentText(resultContent) : ''
+  const presentation = toolCallPresentation({ id, name, args }, repositoryRoot)
   const inputLabel = presentation.headerDetail ? undefined : input
-  return <article className={`tool-call${result?.isError ? ' error' : ''}`}>
+  return <article className={`tool-call${resultError ? ' error' : ''}`}>
     <div className="tool-call-heading">
       <span aria-hidden="true">⌘</span>
-      <strong aria-label={inputLabel ? `Appel complet : ${inputLabel}` : undefined} title={inputLabel}>{call.name}</strong>
+      <strong aria-label={inputLabel ? `Appel complet : ${inputLabel}` : undefined} title={inputLabel}>{name}</strong>
       {presentation.headerDetail && <code aria-label={`Commande complète : ${presentation.headerDetail.title}`} className="tool-call-command" title={presentation.headerDetail.title}>{presentation.headerDetail.text}</code>}
       {presentation.headerDetail?.suffix && <code aria-label={`Plage lue : ${presentation.headerDetail.suffix}`} className="tool-call-range">{presentation.headerDetail.suffix}</code>}
       <small>
         {pending && <span aria-label="Outil en cours" className="spinner tool-call-spinner" role="status" />}
-        {result ? result.isError ? 'Échec' : 'Terminé' : 'En cours…'}
+        {hasResult ? resultError ? 'Échec' : 'Terminé' : 'En cours…'}
         {pending && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
       </small>
     </div>
-    {result && <ToolCallContent call={call} content={output || 'Aucune sortie.'} />}
-    <footer className="tool-call-counts">Appel : {input.length} caractères{result && ` · Résultat : ${(output || 'Aucune sortie.').length} caractères`}</footer>
+    {hasResult && <ToolCallContent call={{ name, args }} content={output || 'Aucune sortie.'} />}
+    <footer className="tool-call-counts">Appel : {input.length} caractères{hasResult && ` · Résultat : ${(output || 'Aucune sortie.').length} caractères`}</footer>
   </article>
-}
+})
 
 // Affiche la sortie read selon son type, sans modifier le rendu brut des autres outils.
 function ToolCallContent({ call, content }: { call: { name: string; args: unknown }; content: string }) {
@@ -684,12 +695,12 @@ function ToolCallContent({ call, content }: { call: { name: string; args: unknow
   return <section className="tool-call-content"><pre>{content}</pre></section>
 }
 
-function MessageCard({ message }: { message: JsonObject }) {
+const MessageCard = memo(function MessageCard({ message }: { message: JsonObject }) {
   const role = String(message.role)
   const timestamp = typeof message.timestamp === 'number' ? new Date(message.timestamp) : null
   const time = timestamp && !Number.isNaN(timestamp.getTime()) ? timestamp : null
   return <article className={`message ${role}`}><div className="content">{renderContent(message.content ?? message.output)}</div>{role === 'user' && time && <time className="message-time" dateTime={time.toISOString()}>{time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time>}</article>
-}
+})
 
 function ActivityIndicator({ activity, agentName }: { activity: Activity; agentName?: string }) {
   return <div className="pi-activity" role="status"><span aria-hidden="true" className="spinner" /><span className="activity-text">{activityText(activity, agentName)}</span></div>
