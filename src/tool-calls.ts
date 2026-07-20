@@ -14,7 +14,7 @@ export interface ToolResult {
 }
 
 export interface ToolCallPresentation {
-  headerDetail?: { text: string; title: string }
+  headerDetail?: { text: string; title: string; suffix?: string }
   pendingDetail?: string
 }
 
@@ -106,7 +106,7 @@ type ToolCallPresenter = (args: unknown, repositoryRoot?: string | null) => Tool
 const toolCallPresentations: Record<string, ToolCallPresenter> = {
   bash: bashPresentation,
   edit: filePresentation,
-  read: filePresentation,
+  read: readPresentation,
   write: filePresentation,
 }
 
@@ -128,6 +128,29 @@ function filePresentation(args: unknown, repositoryRoot?: string | null): ToolCa
 
   const path = pathFromRepositoryRoot(args.path, repositoryRoot)
   return { headerDetail: { text: truncateToolText(path, 80).text, title: path } }
+}
+
+// Complète le chemin lu avec une plage toujours visible, distincte du texte tronqué.
+function readPresentation(args: unknown, repositoryRoot?: string | null): ToolCallPresentation {
+  const presentation = filePresentation(args, repositoryRoot)
+  if (!presentation.headerDetail || !isObject(args)) return presentation
+
+  const range = readLineRange(args)
+  return range ? { headerDetail: { ...presentation.headerDetail, suffix: range } } : presentation
+}
+
+function readLineRange(args: JsonObject): string | undefined {
+  const offset = positiveInteger(args.offset)
+  const limit = positiveInteger(args.limit)
+  if (offset === undefined && limit === undefined) return undefined
+
+  const start = offset ?? 1
+  const end = limit === undefined ? '' : String(start + limit - 1)
+  return `[${start}:${end}]`
+}
+
+function positiveInteger(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : undefined
 }
 
 function pathFromRepositoryRoot(path: string, repositoryRoot?: string | null): string {

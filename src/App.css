@@ -201,6 +201,7 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .tool-call-heading { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 8px 10px; }
 .tool-call-heading > span { color: var(--teal); font-size: 14px; }
 .tool-call-command { min-width: 0; overflow: hidden; color: inherit; font: 11px ui-monospace, monospace; text-overflow: ellipsis; white-space: nowrap; }
+.tool-call-range { flex: 0 0 auto; font: 11px ui-monospace, monospace; }
 .tool-call-heading small { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 5px; margin-left: auto; color: currentColor; font: 10px ui-monospace, monospace; }
 .tool-call-spinner { display: inline-block; width: 11px; height: 11px; border-width: 1.5px; }
 .tool-call-content { border-top: 1px solid rgb(33 68 61 / 14%); }

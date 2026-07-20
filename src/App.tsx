@@ -663,6 +663,7 @@ function ToolCallCard({ call, repositoryRoot, result }: { call: { id: string; na
       <span aria-hidden="true">⌘</span>
       <strong aria-label={inputLabel ? `Appel complet : ${inputLabel}` : undefined} title={inputLabel}>{call.name}</strong>
       {presentation.headerDetail && <code aria-label={`Commande complète : ${presentation.headerDetail.title}`} className="tool-call-command" title={presentation.headerDetail.title}>{presentation.headerDetail.text}</code>}
+      {presentation.headerDetail?.suffix && <code aria-label={`Plage lue : ${presentation.headerDetail.suffix}`} className="tool-call-range">{presentation.headerDetail.suffix}</code>}
       <small>
         {pending && <span aria-label="Outil en cours" className="spinner tool-call-spinner" role="status" />}
         {result ? result.isError ? 'Échec' : 'Terminé' : 'En cours…'}
