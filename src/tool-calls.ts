@@ -16,8 +16,6 @@ export interface ToolResult {
 export interface ToolCallPresentation {
   headerDetail?: { text: string; title: string }
   pendingDetail?: string
-  showInput: boolean
-  outputLabel?: string
 }
 
 export function toolCallsInMessage(message: JsonObject): ToolCall[] {
@@ -66,23 +64,22 @@ export function truncateToolText(text: string, maxLength = 140): { text: string;
 }
 
 export function toolCallPresentation(call: ToolCall): ToolCallPresentation {
-  return toolCallPresentations[call.name]?.(call.args) ?? { showInput: true, outputLabel: 'Résultat' }
+  return toolCallPresentations[call.name]?.(call.args) ?? {}
 }
 
 const toolCallPresentations: Record<string, (args: unknown) => ToolCallPresentation> = {
   bash: bashPresentation,
 }
 
-// Adapte Bash sans exposer ses arguments bruts, déjà représentés dans l'en-tête et le statut.
+// Adapte Bash en plaçant sa commande dans l'en-tête et son timeout dans le statut.
 function bashPresentation(args: unknown): ToolCallPresentation {
-  if (!isObject(args) || typeof args.command !== 'string') return { showInput: true, outputLabel: 'Résultat' }
+  if (!isObject(args) || typeof args.command !== 'string') return {}
 
   const command = args.command
   const timeout = typeof args.timeout === 'number' && Number.isFinite(args.timeout) ? args.timeout : undefined
   return {
     headerDetail: { text: truncateToolText(command, 80).text, title: command },
     pendingDetail: timeout === undefined ? undefined : `timeout : ${timeout}s`,
-    showInput: false,
   }
 }
 

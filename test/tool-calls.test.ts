@@ -50,7 +50,7 @@ test('ignores non-tool content and formats tool arguments safely', () => {
   assert.equal(formatToolData({ command: 'pwd' }), '{\n  "command": "pwd"\n}')
 })
 
-test('truncates tool content only after 140 characters', () => {
+test('truncates text only after 140 characters', () => {
   const limit = 'a'.repeat(140)
   assert.deepEqual(truncateToolText(limit), { text: limit, truncated: false })
   assert.deepEqual(truncateToolText(`${limit}b`), { text: `${limit}…`, truncated: true })
@@ -61,14 +61,7 @@ test('uses the Bash presentation while preserving the generic fallback', () => {
   assert.deepEqual(toolCallPresentation({ id: 'call_1', name: 'bash', args: { command, timeout: 30 } }), {
     headerDetail: { text: `${'a'.repeat(80)}…`, title: command },
     pendingDetail: 'timeout : 30s',
-    showInput: false,
   })
-  assert.deepEqual(toolCallPresentation({ id: 'call_2', name: 'read', args: { path: 'src/App.tsx' } }), {
-    showInput: true,
-    outputLabel: 'Résultat',
-  })
-  assert.deepEqual(toolCallPresentation({ id: 'call_3', name: 'bash', args: { timeout: 30 } }), {
-    showInput: true,
-    outputLabel: 'Résultat',
-  })
+  assert.deepEqual(toolCallPresentation({ id: 'call_2', name: 'read', args: { path: 'src/App.tsx' } }), {})
+  assert.deepEqual(toolCallPresentation({ id: 'call_3', name: 'bash', args: { timeout: 30 } }), {})
 })

@@ -639,10 +639,11 @@ function ToolCallCard({ call, result }: { call: { id: string; name: string; args
   const input = formatToolData(call.args)
   const output = result ? toolContentText(result.content) : ''
   const presentation = toolCallPresentation(call)
+  const inputLabel = presentation.headerDetail ? undefined : input
   return <article className={`tool-call${result?.isError ? ' error' : ''}`}>
     <div className="tool-call-heading">
       <span aria-hidden="true">⌘</span>
-      <strong>{call.name}</strong>
+      <strong aria-label={inputLabel ? `Appel complet : ${inputLabel}` : undefined} title={inputLabel}>{call.name}</strong>
       {presentation.headerDetail && <code aria-label={`Commande complète : ${presentation.headerDetail.title}`} className="tool-call-command" title={presentation.headerDetail.title}>{presentation.headerDetail.text}</code>}
       <small>
         {pending && <span aria-label="Outil en cours" className="spinner tool-call-spinner" role="status" />}
@@ -650,18 +651,14 @@ function ToolCallCard({ call, result }: { call: { id: string; name: string; args
         {pending && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
       </small>
     </div>
-    {presentation.showInput && <ToolCallContent content={input} label="Appel" />}
-    {result && <ToolCallContent content={output || 'Aucune sortie.'} label={presentation.outputLabel} />}
+    {result && <ToolCallContent content={output || 'Aucune sortie.'} />}
     <footer className="tool-call-counts">Appel : {input.length} caractères{result && ` · Résultat : ${(output || 'Aucune sortie.').length} caractères`}</footer>
   </article>
 }
 
-// Affiche chaque donnée complète dans une zone de lecture compacte, défilable au-delà de trois lignes.
-function ToolCallContent({ content, label }: { content: string; label?: string }) {
-  return <section className="tool-call-content">
-    {label && <div className="tool-call-content-heading"><strong>{label}</strong></div>}
-    <pre>{content}</pre>
-  </section>
+// Affiche chaque sortie complète dans une zone de lecture compacte, défilable au-delà de quatre lignes.
+function ToolCallContent({ content }: { content: string }) {
+  return <section className="tool-call-content"><pre>{content}</pre></section>
 }
 
 function MessageCard({ message }: { message: JsonObject }) {
