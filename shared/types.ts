@@ -29,26 +29,8 @@ export interface DirectoryListing {
   directories: DirectoryEntry[]
 }
 
-export type LauncherProduct = 'vscode' | 'intellij' | 'rider' | 'pycharm' | 'phpstorm' | 'webstorm' | 'androidstudio' | 'custom'
-
-export interface Launcher {
-  id: string
-  name: string
-  product: LauncherProduct
-  source: 'detected' | 'manual'
-  executablePath: string
-  arguments: string[]
-}
-
-export interface LauncherRegistry {
-  launchers: Launcher[]
-  lastLauncherId?: string
-  workspaceLauncherIds: Record<string, string>
-}
-
-export interface LauncherSnapshot {
-  launchers: Launcher[]
-  selectedLauncherId?: string
+export interface VsCodeStatus {
+  available: boolean
 }
 
 export interface GitFileChange {

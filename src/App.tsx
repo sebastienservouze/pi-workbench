@@ -11,8 +11,8 @@ import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup'
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import './App.css'
-import { commitAndPush, createLauncher, createSession, detectLaunchers, getGitFileDiff, getGitSnapshot, getLaunchers, getSnapshot, getWorkspaceFile, listDirectories, listRecentSessions, listSessions, openLauncher, openSession, selectLauncher, sendPiCommand } from './api.ts'
-import type { GitActionResult, GitFileDiff, GitSnapshot, JsonObject, LauncherSnapshot, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
+import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getSnapshot, getVsCodeStatus, getWorkspaceFile, listDirectories, listRecentSessions, listSessions, openSession, openVsCode, sendPiCommand } from './api.ts'
+import type { GitActionResult, GitFileDiff, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { canHighlightFile } from './file-preview.ts'
@@ -132,9 +132,7 @@ function App() {
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
   const [workspacePath, setWorkspacePath] = useState(() => window.localStorage.getItem('pi-workbench.workspace-path') ?? '~/.pi')
   const [directoryPickerOpen, setDirectoryPickerOpen] = useState(false)
-  const [launcherSnapshot, setLauncherSnapshot] = useState<LauncherSnapshot>({ launchers: [] })
-  const [launcherDialogOpen, setLauncherDialogOpen] = useState(false)
-  const [launchingWorkspace, setLaunchingWorkspace] = useState(false)
+  const [vsCodeAvailable, setVsCodeAvailable] = useState<boolean | null>(null)
   const [openingSessionPath, setOpeningSessionPath] = useState('')
   const [selectedId, setSelectedId] = useState('')
   const [snapshot, setSnapshot] = useState<SessionSnapshot>(emptySnapshot)
@@ -199,36 +197,15 @@ function App() {
 
   useEffect(() => {
     let cancelled = false
-    void getLaunchers(workspacePath)
-      .then((nextSnapshot) => {
-        if (!cancelled) setLauncherSnapshot(nextSnapshot)
+    void getVsCodeStatus()
+      .then(({ available }) => {
+        if (!cancelled) setVsCodeAvailable(available)
       })
-      .catch((cause) => {
-        if (!cancelled) showToast('error', messageOf(cause))
+      .catch(() => {
+        if (!cancelled) setVsCodeAvailable(false)
       })
     return () => { cancelled = true }
-  }, [showToast, workspacePath])
-
-  // Détecte les IDE au premier usage, puis laisse l'utilisateur confirmer le lanceur du workspace.
-  const openWorkspaceInLauncher = useCallback(async () => {
-    setLaunchingWorkspace(true)
-    try {
-      if (launcherSnapshot.launchers.length === 0) {
-        setLauncherSnapshot(await detectLaunchers(workspacePath))
-        setLauncherDialogOpen(true)
-        return
-      }
-      if (!launcherSnapshot.selectedLauncherId) {
-        setLauncherDialogOpen(true)
-        return
-      }
-      setLauncherSnapshot(await openLauncher(workspacePath))
-    } catch (cause) {
-      showToast('error', messageOf(cause))
-    } finally {
-      setLaunchingWorkspace(false)
-    }
-  }, [launcherSnapshot, showToast, workspacePath])
+  }, [])
 
   useEffect(() => {
     if (!toast) return
@@ -430,17 +407,23 @@ function App() {
           <button className="workspace-path" onClick={() => setDirectoryPickerOpen(true)} title={workspacePath} type="button">
             <span>Dossier courant</span><strong>{workspacePath}</strong>
           </button>
-          <LauncherControl
-            launching={launchingWorkspace}
-            onConfigure={() => setLauncherDialogOpen(true)}
-            onOpen={() => void openWorkspaceInLauncher()}
-            onSelect={(launcherId) => {
-              void selectLauncher(workspacePath, launcherId)
-                .then(setLauncherSnapshot)
-                .catch((cause) => showToast('error', messageOf(cause)))
-            }}
-            snapshot={launcherSnapshot}
-          />
+          <span className="open-vscode-tooltip" title={vsCodeAvailable === null ? 'Vérification de VS Code…' : vsCodeAvailable ? 'Ouvrir le dossier dans VS Code' : 'VS Code est indisponible. Tapez code dans WSL, puis rechargez la page.'}>
+            <button
+              aria-label="Ouvrir le dossier dans VS Code"
+              className="icon-button open-vscode"
+              disabled={vsCodeAvailable !== true}
+              onClick={() => {
+                void openVsCode(workspacePath)
+                  .catch((cause) => {
+                    setVsCodeAvailable(false)
+                    showToast('error', messageOf(cause))
+                  })
+              }}
+              type="button"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M14 3h7v7M21 3l-9 9M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6" /></svg>
+            </button>
+          </span>
         </div>
         <NewSessionButton
           onCreate={async () => {
@@ -552,24 +535,6 @@ function App() {
         })}
       />}
 
-      {launcherDialogOpen && <LauncherDialog
-        onClose={() => setLauncherDialogOpen(false)}
-        onDetect={async () => {
-          const nextSnapshot = await detectLaunchers(workspacePath)
-          setLauncherSnapshot(nextSnapshot)
-          return nextSnapshot
-        }}
-        onError={(cause) => showToast('error', messageOf(cause))}
-        onSelect={async (launcherId) => {
-          setLauncherSnapshot(await selectLauncher(workspacePath, launcherId))
-          setLauncherDialogOpen(false)
-        }}
-        onCreate={async (name, executablePath, argumentsForLauncher) => {
-          setLauncherSnapshot(await createLauncher(workspacePath, name, executablePath, argumentsForLauncher))
-          setLauncherDialogOpen(false)
-        }}
-        snapshot={launcherSnapshot}
-      />}
       {directoryPickerOpen && <DirectoryPicker
         initialPath={workspacePath}
         onClose={() => setDirectoryPickerOpen(false)}
@@ -796,104 +761,6 @@ function gitStatusLabel(status: 'added' | 'deleted' | 'modified' | 'renamed'): s
 
 function gitStatusInitial(status: 'added' | 'deleted' | 'modified' | 'renamed'): string {
   return { added: 'A', deleted: 'D', modified: 'M', renamed: 'R' }[status]
-}
-
-// Sépare l'ouverture immédiate de la sélection du lanceur afin de garder l'action principale compacte.
-function LauncherControl({ launching, onConfigure, onOpen, onSelect, snapshot }: {
-  launching: boolean
-  onConfigure: () => void
-  onOpen: () => void
-  onSelect: (launcherId: string) => void
-  snapshot: LauncherSnapshot
-}) {
-  const selected = snapshot.launchers.find((launcher) => launcher.id === snapshot.selectedLauncherId)
-  const label = selected ? `Ouvrir le dossier dans ${selected.name}` : snapshot.launchers.length === 0 ? 'Détecter un IDE pour ouvrir le dossier' : 'Choisir un IDE pour ouvrir le dossier'
-
-  return <div className="launcher-control">
-    <button aria-label={label} className="icon-button launcher-open" disabled={launching} onClick={onOpen} title={label} type="button">
-      <LauncherMark product={selected?.product} />
-    </button>
-    <Select.Root onValueChange={onSelect} value={snapshot.selectedLauncherId ?? ''}>
-      <Select.Trigger aria-label="Choisir un IDE" className="launcher-select-trigger" title="Choisir un IDE">
-        <Select.Value>{selected?.name ?? 'IDE'}</Select.Value><span aria-hidden="true">⌄</span>
-      </Select.Trigger>
-      <Select.Portal>
-        <Select.Content className="composer-select-content launcher-select-content" position="popper" sideOffset={6}>
-          <Select.Viewport>
-            {snapshot.launchers.map((launcher) => <Select.Item className="composer-select-option" key={launcher.id} value={launcher.id}>
-              <Select.ItemText><span className="launcher-option"><LauncherMark product={launcher.product} />{launcher.name}</span></Select.ItemText>
-              <Select.ItemIndicator>✓</Select.ItemIndicator>
-            </Select.Item>)}
-            <Select.Separator className="launcher-select-separator" />
-            <button className="launcher-configure" onClick={onConfigure} type="button">Configurer les lanceurs…</button>
-          </Select.Viewport>
-        </Select.Content>
-      </Select.Portal>
-    </Select.Root>
-  </div>
-}
-
-// Utilise une marque textuelle provisoire, remplacée ultérieurement par les icônes officielles téléchargées.
-function LauncherMark({ product }: { product?: LauncherSnapshot['launchers'][number]['product'] }) {
-  const marks = { vscode: 'VS', intellij: 'IJ', rider: 'RD', pycharm: 'PC', phpstorm: 'PS', webstorm: 'WS', androidstudio: 'AS', custom: '⋯' }
-  return <span aria-hidden="true" className="launcher-mark">{marks[product ?? 'custom']}</span>
-}
-
-// Regroupe détection, choix et échappatoire manuelle sans alourdir le panneau principal.
-function LauncherDialog({ onClose, onCreate, onDetect, onError, onSelect, snapshot }: {
-  onClose: () => void
-  onCreate: (name: string, executablePath: string, argumentsForLauncher: string[]) => Promise<void>
-  onDetect: () => Promise<LauncherSnapshot>
-  onError: (cause: unknown) => void
-  onSelect: (launcherId: string) => Promise<void>
-  snapshot: LauncherSnapshot
-}) {
-  const [detecting, setDetecting] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [name, setName] = useState('')
-  const [executablePath, setExecutablePath] = useState('')
-  const [argumentsText, setArgumentsText] = useState('{workspace}')
-
-  // Rafraîchit les chemins locaux sans modifier le choix courant tant que l'utilisateur ne le confirme pas.
-  async function detect(): Promise<void> {
-    setDetecting(true)
-    try {
-      await onDetect()
-    } catch (cause) {
-      onError(cause)
-    } finally {
-      setDetecting(false)
-    }
-  }
-
-  // Crée un lanceur manuel avec un argument par ligne pour éviter toute analyse de shell côté navigateur.
-  async function create(event: FormEvent<HTMLFormElement>): Promise<void> {
-    event.preventDefault()
-    setSaving(true)
-    try {
-      await onCreate(name, executablePath, argumentsText.split('\n'))
-    } catch (cause) {
-      onError(cause)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return <div className="modal-backdrop" role="presentation">
-    <section aria-labelledby="launcher-dialog-title" aria-modal="true" className="modal launcher-dialog" role="dialog">
-      <div className="launcher-dialog-heading"><div><h2 id="launcher-dialog-title">Ouvrir dans un IDE</h2><p>Le choix est mémorisé pour ce dossier.</p></div><button className="icon-button" disabled={detecting} onClick={() => void detect()} title="Actualiser les IDE détectés" type="button">↻</button></div>
-      <div className="launcher-list" aria-label="IDE détectés">
-        {snapshot.launchers.length > 0 ? snapshot.launchers.map((launcher) => <button className="launcher-list-item" key={launcher.id} onClick={() => void onSelect(launcher.id).catch(onError)} type="button"><LauncherMark product={launcher.product} /><span><strong>{launcher.name}</strong><small title={launcher.executablePath}>{launcher.executablePath}</small></span></button>) : <p className="launcher-empty">Aucun IDE détecté. Actualisez ou ajoutez un exécutable.</p>}
-      </div>
-      <form className="launcher-manual" onSubmit={(event) => void create(event)}>
-        <h3>Ajouter un lanceur</h3>
-        <label>Nom<input onChange={(event) => setName(event.target.value)} placeholder="Mon IDE" required value={name} /></label>
-        <label>Exécutable Windows<input onChange={(event) => setExecutablePath(event.target.value)} placeholder="C:\\Program Files\\Mon IDE\\ide.exe" required value={executablePath} /></label>
-        <label>Arguments <small>un par ligne ; <code>{'{workspace}'}</code> est remplacé par le dossier</small><textarea onChange={(event) => setArgumentsText(event.target.value)} required rows={2} value={argumentsText} /></label>
-        <div className="modal-actions"><button onClick={onClose} type="button">Annuler</button><button disabled={saving} type="submit">{saving ? 'Ajout…' : 'Ajouter'}</button></div>
-      </form>
-    </section>
-  </div>
 }
 
 // Permet de compléter puis valider un chemin local avant de changer l'espace de travail.
