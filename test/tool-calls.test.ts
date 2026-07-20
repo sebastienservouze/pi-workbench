@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, truncateToolText } from '../src/tool-calls.ts'
+import { editOperations, formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, truncateToolText } from '../src/tool-calls.ts'
 
 test('extracts tool calls and their resolved result from Pi messages', () => {
   const calls = toolCallsInMessage({
@@ -54,6 +54,23 @@ test('truncates text only after 140 characters', () => {
   const limit = 'a'.repeat(140)
   assert.deepEqual(truncateToolText(limit), { text: limit, truncated: false })
   assert.deepEqual(truncateToolText(`${limit}b`), { text: `${limit}…`, truncated: true })
+})
+
+test('validates edit operations before rendering their diff', () => {
+  assert.deepEqual(editOperations({
+    path: 'src/App.tsx',
+    edits: [
+      { oldText: 'before', newText: 'after' },
+      { oldText: '', newText: 'added' },
+      { oldText: 'removed', newText: '' },
+    ],
+  }), [
+    { oldText: 'before', newText: 'after' },
+    { oldText: '', newText: 'added' },
+    { oldText: 'removed', newText: '' },
+  ])
+  assert.equal(editOperations({ edits: [] }), null)
+  assert.equal(editOperations({ edits: [{ oldText: 'before' }] }), null)
 })
 
 test('detects Markdown and supported code formats read from the repository', () => {

@@ -214,6 +214,13 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .tool-call-content { border-top: 1px solid rgb(33 68 61 / 14%); }
 .tool-call pre { margin: 0; border: 0; border-radius: 0; padding: 9px 10px; background: rgb(255 255 255 / 56%); color: inherit; font: 11px/1.5 ui-monospace, monospace; overflow-wrap: anywhere; white-space: pre-wrap; }
 .tool-call-preview { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 4; }
+.tool-edit-diff { overflow-x: auto; background: rgb(255 255 255 / 56%); }
+.tool-edit-operation + .tool-edit-operation { border-top: 1px solid rgb(33 68 61 / 14%); }
+.tool-edit-line { display: grid; grid-template-columns: 20px max-content; min-width: max-content; padding: 0 10px; white-space: pre; }
+.tool-edit-line > span { font-weight: 750; text-align: center; }
+.tool-edit-line > code { font: inherit; }
+.tool-edit-line.removed { background: #fbe9e7; color: #843b31; }
+.tool-edit-line.added { background: #e4f4e9; color: #1d613b; }
 .tool-call-markdown { padding: 9px 10px; font: 12px/1.55 ui-sans-serif, system-ui, sans-serif; }
 .tool-call-markdown > :first-child { margin-top: 0; }
 .tool-call-markdown > :last-child { margin-bottom: 0; }

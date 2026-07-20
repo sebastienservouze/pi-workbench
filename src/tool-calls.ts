@@ -23,6 +23,11 @@ export interface ReadContentDisplay {
   language?: string
 }
 
+export interface EditOperation {
+  oldText: string
+  newText: string
+}
+
 export function toolCallsInMessage(message: JsonObject): ToolCall[] {
   if (message.role !== 'assistant' || !Array.isArray(message.content)) return []
 
@@ -70,6 +75,17 @@ export function truncateToolText(text: string, maxLength = 140): { text: string;
 
 export function toolCallPresentation(call: ToolCall, repositoryRoot?: string | null): ToolCallPresentation {
   return toolCallPresentations[call.name]?.(call.args, repositoryRoot) ?? {}
+}
+
+// Valide les remplacements exacts fournis par l'outil edit avant leur rendu en diff.
+export function editOperations(args: unknown): EditOperation[] | null {
+  if (!isObject(args) || !Array.isArray(args.edits) || args.edits.length === 0) return null
+
+  const operations = args.edits.map((edit) => {
+    if (!isObject(edit) || typeof edit.oldText !== 'string' || typeof edit.newText !== 'string') return null
+    return { oldText: edit.oldText, newText: edit.newText }
+  })
+  return operations.every((operation): operation is EditOperation => operation !== null) ? operations : null
 }
 
 // Détermine le rendu de la sortie read à partir de l'extension du chemin demandé.

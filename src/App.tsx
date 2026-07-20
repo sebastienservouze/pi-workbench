@@ -16,7 +16,7 @@ import type { DirectoryListing, GitActionResult, GitSnapshot, JsonObject, Manage
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, readGitSidebarWidth } from './git-sidebar.ts'
-import { formatToolData, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, type ToolResult } from './tool-calls.ts'
+import { editOperations, formatToolData, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, type EditOperation, type ToolResult } from './tool-calls.ts'
 
 interface UiDialog {
   sessionId: string
@@ -682,19 +682,36 @@ const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, rep
         {pending && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
       </small>
     </button>
-    {hasResult && <ToolCallContent call={{ name, args }} content={output || 'Aucune sortie.'} expanded={expanded} />}
+    {hasResult && <ToolCallContent call={{ name, args }} content={output || 'Aucune sortie.'} error={resultError} expanded={expanded} />}
     <footer className="tool-call-counts">Appel : {input.length} caractères{hasResult && ` · Résultat : ${(output || 'Aucune sortie.').length} caractères`}</footer>
   </article>
 })
 
 // Préserve un aperçu léger tant que la carte est réduite et ne monte le rendu riche qu'à son ouverture.
-function ToolCallContent({ call, content, expanded }: { call: { name: string; args: unknown }; content: string; expanded: boolean }) {
+function ToolCallContent({ call, content, error, expanded }: { call: { name: string; args: unknown }; content: string; error?: boolean; expanded: boolean }) {
   if (!expanded) return <section className="tool-call-content"><pre className="tool-call-preview">{content}</pre></section>
+
+  const edits = call.name === 'edit' && !error ? editOperations(call.args) : null
+  if (edits) return <ToolEditDiff edits={edits} />
 
   const display = call.name === 'read' ? readContentDisplay(call.args) : { kind: 'text' as const }
   if (display.kind === 'markdown') return <section className="tool-call-content tool-call-markdown"><Markdown>{content}</Markdown></section>
   if (display.kind === 'code') return <section className="tool-call-content"><SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px' }} language={display.language} PreTag="div" style={oneLight} wrapLongLines>{content}</SyntaxHighlighter></section>
   return <section className="tool-call-content"><pre>{content}</pre></section>
+}
+
+// Affiche chaque remplacement exact sous la forme compacte d'un diff unifié.
+function ToolEditDiff({ edits }: { edits: EditOperation[] }) {
+  return <section className="tool-call-content tool-edit-diff">
+    {edits.map((edit, index) => <div aria-label={`Édition ${index + 1}`} className="tool-edit-operation" key={index}>
+      {diffLines(edit.oldText).map((line, lineIndex) => <div className="tool-edit-line removed" key={`removed-${lineIndex}`}><span aria-hidden="true">−</span><code>{line}</code></div>)}
+      {diffLines(edit.newText).map((line, lineIndex) => <div className="tool-edit-line added" key={`added-${lineIndex}`}><span aria-hidden="true">+</span><code>{line}</code></div>)}
+    </div>)}
+  </section>
+}
+
+function diffLines(text: string): string[] {
+  return text === '' ? [] : text.split('\n')
 }
 
 const MessageCard = memo(function MessageCard({ message }: { message: JsonObject }) {
