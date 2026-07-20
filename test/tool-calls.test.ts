@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { formatToolData, isToolCallPending, toolCallInUpdate, toolCallsInMessage, toolContentText, toolResultInMessage, truncateToolText } from '../src/tool-calls.ts'
+import { formatToolData, isToolCallPending, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, truncateToolText } from '../src/tool-calls.ts'
 
 test('extracts tool calls and their resolved result from Pi messages', () => {
   const calls = toolCallsInMessage({
@@ -54,4 +54,21 @@ test('truncates tool content only after 140 characters', () => {
   const limit = 'a'.repeat(140)
   assert.deepEqual(truncateToolText(limit), { text: limit, truncated: false })
   assert.deepEqual(truncateToolText(`${limit}b`), { text: `${limit}…`, truncated: true })
+})
+
+test('uses the Bash presentation while preserving the generic fallback', () => {
+  const command = 'a'.repeat(81)
+  assert.deepEqual(toolCallPresentation({ id: 'call_1', name: 'bash', args: { command, timeout: 30 } }), {
+    headerDetail: { text: `${'a'.repeat(80)}…`, title: command },
+    pendingDetail: 'timeout : 30s',
+    showInput: false,
+  })
+  assert.deepEqual(toolCallPresentation({ id: 'call_2', name: 'read', args: { path: 'src/App.tsx' } }), {
+    showInput: true,
+    outputLabel: 'Résultat',
+  })
+  assert.deepEqual(toolCallPresentation({ id: 'call_3', name: 'bash', args: { timeout: 30 } }), {
+    showInput: true,
+    outputLabel: 'Résultat',
+  })
 })

@@ -7,7 +7,7 @@ import type { DirectoryListing, GitActionResult, GitSnapshot, JsonObject, Manage
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, readGitSidebarWidth } from './git-sidebar.ts'
-import { formatToolData, isToolCallPending, toolCallInUpdate, toolCallsInMessage, toolContentText, toolResultInMessage, truncateToolText, type ToolResult } from './tool-calls.ts'
+import { formatToolData, isToolCallPending, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, truncateToolText, type ToolResult } from './tool-calls.ts'
 
 interface UiDialog {
   sessionId: string
@@ -637,27 +637,37 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, t
 function ToolCallCard({ call, result }: { call: { id: string; name: string; args: unknown }; result?: ToolResult }) {
   const pending = isToolCallPending(result)
   const output = result ? toolContentText(result.content) : ''
+  const presentation = toolCallPresentation(call)
   return <article className={`tool-call${result?.isError ? ' error' : ''}`}>
-    <div className="tool-call-heading"><span aria-hidden="true">⌘</span><strong>{call.name}</strong><small>{pending && <span aria-label="Outil en cours" className="spinner tool-call-spinner" role="status" />} {result ? result.isError ? 'Échec' : 'Terminé' : 'En cours…'}</small></div>
-    <ToolCallContent content={formatToolData(call.args)} label="Appel" />
-    {result && <ToolCallContent content={output || 'Aucune sortie.'} label="Résultat" />}
+    <div className="tool-call-heading">
+      <span aria-hidden="true">⌘</span>
+      <strong>{call.name}</strong>
+      {presentation.headerDetail && <code aria-label={`Commande complète : ${presentation.headerDetail.title}`} className="tool-call-command" title={presentation.headerDetail.title}>{presentation.headerDetail.text}</code>}
+      <small>
+        {pending && <span aria-label="Outil en cours" className="spinner tool-call-spinner" role="status" />}
+        {result ? result.isError ? 'Échec' : 'Terminé' : 'En cours…'}
+        {pending && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
+      </small>
+    </div>
+    {presentation.showInput && <ToolCallContent content={formatToolData(call.args)} label="Appel" />}
+    {result && <ToolCallContent content={output || 'Aucune sortie.'} label={presentation.outputLabel} />}
   </article>
 }
 
 // Affiche une donnée d'outil complète à la demande afin de garder l'historique lisible sans perdre son contenu.
-function ToolCallContent({ content, label }: { content: string; label: string }) {
+function ToolCallContent({ content, label }: { content: string; label?: string }) {
   const [expanded, setExpanded] = useState(false)
   const preview = truncateToolText(content)
   const visibleContent = expanded ? content : preview.text
 
   return <section className="tool-call-content">
-    <div className="tool-call-content-heading">
-      <strong>{label}</strong>
+    {(label || preview.truncated) && <div className="tool-call-content-heading">
+      {label && <strong>{label}</strong>}
       {preview.truncated && <span>
         {!expanded && <small>{content.length} caractères</small>}
         <button aria-expanded={expanded} onClick={() => setExpanded((current) => !current)} type="button">{expanded ? 'Réduire' : 'Tout afficher'}</button>
       </span>}
-    </div>
+    </div>}
     <pre>{visibleContent}</pre>
   </section>
 }
