@@ -62,6 +62,11 @@ export interface GitFileDiff {
   diff: string
 }
 
+export interface WorkspaceFile {
+  path: string
+  content: string
+}
+
 export interface ManagerRequest {
   id: string
   action: 'list' | 'create' | 'open' | 'command'

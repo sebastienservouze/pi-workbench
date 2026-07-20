@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { editOperations, formatToolCallTooltip, formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, truncateToolText } from '../src/tool-calls.ts'
+import { editOperations, formatToolCallTooltip, formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolFilePath, toolResultInMessage, truncateToolText } from '../src/tool-calls.ts'
 
 test('extracts tool calls and their resolved result from Pi messages', () => {
   const calls = toolCallsInMessage({
@@ -81,9 +81,16 @@ test('validates edit operations before rendering their diff', () => {
 test('detects Markdown and supported code formats read from the repository', () => {
   assert.deepEqual(readContentDisplay({ path: 'docs/guide.md' }), { kind: 'markdown' })
   assert.deepEqual(readContentDisplay({ path: 'src/App.tsx' }), { kind: 'code', language: 'typescript' })
+  assert.deepEqual(readContentDisplay({ path: 'public/preview.html' }), { kind: 'html' })
   assert.deepEqual(readContentDisplay({ path: 'src/Program.cs' }), { kind: 'code', language: 'csharp' })
   assert.deepEqual(readContentDisplay({ path: 'notes.txt' }), { kind: 'text' })
   assert.deepEqual(readContentDisplay({}), { kind: 'text' })
+})
+
+test('extracts a usable file path from read and write calls', () => {
+  assert.equal(toolFilePath({ path: 'src/App.tsx' }), 'src/App.tsx')
+  assert.equal(toolFilePath({ path: '' }), null)
+  assert.equal(toolFilePath({}), null)
 })
 
 test('uses the Bash presentation while preserving the generic fallback', () => {

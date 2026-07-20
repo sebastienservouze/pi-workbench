@@ -11,12 +11,12 @@ import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup'
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import './App.css'
-import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getSnapshot, listDirectories, listRecentSessions, listSessions, openSession, sendPiCommand } from './api.ts'
-import type { DirectoryListing, GitActionResult, GitFileDiff, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
+import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getSnapshot, getWorkspaceFile, listDirectories, listRecentSessions, listSessions, openSession, sendPiCommand } from './api.ts'
+import type { DirectoryListing, GitActionResult, GitFileDiff, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff, readGitSidebarWidth } from './git-sidebar.ts'
-import { editOperations, formatToolCallTooltip, formatToolData, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolResultInMessage, type EditOperation, type ToolResult } from './tool-calls.ts'
+import { editOperations, formatToolCallTooltip, formatToolData, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolFilePath, toolResultInMessage, type EditOperation, type ReadContentDisplay, type ToolResult } from './tool-calls.ts'
 
 interface UiDialog {
   sessionId: string
@@ -38,6 +38,13 @@ interface ToolExecution {
   name: string
   args: unknown
   result?: ToolResult
+}
+
+interface FilePreview {
+  path: string
+  display: ReadContentDisplay
+  file?: WorkspaceFile
+  error?: string
 }
 
 const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [], stats: null }
@@ -69,9 +76,11 @@ function App() {
   const [dialog, setDialog] = useState<UiDialog | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
   const [gitSnapshot, setGitSnapshot] = useState<GitSnapshot | null>(null)
-  const [gitSidebarCollapsed, setGitSidebarCollapsed] = useState(() => window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true')
+  const [activeRightWidget, setActiveRightWidget] = useState<'file' | 'git' | null>(() => window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git')
+  const [filePreview, setFilePreview] = useState<FilePreview | null>(null)
   const [gitSidebarWidth, setGitSidebarWidth] = useState(() => readGitSidebarWidth(window.localStorage.getItem('pi-workbench.git-sidebar-width')))
   const selectedIdRef = useRef(selectedId)
+  const fileRequestVersionRef = useRef(0)
   const refreshVersionRef = useRef(0)
   const gitRefreshVersionRef = useRef(0)
   const toastIdRef = useRef(0)
@@ -87,6 +96,19 @@ function App() {
     window.localStorage.setItem('pi-workbench.git-sidebar-width', String(nextWidth))
     setGitSidebarWidth(nextWidth)
   }, [])
+
+  // Relit le fichier courant afin que les appels write montrent l'état réellement enregistré sur disque.
+  const openWorkspaceFile = useCallback(async (path: string) => {
+    const version = ++fileRequestVersionRef.current
+    setActiveRightWidget('file')
+    setFilePreview({ path, display: readContentDisplay({ path }) })
+    try {
+      const file = await getWorkspaceFile(workspacePath, path)
+      if (version === fileRequestVersionRef.current) setFilePreview({ path: file.path, display: readContentDisplay({ path: file.path }), file })
+    } catch (cause) {
+      if (version === fileRequestVersionRef.current) setFilePreview({ path, display: readContentDisplay({ path }), error: messageOf(cause) })
+    }
+  }, [workspacePath])
 
   useEffect(() => {
     if (!toast) return
@@ -272,9 +294,11 @@ function App() {
   const selectedSession = sessions.find((session) => session.id === selectedId)
   const questionnaire = dialog && dialog.sessionId === selectedId && isAskUserQuestionDialog(dialog.request) ? dialog : null
 
+  const rightSidebarVisible = Boolean(gitSnapshot?.repository) || activeRightWidget === 'file'
+
   return (
     <div
-      className={`app-shell${gitSnapshot?.repository ? gitSidebarCollapsed ? ' git-sidebar-collapsed' : ' git-sidebar-visible' : ''}`}
+      className={`app-shell${rightSidebarVisible ? activeRightWidget ? ' git-sidebar-visible' : ' git-sidebar-collapsed' : ''}`}
       style={{ '--git-sidebar-width': `${gitSidebarWidth}px` } as CSSProperties}
     >
       <aside className="sidebar">
@@ -329,7 +353,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} toolExecutions={toolExecutions} />
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} onFileOpen={openWorkspaceFile} repositoryRoot={gitSnapshot?.root} toolExecutions={toolExecutions} />
             {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
             <Composer
               session={selectedSession}
@@ -370,10 +394,11 @@ function App() {
         )}
       </main>
 
-      {gitSnapshot?.repository && <GitSidebar
-        collapsed={gitSidebarCollapsed}
+      {rightSidebarVisible && <RightSidebar
+        activeWidget={activeRightWidget}
+        filePreview={filePreview}
         onResize={updateGitSidebarWidth}
-        snapshot={gitSnapshot}
+        snapshot={gitSnapshot?.repository ? gitSnapshot : null}
         width={gitSidebarWidth}
         onAction={async (message) => {
           const result = await commitAndPush(workspacePath, message)
@@ -385,10 +410,10 @@ function App() {
         onError={(cause) => showToast('error', messageOf(cause))}
         onFileSelect={(path, commitHash) => getGitFileDiff(workspacePath, path, commitHash)}
         onRefresh={() => void refreshGit(workspacePath, true)}
-        onToggle={() => setGitSidebarCollapsed((collapsed) => {
-          const nextCollapsed = !collapsed
-          window.localStorage.setItem('pi-workbench.git-sidebar-collapsed', String(nextCollapsed))
-          return nextCollapsed
+        onWidgetSelect={(widget) => setActiveRightWidget((current) => {
+          const next = current === widget ? null : widget
+          if (widget === 'git') window.localStorage.setItem('pi-workbench.git-sidebar-collapsed', String(next === null))
+          return next
         })}
       />}
 
@@ -399,6 +424,9 @@ function App() {
         onSelect={(path) => {
           window.localStorage.setItem('pi-workbench.workspace-path', path)
           setGitSnapshot(null)
+          setFilePreview(null)
+          setActiveRightWidget(null)
+          fileRequestVersionRef.current += 1
           setWorkspacePath(path)
           setSelectedId('')
           setDirectoryPickerOpen(false)
@@ -416,23 +444,25 @@ function App() {
   )
 }
 
-// Affiche l'état Git et coordonne les actions de commit, push et redimensionnement.
-function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, onFileSelect, onRefresh, onToggle }: {
-  collapsed: boolean
+// Coordonne les panneaux Git et fichier, leur rail commun et le redimensionnement du panneau actif.
+function RightSidebar({ activeWidget, filePreview, onResize, snapshot, width, onAction, onError, onFileSelect, onRefresh, onWidgetSelect }: {
+  activeWidget: 'file' | 'git' | null
+  filePreview: FilePreview | null
   onResize: (width: number) => void
-  snapshot: GitSnapshot
+  snapshot: GitSnapshot | null
   width: number
   onAction: (message: string) => Promise<GitActionResult>
   onError: (cause: unknown) => void
   onFileSelect: (path: string, commitHash?: string) => Promise<GitFileDiff>
   onRefresh: () => void
-  onToggle: () => void
+  onWidgetSelect: (widget: 'file' | 'git') => void
 }) {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const [fileDiff, setFileDiff] = useState<GitFileDiff | null>(null)
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
-  const hasChanges = snapshot.files.length > 0
+  const hasChanges = snapshot?.files.length ? snapshot.files.length > 0 : false
+  const collapsed = activeWidget === null
 
   // Charge le diff demandé avant de remplacer la liste de fichiers du widget.
   async function selectFile(path: string, commitHash?: string): Promise<void> {
@@ -498,8 +528,8 @@ function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, o
   return <aside className="git-sidebar" aria-label="Informations Git">
     {!collapsed && <div className="git-widget-panel">
       <div
-        aria-controls="git-panel"
-        aria-label="Redimensionner le panneau Git"
+        aria-controls={activeWidget === 'file' ? 'file-panel' : 'git-panel'}
+        aria-label="Redimensionner le panneau latéral"
         aria-orientation="vertical"
         aria-valuemax={maxGitSidebarWidth}
         aria-valuemin={minGitSidebarWidth}
@@ -510,8 +540,8 @@ function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, o
         role="separator"
         tabIndex={0}
       />
-      <section aria-label={fileDiff || selectedPath ? 'Diff Git' : 'Informations Git'} className="git-panel" id="git-panel">
-        {fileDiff || selectedPath ? <>
+      <section aria-label={activeWidget === 'file' ? 'Fichier' : fileDiff || selectedPath ? 'Diff Git' : 'Informations Git'} className="git-panel" id={activeWidget === 'file' ? 'file-panel' : 'git-panel'}>
+        {activeWidget === 'file' ? <FilePreviewPanel preview={filePreview} /> : snapshot && <>{fileDiff || selectedPath ? <>
           <header className="git-heading git-diff-heading">
             <button aria-label="Retour aux fichiers Git" className="git-back" onClick={() => { setFileDiff(null); setSelectedPath(null) }} title="Retour" type="button">←</button>
             <strong title={selectedPath ?? undefined}>{selectedPath}</strong>
@@ -541,28 +571,57 @@ function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, o
             </details>)}
           </section>}
           {!hasChanges && snapshot.ahead === 0 && <p className="git-empty">Aucun changement à committer.</p>}
-        </>}
+        </>}</>}
       </section>
-      {!selectedPath && (hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>
+      {activeWidget === 'git' && snapshot && !selectedPath && (hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>
         {hasChanges && <input aria-label="Message de commit" disabled={busy} onChange={(event) => setMessage(event.target.value)} placeholder="Message de commit" value={message} />}
         <button disabled={busy || (hasChanges && !message.trim())} type="submit">{busy ? 'Git en cours…' : hasChanges ? 'Committer et pousser' : `Pousser ${snapshot.ahead} commit${snapshot.ahead > 1 ? 's' : ''}`}</button>
       </form>}
     </div>}
     <div className="git-rail">
-      <button
-        aria-controls={collapsed ? undefined : 'git-panel'}
-        aria-expanded={!collapsed}
-        aria-label={collapsed ? 'Développer le panneau Git' : 'Réduire le panneau Git'}
+      {snapshot && <button
+        aria-controls={activeWidget === 'git' ? 'git-panel' : undefined}
+        aria-expanded={activeWidget === 'git'}
+        aria-label={activeWidget === 'git' ? 'Réduire le panneau Git' : 'Développer le panneau Git'}
         className="rail-tab"
-        onClick={onToggle}
+        onClick={() => onWidgetSelect('git')}
         title="Git"
         type="button"
       >
         <span aria-hidden="true">⎇</span>
         {(hasChanges || snapshot.ahead > 0) && <small>{snapshot.files.length + snapshot.ahead}</small>}
-      </button>
+      </button>}
+      <button
+        aria-controls={activeWidget === 'file' ? 'file-panel' : undefined}
+        aria-expanded={activeWidget === 'file'}
+        aria-label={activeWidget === 'file' ? 'Réduire le panneau Fichier' : 'Développer le panneau Fichier'}
+        className="rail-tab"
+        disabled={!filePreview}
+        onClick={() => onWidgetSelect('file')}
+        title="Fichier"
+        type="button"
+      ><span aria-hidden="true">▤</span></button>
     </div>
   </aside>
+}
+
+// Affiche le fichier relu depuis le disque en choisissant un rendu sûr selon son extension.
+function FilePreviewPanel({ preview }: { preview: FilePreview | null }) {
+  if (!preview) return <p className="git-empty">Choisissez un appel read ou write pour afficher un fichier.</p>
+
+  return <>
+    <header className="git-heading file-heading"><strong title={preview.path}>{preview.path}</strong></header>
+    {preview.error && <p className="file-preview-error" role="alert">{preview.error}</p>}
+    {!preview.file && !preview.error && <p className="git-empty">Chargement du fichier…</p>}
+    {preview.file && preview.display.kind === 'markdown' && <section className="file-preview file-preview-markdown"><Markdown>{preview.file.content}</Markdown></section>}
+    {preview.file && preview.display.kind === 'html' && <iframe className="file-preview-html" sandbox="" srcDoc={htmlPreviewDocument(preview.file.content)} title={`Aperçu de ${preview.path}`} />}
+    {preview.file && preview.display.kind === 'code' && <section className="file-preview"><SyntaxHighlighter className="file-preview-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '10px 12px' }} language={preview.display.language} PreTag="div" showLineNumbers style={oneLight} wrapLongLines>{preview.file.content}</SyntaxHighlighter></section>}
+    {preview.file && preview.display.kind === 'text' && <section className="file-preview"><pre>{preview.file.content}</pre></section>}
+  </>
+}
+
+function htmlPreviewDocument(content: string): string {
+  return `<!doctype html><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:">${content}`
 }
 
 // Affiche les métadonnées communes d'un fichier dans les listes Git.
@@ -654,12 +713,13 @@ function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>
 }
 
 // Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi.
-function Conversation({ messages, liveText, activity, agentName, detailedView, repositoryRoot, toolExecutions }: {
+function Conversation({ messages, liveText, activity, agentName, detailedView, onFileOpen, repositoryRoot, toolExecutions }: {
   messages: JsonObject[]
   liveText: string
   activity: Activity | null
   agentName?: string
   detailedView: boolean
+  onFileOpen: (path: string) => void
   repositoryRoot?: string | null
   toolExecutions: ToolExecution[]
 }) {
@@ -686,11 +746,11 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, r
           {isVisibleConversationMessage(message) && <MessageCard message={message} />}
           {calls.map((call) => {
             const result = resultsByCallId.get(call.id) ?? executionsByCallId.get(call.id)?.result
-            return <ToolCallCard args={call.args} hasResult={result !== undefined} id={call.id} key={call.id} name={call.name} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} />
+            return <ToolCallCard args={call.args} hasResult={result !== undefined} id={call.id} key={call.id} name={call.name} onFileOpen={onFileOpen} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} />
           })}
         </div>
       })}
-      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard args={execution.args} hasResult={execution.result !== undefined} id={execution.id} key={execution.id} name={execution.name} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} />)}
+      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard args={execution.args} hasResult={execution.result !== undefined} id={execution.id} key={execution.id} name={execution.name} onFileOpen={onFileOpen} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} />)}
       {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {activity && activity.kind !== 'writing' && <ActivityIndicator activity={activity} agentName={agentName} />}
       {visibleMessages.length === 0 && !liveText && !activity && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
@@ -700,11 +760,12 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, r
 }
 
 // Regroupe l'appel et son résultat afin que leur état visuel reste cohérent dans l'historique.
-const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, repositoryRoot, resultContent, resultError }: {
+const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, onFileOpen, repositoryRoot, resultContent, resultError }: {
   args: unknown
   hasResult: boolean
   id: string
   name: string
+  onFileOpen: (path: string) => void
   repositoryRoot?: string | null
   resultContent?: unknown
   resultError?: boolean
@@ -716,9 +777,14 @@ const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, rep
   const displayedOutput = output || 'Aucune sortie.'
   const presentation = toolCallPresentation({ id, name, args }, repositoryRoot)
   const tooltip = formatToolCallTooltip(presentation.headerDetail?.title ?? input, input, hasResult ? displayedOutput : undefined)
+  const filePath = name === 'read' || name === 'write' ? toolFilePath(args) : null
   const toggleExpanded = () => setExpanded((isExpanded) => !isExpanded)
-  return <article className={`tool-call${resultError ? ' error' : ''}`} onClick={hasResult ? toggleExpanded : undefined}>
-    <button aria-expanded={hasResult ? expanded : undefined} className="tool-call-heading tool-call-tooltip" data-tooltip={tooltip} disabled={!hasResult} onClick={(event) => { event.stopPropagation(); toggleExpanded() }} type="button">
+  const activate = () => {
+    if (filePath) onFileOpen(filePath)
+    else toggleExpanded()
+  }
+  return <article className={`tool-call${resultError ? ' error' : ''}`}>
+    <button aria-expanded={filePath ? undefined : hasResult ? expanded : undefined} className="tool-call-heading tool-call-tooltip" data-tooltip={tooltip} disabled={!hasResult} onClick={activate} type="button">
       <span aria-hidden="true">⌘</span>
       <span><strong aria-label={tooltip}>{name}</strong></span>
       {presentation.headerDetail && <span className="tool-call-command"><code aria-label={`Commande complète : ${presentation.headerDetail.title}`}>{presentation.headerDetail.text}</code></span>}
@@ -729,7 +795,7 @@ const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, rep
         {pending && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
       </small>
     </button>
-    {hasResult && expanded && <ToolCallContent call={{ name, args }} content={displayedOutput} error={resultError} />}
+    {hasResult && !filePath && expanded && <ToolCallContent call={{ name, args }} content={displayedOutput} error={resultError} />}
   </article>
 })
 

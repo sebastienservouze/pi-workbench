@@ -197,6 +197,18 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .git-rail { display: flex; flex: 0 0 48px; flex-direction: column; align-items: center; border-left: 1px solid var(--line); background: var(--surface-raised); }
 .rail-tab { position: relative; display: grid; place-items: center; width: 100%; height: 48px; border: 0; border-bottom: 1px solid var(--line); padding: 0; background: transparent; color: var(--teal); font: 20px ui-monospace, monospace; }
 .rail-tab:hover, .rail-tab:focus-visible { background: #edf2ef; color: var(--ink); }
+.rail-tab:disabled { color: var(--subtle); cursor: not-allowed; }
+.file-heading { border-bottom: 1px solid var(--line); }
+.file-heading strong { width: 100%; color: var(--ink); }
+.file-preview { min-height: 0; overflow: auto; }
+.file-preview pre { margin: 0; padding: 10px 12px; font: 12px/1.55 ui-monospace, monospace; white-space: pre-wrap; }
+.file-preview-markdown { padding: 12px 14px 20px; font: 13px/1.6 ui-sans-serif, system-ui, sans-serif; }
+.file-preview-markdown > :first-child { margin-top: 0; }
+.file-preview-markdown > :last-child { margin-bottom: 0; }
+.file-preview-markdown pre { overflow: auto; border: 1px solid var(--line); border-radius: 7px; padding: 10px; background: #f0f3f1; }
+.file-preview-syntax { font: 12px/1.55 ui-monospace, monospace !important; }
+.file-preview-html { display: block; width: 100%; min-height: 420px; border: 0; background: white; }
+.file-preview-error { margin: 14px; color: var(--danger); font-size: 12px; line-height: 1.5; }
 .rail-tab small { position: absolute; top: 5px; right: 4px; display: grid; place-items: center; min-width: 14px; height: 14px; border-radius: 9px; padding: 0 3px; background: var(--teal-soft); color: #18584f; font: 8px ui-sans-serif, system-ui, sans-serif; }
 .conversation { min-width: 0; min-height: 0; overflow-y: auto; padding: 42px max(28px, calc((100% - 900px) / 2)) 30px; scrollbar-gutter: stable; }
 .message { margin: 0 0 26px; }

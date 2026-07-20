@@ -7,6 +7,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { ManagerClient } from './manager-client.ts'
 import { listRecentPiSessions, loadPiSession } from './pi-session-store.ts'
 import { commitAndPush, getGitFileDiff, getGitSnapshot } from './git.ts'
+import { readWorkspaceFile, WorkspaceFileError } from './workspace-file.ts'
 import type { DirectoryListing, JsonObject, ManagerEvent, SessionSnapshot } from '../shared/types.ts'
 
 const host = '127.0.0.1'
@@ -81,6 +82,19 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
     const path = url.searchParams.get('path')
     if (!path) throw new HttpError(400, 'File path is required')
     sendJson(response, 200, await getGitFileDiff(cwd, path, url.searchParams.get('commit') ?? undefined))
+    return
+  }
+
+  if (method === 'GET' && url.pathname === '/api/files') {
+    const cwd = await resolveWorkingDirectory(url.searchParams.get('cwd') ?? '~/.pi')
+    const path = url.searchParams.get('path')
+    if (!path) throw new HttpError(400, 'File path is required')
+    try {
+      sendJson(response, 200, await readWorkspaceFile(cwd, path))
+    } catch (error) {
+      if (error instanceof WorkspaceFileError) throw new HttpError(error.status, error.message)
+      throw error
+    }
     return
   }
 

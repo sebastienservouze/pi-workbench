@@ -19,7 +19,7 @@ export interface ToolCallPresentation {
 }
 
 export interface ReadContentDisplay {
-  kind: 'code' | 'markdown' | 'text'
+  kind: 'code' | 'html' | 'markdown' | 'text'
   language?: string
 }
 
@@ -92,12 +92,19 @@ export function editOperations(args: unknown): EditOperation[] | null {
   return operations.every((operation): operation is EditOperation => operation !== null) ? operations : null
 }
 
-// Détermine le rendu de la sortie read à partir de l'extension du chemin demandé.
-export function readContentDisplay(args: unknown): ReadContentDisplay {
-  if (!isObject(args) || typeof args.path !== 'string') return { kind: 'text' }
+// Retourne le chemin cible des outils qui manipulent directement un fichier.
+export function toolFilePath(args: unknown): string | null {
+  return isObject(args) && typeof args.path === 'string' && args.path.length > 0 ? args.path : null
+}
 
-  const extension = args.path.match(/\.([^./]+)$/)?.[1]?.toLowerCase()
+// Détermine le rendu du fichier à partir de l'extension de son chemin.
+export function readContentDisplay(args: unknown): ReadContentDisplay {
+  const path = toolFilePath(args)
+  if (!path) return { kind: 'text' }
+
+  const extension = path.match(/\.([^./]+)$/)?.[1]?.toLowerCase()
   if (extension === 'md' || extension === 'markdown') return { kind: 'markdown' }
+  if (extension === 'htm' || extension === 'html') return { kind: 'html' }
 
   const language = extension ? languageByExtension[extension] : undefined
   return language ? { kind: 'code', language } : { kind: 'text' }
