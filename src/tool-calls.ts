@@ -53,6 +53,11 @@ export function formatToolData(value: unknown): string {
   try { return JSON.stringify(value, null, 2) ?? String(value) } catch { return String(value) }
 }
 
+export function truncateToolText(text: string, maxLength = 140): { text: string; truncated: boolean } {
+  if (text.length <= maxLength) return { text, truncated: false }
+  return { text: `${text.slice(0, maxLength)}…`, truncated: true }
+}
+
 function toolCallFromValue(value: unknown): ToolCall | null {
   if (!isObject(value) || value.type !== 'toolCall' || typeof value.id !== 'string' || typeof value.name !== 'string') return null
   return { id: value.id, name: value.name, args: value.arguments }

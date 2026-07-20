@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { formatToolData, isToolCallPending, toolCallInUpdate, toolCallsInMessage, toolContentText, toolResultInMessage } from '../src/tool-calls.ts'
+import { formatToolData, isToolCallPending, toolCallInUpdate, toolCallsInMessage, toolContentText, toolResultInMessage, truncateToolText } from '../src/tool-calls.ts'
 
 test('extracts tool calls and their resolved result from Pi messages', () => {
   const calls = toolCallsInMessage({
@@ -48,4 +48,10 @@ test('ignores non-tool content and formats tool arguments safely', () => {
   assert.deepEqual(toolCallsInMessage({ role: 'assistant', content: [{ type: 'text', text: 'Bonjour' }] }), [])
   assert.equal(toolResultInMessage({ role: 'user', content: 'Bonjour' }), null)
   assert.equal(formatToolData({ command: 'pwd' }), '{\n  "command": "pwd"\n}')
+})
+
+test('truncates tool content only after 140 characters', () => {
+  const limit = 'a'.repeat(140)
+  assert.deepEqual(truncateToolText(limit), { text: limit, truncated: false })
+  assert.deepEqual(truncateToolText(`${limit}b`), { text: `${limit}…`, truncated: true })
 })
