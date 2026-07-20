@@ -717,11 +717,11 @@ const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, rep
   const presentation = toolCallPresentation({ id, name, args }, repositoryRoot)
   const tooltip = formatToolCallTooltip(input, hasResult ? displayedOutput : undefined)
   return <article className={`tool-call${resultError ? ' error' : ''}`}>
-    <button aria-expanded={hasResult ? expanded : undefined} className="tool-call-heading" disabled={!hasResult} onClick={() => setExpanded((isExpanded) => !isExpanded)} type="button">
+    <button aria-expanded={hasResult ? expanded : undefined} className="tool-call-heading tool-call-tooltip" data-tooltip={tooltip} disabled={!hasResult} onClick={() => setExpanded((isExpanded) => !isExpanded)} type="button">
       <span aria-hidden="true">⌘</span>
-      <span className="tool-call-tooltip" data-tooltip={tooltip}><strong aria-label={tooltip}>{name}</strong></span>
-      {presentation.headerDetail && <span className="tool-call-command tool-call-tooltip" data-tooltip={presentation.headerDetail.title}><code aria-label={`Commande complète : ${presentation.headerDetail.title}`}>{presentation.headerDetail.text}</code></span>}
-      {presentation.headerDetail?.suffix && <span className="tool-call-range tool-call-tooltip" data-tooltip={presentation.headerDetail.suffix}><code aria-label={`Plage lue : ${presentation.headerDetail.suffix}`}>{presentation.headerDetail.suffix}</code></span>}
+      <span><strong aria-label={tooltip}>{name}</strong></span>
+      {presentation.headerDetail && <span className="tool-call-command"><code aria-label={`Commande complète : ${presentation.headerDetail.title}`}>{presentation.headerDetail.text}</code></span>}
+      {presentation.headerDetail?.suffix && <span className="tool-call-range"><code aria-label={`Plage lue : ${presentation.headerDetail.suffix}`}>{presentation.headerDetail.suffix}</code></span>}
       <small>
         {pending && <span aria-label="Outil en cours" className="spinner tool-call-spinner" role="status" />}
         {hasResult ? resultError ? 'Échec' : 'Terminé' : 'En cours…'}
