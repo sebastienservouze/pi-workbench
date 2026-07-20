@@ -200,7 +200,6 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .git-actions button:disabled { opacity: .5; }
 .git-rail { display: flex; flex: 0 0 48px; flex-direction: column; align-items: center; border-left: 1px solid var(--line); background: var(--surface-raised); }
 .rail-tab { position: relative; display: grid; place-items: center; width: 100%; height: 48px; border: 0; border-bottom: 1px solid var(--line); padding: 0; background: transparent; color: var(--muted); transition: background 180ms ease, color 180ms ease, box-shadow 180ms ease; }
-.rail-icon { width: 21px; height: 21px; }
 .rail-tab:hover:not(:disabled) { background: #edf2ef; color: var(--ink); }
 .rail-tab:focus-visible { z-index: 1; outline: 2px solid var(--teal); outline-offset: -2px; }
 .rail-tab[aria-expanded='true'] { background: var(--teal-soft); color: var(--teal); box-shadow: inset 0 -2px 0 var(--teal); }

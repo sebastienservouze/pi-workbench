@@ -4,6 +4,8 @@ Interface web locale pour piloter plusieurs sessions Pi en parallèle. Le gestio
 
 Le projet couvre la surface fournie par le mode RPC de Pi : conversations en direct, outils, modèles, niveaux de thinking, commandes et dialogues d’extensions. Les composants exclusivement TUI ne sont pas reproduits.
 
+La sidebar droite donne accès à l’état Git lorsqu’un dépôt est détecté et, après un appel `read` ou `write`, à l’aperçu du fichier concerné.
+
 ## Prérequis
 
 - Node.js 24 ou supérieur
