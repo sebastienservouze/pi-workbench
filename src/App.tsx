@@ -18,6 +18,7 @@ import { activityForPiEvent, activityText, waitingActivity, type Activity } from
 import { canHighlightFile } from './file-preview.ts'
 import { formatTurnCost, turnUsageByMessage, type MessageUsage } from './message-usage.ts'
 import { directoryCompletionTarget } from './directory-completion.ts'
+import { recentWorkspaces } from './recent-workspaces.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff, readGitSidebarWidth } from './git-sidebar.ts'
 import { editOperations, formatToolCallTooltip, formatToolData, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolFilePath, toolResultInMessage, type EditOperation, type ReadContentDisplay, type ToolResult } from './tool-calls.ts'
 
@@ -131,6 +132,7 @@ function App() {
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
   const [workspacePath, setWorkspacePath] = useState(() => window.localStorage.getItem('pi-workbench.workspace-path') ?? '~/.pi')
+  const [recentWorkspacePaths, setRecentWorkspacePaths] = useState(() => recentWorkspaces(window.localStorage.getItem('pi-workbench.workspace-path') ?? '~/.pi', readRecentWorkspaces()))
   const [directoryPickerOpen, setDirectoryPickerOpen] = useState(false)
   const [vsCodeAvailable, setVsCodeAvailable] = useState<boolean | null>(null)
   const [openingSessionPath, setOpeningSessionPath] = useState('')
@@ -537,10 +539,14 @@ function App() {
 
       {directoryPickerOpen && <DirectoryPicker
         initialPath={workspacePath}
+        recentPaths={recentWorkspacePaths}
         onClose={() => setDirectoryPickerOpen(false)}
         onError={(cause) => showToast('error', messageOf(cause))}
         onSelect={(path) => {
           window.localStorage.setItem('pi-workbench.workspace-path', path)
+          const nextRecentWorkspacePaths = recentWorkspaces(path, recentWorkspacePaths)
+          window.localStorage.setItem('pi-workbench.recent-workspace-paths', JSON.stringify(nextRecentWorkspacePaths))
+          setRecentWorkspacePaths(nextRecentWorkspacePaths)
           setGitSnapshot(null)
           setFilePreview(null)
           setActiveRightWidget(null)
@@ -763,9 +769,20 @@ function gitStatusInitial(status: 'added' | 'deleted' | 'modified' | 'renamed'):
   return { added: 'A', deleted: 'D', modified: 'M', renamed: 'R' }[status]
 }
 
+// Lit une éventuelle ancienne liste invalide sans empêcher l'ouverture de l'application.
+function readRecentWorkspaces(): string[] {
+  try {
+    const value: unknown = JSON.parse(window.localStorage.getItem('pi-workbench.recent-workspace-paths') ?? '[]')
+    return Array.isArray(value) ? value.filter((path): path is string => typeof path === 'string') : []
+  } catch {
+    return []
+  }
+}
+
 // Permet de compléter puis valider un chemin local avant de changer l'espace de travail.
-function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {
+function DirectoryPicker({ initialPath, recentPaths, onClose, onError, onSelect }: {
   initialPath: string
+  recentPaths: string[]
   onClose: () => void
   onError: (cause: unknown) => void
   onSelect: (path: string) => void
@@ -796,6 +813,11 @@ function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {
     })
   }, [path])
 
+  // Valide que le chemin est toujours accessible avant de l'adopter comme workspace.
+  function selectDirectory(nextPath: string): void {
+    void listDirectories(nextPath).then((directory) => onSelect(directory.path)).catch(onError)
+  }
+
   // Applique les raccourcis habituels d'une liste de complétion sans intercepter la saisie normale.
   function handlePathKeyDown(event: ReactKeyboardEvent<HTMLInputElement>): void {
     if (event.key === 'Escape') {
@@ -821,7 +843,7 @@ function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {
     }
     if (event.key === 'Enter') {
       event.preventDefault()
-      void listDirectories(path).then((directory) => onSelect(directory.path)).catch(onError)
+      selectDirectory(path)
     }
   }
 
@@ -829,6 +851,10 @@ function DirectoryPicker({ initialPath, onClose, onError, onSelect }: {
     <div className="modal-backdrop" role="presentation">
       <section aria-labelledby="directory-picker-title" aria-modal="true" className="modal directory-picker" role="dialog">
         <h2 id="directory-picker-title">Choisir un dossier</h2>
+        {recentPaths.length > 0 && <section aria-label="Workspaces récents" className="recent-workspaces">
+          <strong>Workspaces récents</strong>
+          <div>{recentPaths.map((recentPath) => <button key={recentPath} onClick={() => selectDirectory(recentPath)} type="button">{recentPath}</button>)}</div>
+        </section>}
         <label className="directory-path-label" htmlFor="directory-path">Chemin du dossier</label>
         <input
           aria-activedescendant={activeSuggestion >= 0 ? `directory-suggestion-${activeSuggestion}` : undefined}

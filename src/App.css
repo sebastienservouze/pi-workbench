@@ -424,6 +424,11 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .modal { width: min(560px, 100%); max-height: 80vh; overflow: auto; border: 1px solid rgb(255 255 255 / 80%); border-radius: 14px; padding: 24px; background: var(--surface); box-shadow: 0 30px 90px rgb(17 29 23 / 24%); }
 .modal h2 { margin: 0 0 8px; letter-spacing: -.025em; }
 .directory-picker { display: flex; flex-direction: column; }
+.recent-workspaces { margin-top: 12px; }
+.recent-workspaces > strong { display: block; margin-bottom: 6px; color: var(--muted); font-size: 12px; }
+.recent-workspaces > div { display: grid; gap: 4px; max-height: 142px; overflow: auto; }
+.recent-workspaces button { overflow: hidden; border: 1px solid transparent; border-radius: 8px; padding: 7px 9px; background: var(--surface-raised); color: var(--ink); font: 12px ui-monospace, monospace; text-align: left; text-overflow: ellipsis; white-space: nowrap; }
+.recent-workspaces button:hover, .recent-workspaces button:focus-visible { border-color: var(--line-strong); background: var(--accent-soft); color: #18584f; }
 .directory-path-label { margin: 12px 0 5px; color: var(--muted); font-size: 12px; font-weight: 700; }
 .directory-path-input { width: 100%; border: 1px solid var(--line-strong); border-radius: 9px; padding: 10px 11px; background: var(--surface-raised); color: var(--ink); font: 13px ui-monospace, monospace; }
 .directory-path-input:focus { outline: 0; border-color: var(--accent); box-shadow: 0 0 0 3px rgb(35 119 109 / 14%); }
