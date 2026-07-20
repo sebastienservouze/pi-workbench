@@ -665,12 +665,13 @@ const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, rep
   resultError?: boolean
 }) {
   const pending = !hasResult
+  const [expanded, setExpanded] = useState(false)
   const input = formatToolData(args)
   const output = hasResult ? toolContentText(resultContent) : ''
   const presentation = toolCallPresentation({ id, name, args }, repositoryRoot)
   const inputLabel = presentation.headerDetail ? undefined : input
   return <article className={`tool-call${resultError ? ' error' : ''}`}>
-    <div className="tool-call-heading">
+    <button aria-expanded={hasResult ? expanded : undefined} className="tool-call-heading" disabled={!hasResult} onClick={() => setExpanded((isExpanded) => !isExpanded)} type="button">
       <span aria-hidden="true">⌘</span>
       <span className="tool-call-tooltip" data-tooltip={inputLabel}><strong aria-label={inputLabel ? `Appel complet : ${inputLabel}` : undefined}>{name}</strong></span>
       {presentation.headerDetail && <span className="tool-call-command tool-call-tooltip" data-tooltip={presentation.headerDetail.title}><code aria-label={`Commande complète : ${presentation.headerDetail.title}`}>{presentation.headerDetail.text}</code></span>}
@@ -680,18 +681,19 @@ const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, rep
         {hasResult ? resultError ? 'Échec' : 'Terminé' : 'En cours…'}
         {pending && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
       </small>
-    </div>
-    {hasResult && <ToolCallContent call={{ name, args }} content={output || 'Aucune sortie.'} />}
+    </button>
+    {hasResult && <ToolCallContent call={{ name, args }} content={output || 'Aucune sortie.'} expanded={expanded} />}
     <footer className="tool-call-counts">Appel : {input.length} caractères{hasResult && ` · Résultat : ${(output || 'Aucune sortie.').length} caractères`}</footer>
   </article>
 })
 
-// Affiche la sortie read selon son type, sans modifier le rendu brut des autres outils.
-function ToolCallContent({ call, content }: { call: { name: string; args: unknown }; content: string }) {
-  const display = call.name === 'read' ? readContentDisplay(call.args) : { kind: 'text' as const }
+// Préserve un aperçu léger tant que la carte est réduite et ne monte le rendu riche qu'à son ouverture.
+function ToolCallContent({ call, content, expanded }: { call: { name: string; args: unknown }; content: string; expanded: boolean }) {
+  if (!expanded) return <section className="tool-call-content"><pre className="tool-call-preview">{content}</pre></section>
 
+  const display = call.name === 'read' ? readContentDisplay(call.args) : { kind: 'text' as const }
   if (display.kind === 'markdown') return <section className="tool-call-content tool-call-markdown"><Markdown>{content}</Markdown></section>
-  if (display.kind === 'code') return <section className="tool-call-content"><SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, maxHeight: 'calc(6em + 18px)', overflow: 'auto', padding: '9px 10px' }} language={display.language} PreTag="div" style={oneLight}>{content}</SyntaxHighlighter></section>
+  if (display.kind === 'code') return <section className="tool-call-content"><SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px' }} language={display.language} PreTag="div" style={oneLight} wrapLongLines>{content}</SyntaxHighlighter></section>
   return <section className="tool-call-content"><pre>{content}</pre></section>
 }
 

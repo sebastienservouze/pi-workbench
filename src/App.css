@@ -199,7 +199,9 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .user .content pre { border-color: rgb(255 255 255 / 13%); background: #2e3d36; }
 .tool-call { max-width: 760px; margin: 0 2px 18px; border: 1px solid #bfd5cf; border-radius: 9px; background: #f6fbf9; color: #21443d; font: 12px/1.5 ui-monospace, monospace; }
 .tool-call.error { border-color: #e4beb7; background: var(--danger-soft); color: #843b31; }
-.tool-call-heading { display: flex; align-items: center; gap: 7px; min-width: 0; padding: 8px 10px; }
+.tool-call-heading { display: flex; align-items: center; gap: 7px; width: 100%; min-width: 0; border: 0; padding: 8px 10px; background: transparent; color: inherit; text-align: left; }
+.tool-call-heading:not(:disabled):hover { background: rgb(33 68 61 / 5%); }
+.tool-call-heading:not(:disabled):focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
 .tool-call-heading > span:first-child { color: var(--teal); font-size: 14px; }
 .tool-call-tooltip { position: relative; }
 .tool-call-tooltip[data-tooltip]::after { position: absolute; z-index: 2; bottom: calc(100% + 7px); left: 0; width: max-content; max-width: min(560px, calc(100vw - 24px)); padding: 7px 9px; border-radius: 6px; background: #173b34; color: white; content: attr(data-tooltip); font: 11px/1.45 ui-monospace, monospace; opacity: 0; pointer-events: none; white-space: pre-wrap; box-shadow: var(--shadow-soft); transform: translateY(3px); transition: opacity 150ms ease-out, transform 150ms ease-out; visibility: hidden; }
@@ -210,8 +212,9 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .tool-call-heading small { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 5px; margin-left: auto; color: currentColor; font: 10px ui-monospace, monospace; }
 .tool-call-spinner { display: inline-block; width: 11px; height: 11px; border-width: 1.5px; }
 .tool-call-content { border-top: 1px solid rgb(33 68 61 / 14%); }
-.tool-call pre { max-height: calc(6em + 18px); margin: 0; overflow-x: auto; overflow-y: auto; border: 0; border-radius: 0; padding: 9px 10px; background: rgb(255 255 255 / 56%); color: inherit; font: 11px/1.5 ui-monospace, monospace; overflow-wrap: anywhere; white-space: pre-wrap; }
-.tool-call-markdown { max-height: calc(6em + 18px); overflow: auto; padding: 9px 10px; font: 12px/1.55 ui-sans-serif, system-ui, sans-serif; }
+.tool-call pre { margin: 0; border: 0; border-radius: 0; padding: 9px 10px; background: rgb(255 255 255 / 56%); color: inherit; font: 11px/1.5 ui-monospace, monospace; overflow-wrap: anywhere; white-space: pre-wrap; }
+.tool-call-preview { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 4; }
+.tool-call-markdown { padding: 9px 10px; font: 12px/1.55 ui-sans-serif, system-ui, sans-serif; }
 .tool-call-markdown > :first-child { margin-top: 0; }
 .tool-call-markdown > :last-child { margin-bottom: 0; }
 .tool-call-markdown p { margin: 0 0 9px; }
