@@ -824,11 +824,11 @@ function LauncherControl({ launching, onOpen, onPick, onSelect, snapshot }: {
   }
 
   return <div className="launcher-control">
-    <button aria-label={label} className="launcher-open" disabled={launching} onClick={onOpen} title={label} type="button">
-      <LauncherIcon launcher={selected} /><span>{selected?.name ?? 'Ouvrir dans un IDE'}</span>
+    <button aria-label={label} className="icon-button launcher-open" disabled={launching} onClick={onOpen} title={label} type="button">
+      <LauncherIcon launcher={selected} />
     </button>
-    <button aria-label="Choisir un IDE" className="launcher-select-trigger" disabled={launching} popoverTarget={menuId} title="Choisir un IDE" type="button">
-      IDE
+    <button aria-label="Choisir un autre éditeur" className="launcher-select-trigger" popoverTarget={menuId} title="Choisir un autre éditeur" type="button">
+      <span aria-hidden="true">⌄</span>
     </button>
     <div aria-label="Éditeurs configurés" className="launcher-menu" id={menuId} popover="auto">
       {snapshot.launchers.map((launcher) => <button aria-current={launcher.id === snapshot.selectedLauncherId ? 'true' : undefined} className="launcher-menu-item" key={launcher.id} onClick={() => { closeMenu(); onSelect(launcher.id) }} type="button">
