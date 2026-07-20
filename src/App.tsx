@@ -443,15 +443,6 @@ function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, o
     }
   }
 
-  if (collapsed) {
-    return <aside className="git-sidebar git-rail" aria-label="Git">
-      <button aria-label="Développer le panneau Git" className="git-tab rail-tab" onClick={onToggle} title="Git" type="button">
-        <span aria-hidden="true">⎇</span>
-        {(hasChanges || snapshot.ahead > 0) && <small>{snapshot.files.length + snapshot.ahead}</small>}
-      </button>
-    </aside>
-  }
-
   // Installe les écouteurs temporaires nécessaires au redimensionnement pointer du panneau.
   function startResize(event: ReactPointerEvent<HTMLDivElement>): void {
     const handle = event.currentTarget
@@ -490,57 +481,66 @@ function GitSidebar({ collapsed, onResize, snapshot, width, onAction, onError, o
   }
 
   return <aside className="git-sidebar" aria-label="Informations Git">
-    <div
-      aria-controls="git-panel"
-      aria-label="Redimensionner le panneau Git"
-      aria-orientation="vertical"
-      aria-valuemax={maxGitSidebarWidth}
-      aria-valuemin={minGitSidebarWidth}
-      aria-valuenow={width}
-      className="git-resize-handle"
-      onKeyDown={resizeWithKeyboard}
-      onPointerDown={startResize}
-      role="separator"
-      tabIndex={0}
-    />
-    <div className="git-tabs" role="tablist" aria-label="Panneaux latéraux">
-      <button aria-controls="git-panel" aria-selected="true" className="git-tab" id="git-tab" role="tab" type="button">
-        <span aria-hidden="true">⎇</span> Git
+    {!collapsed && <div className="git-widget-panel">
+      <div
+        aria-controls="git-panel"
+        aria-label="Redimensionner le panneau Git"
+        aria-orientation="vertical"
+        aria-valuemax={maxGitSidebarWidth}
+        aria-valuemin={minGitSidebarWidth}
+        aria-valuenow={width}
+        className="git-resize-handle"
+        onKeyDown={resizeWithKeyboard}
+        onPointerDown={startResize}
+        role="separator"
+        tabIndex={0}
+      />
+      <section aria-label="Informations Git" className="git-panel" id="git-panel">
+        <header className="git-heading">
+          <div><strong>{snapshot.branch}</strong><span>{hasChanges ? `${snapshot.files.length} fichier${snapshot.files.length > 1 ? 's' : ''} modifié${snapshot.files.length > 1 ? 's' : ''}` : 'Arbre propre'}</span></div>
+          <button aria-label="Actualiser l’état Git" className="git-refresh" onClick={onRefresh} title="Actualiser" type="button">↻</button>
+        </header>
+        {hasChanges && <ul className="git-file-list">
+          {snapshot.files.map((file) => <li key={file.path}>
+            <span className={`git-file-status ${file.status}`} title={gitStatusLabel(file.status)}>{gitStatusInitial(file.status)}</span>
+            <span className="git-file-path" title={file.path}>{file.path}</span>
+            <span className="git-file-counts"><b>+{file.additions ?? '—'}</b><i>−{file.deletions ?? '—'}</i></span>
+          </li>)}
+        </ul>}
+        {snapshot.commits.length > 0 && <section className="git-commits" aria-label="Commits non poussés">
+          <h2>Commits non poussés <small>{snapshot.commits.length}</small></h2>
+          {snapshot.commits.map((commit) => <details key={commit.hash}>
+            <summary title={commit.subject}><code>{commit.hash.slice(0, 7)}</code><span>{commit.subject}</span></summary>
+            {commit.files.length > 0
+              ? <ul className="git-file-list git-commit-files">{commit.files.map((file) => <li key={file.path}>
+                <span className={`git-file-status ${file.status}`} title={gitStatusLabel(file.status)}>{gitStatusInitial(file.status)}</span>
+                <span className="git-file-path" title={file.path}>{file.path}</span>
+                <span className="git-file-counts"><b>+{file.additions ?? '—'}</b><i>−{file.deletions ?? '—'}</i></span>
+              </li>)}</ul>
+              : <p className="git-empty">Aucun fichier modifié.</p>}
+          </details>)}
+        </section>}
+        {!hasChanges && snapshot.ahead === 0 && <p className="git-empty">Aucun changement à committer.</p>}
+      </section>
+      {(hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>
+        {hasChanges && <input aria-label="Message de commit" disabled={busy} onChange={(event) => setMessage(event.target.value)} placeholder="Message de commit" value={message} />}
+        <button disabled={busy || (hasChanges && !message.trim())} type="submit">{busy ? 'Git en cours…' : hasChanges ? 'Committer et pousser' : `Pousser ${snapshot.ahead} commit${snapshot.ahead > 1 ? 's' : ''}`}</button>
+      </form>}
+    </div>}
+    <div className="git-rail">
+      <button
+        aria-controls={collapsed ? undefined : 'git-panel'}
+        aria-expanded={!collapsed}
+        aria-label={collapsed ? 'Développer le panneau Git' : 'Réduire le panneau Git'}
+        className="rail-tab"
+        onClick={onToggle}
+        title="Git"
+        type="button"
+      >
+        <span aria-hidden="true">⎇</span>
         {(hasChanges || snapshot.ahead > 0) && <small>{snapshot.files.length + snapshot.ahead}</small>}
       </button>
-      <button aria-label="Réduire le panneau Git" className="git-collapse" onClick={onToggle} title="Réduire" type="button">›</button>
     </div>
-    <section aria-labelledby="git-tab" className="git-panel" id="git-panel" role="tabpanel">
-      <header className="git-heading">
-        <div><strong>{snapshot.branch}</strong><span>{hasChanges ? `${snapshot.files.length} fichier${snapshot.files.length > 1 ? 's' : ''} modifié${snapshot.files.length > 1 ? 's' : ''}` : 'Arbre propre'}</span></div>
-        <button aria-label="Actualiser l’état Git" className="git-refresh" onClick={onRefresh} title="Actualiser" type="button">↻</button>
-      </header>
-      {hasChanges && <ul className="git-file-list">
-        {snapshot.files.map((file) => <li key={file.path}>
-          <span className={`git-file-status ${file.status}`} title={gitStatusLabel(file.status)}>{gitStatusInitial(file.status)}</span>
-          <span className="git-file-path" title={file.path}>{file.path}</span>
-          <span className="git-file-counts"><b>+{file.additions ?? '—'}</b><i>−{file.deletions ?? '—'}</i></span>
-        </li>)}
-      </ul>}
-      {snapshot.commits.length > 0 && <section className="git-commits" aria-label="Commits non poussés">
-        <h2>Commits non poussés <small>{snapshot.commits.length}</small></h2>
-        {snapshot.commits.map((commit) => <details key={commit.hash}>
-          <summary title={commit.subject}><code>{commit.hash.slice(0, 7)}</code><span>{commit.subject}</span></summary>
-          {commit.files.length > 0
-            ? <ul className="git-file-list git-commit-files">{commit.files.map((file) => <li key={file.path}>
-              <span className={`git-file-status ${file.status}`} title={gitStatusLabel(file.status)}>{gitStatusInitial(file.status)}</span>
-              <span className="git-file-path" title={file.path}>{file.path}</span>
-              <span className="git-file-counts"><b>+{file.additions ?? '—'}</b><i>−{file.deletions ?? '—'}</i></span>
-            </li>)}</ul>
-            : <p className="git-empty">Aucun fichier modifié.</p>}
-        </details>)}
-      </section>}
-      {!hasChanges && snapshot.ahead === 0 && <p className="git-empty">Aucun changement à committer.</p>}
-    </section>
-    {(hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>
-      {hasChanges && <input aria-label="Message de commit" disabled={busy} onChange={(event) => setMessage(event.target.value)} placeholder="Message de commit" value={message} />}
-      <button disabled={busy || (hasChanges && !message.trim())} type="submit">{busy ? 'Git en cours…' : hasChanges ? 'Committer et pousser' : `Pousser ${snapshot.ahead} commit${snapshot.ahead > 1 ? 's' : ''}`}</button>
-    </form>}
   </aside>
 }
 
