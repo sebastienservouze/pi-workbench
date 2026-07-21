@@ -26,8 +26,8 @@ interface AgentIntent {
 const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [], stats: null }
 const conversationViewDetails = {
   simple: { label: 'Vue simplifiée', description: 'Messages uniquement, sans appels d’outils' },
-  'simple-expanded': { label: 'Vue avec appels fermés', description: 'Appels visibles, résultats repliés' },
-  detailed: { label: 'Vue avec appels ouverts', description: 'Appels visibles, résultats dépliés' },
+  'simple-expanded': { label: 'Vue avec appels ouverts', description: 'Appels visibles, résultats dépliés' },
+  detailed: { label: 'Vue avec appels fermés', description: 'Appels visibles, résultats repliés' },
 } as const
 /** Orchestre l'état de l'espace de travail, les événements Pi et les panneaux de l'interface. */
 function App() {
