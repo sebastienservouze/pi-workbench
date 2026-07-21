@@ -37,7 +37,11 @@ function App() {
   const [liveText, setLiveText] = useState('')
   const [activity, setActivity] = useState<Activity | null>(null)
   const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([])
-  const [detailedView, setDetailedView] = useState(() => window.localStorage.getItem('pi-workbench.detailed-view') === 'true')
+  const [conversationView, setConversationView] = useState<'detailed' | 'simple' | 'simple-expanded'>(() => {
+    const stored = window.localStorage.getItem('pi-workbench.conversation-view')
+    if (stored === 'detailed' || stored === 'simple-expanded') return stored
+    return window.localStorage.getItem('pi-workbench.detailed-view') === 'true' ? 'detailed' : 'simple'
+  })
   const [agentOptions, setAgentOptions] = useState<Record<string, string[]>>({})
   const [agentBusy, setAgentBusy] = useState<Record<string, boolean>>({})
   const [dialog, setDialog] = useState<UiDialog | null>(null)
@@ -384,12 +388,12 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
-            <button aria-label={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} aria-pressed={detailedView} className={`chat-detail-toggle${detailedView ? ' active' : ''}`} onClick={() => setDetailedView((current) => {
-                const next = !current
-                window.localStorage.setItem('pi-workbench.detailed-view', String(next))
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={conversationView !== 'simple'} expandToolCalls={conversationView === 'simple-expanded'} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <button aria-label={conversationView === 'detailed' ? 'Vue simplifiée' : conversationView === 'simple' ? 'Vue simplifiée avec outils ouverts' : 'Vue détaillée'} aria-pressed={conversationView !== 'simple'} className={`chat-detail-toggle${conversationView !== 'simple' ? ' active' : ''}${conversationView === 'simple-expanded' ? ' expanded' : ''}`} onClick={() => setConversationView((current) => {
+                const next = current === 'simple' ? 'simple-expanded' : current === 'simple-expanded' ? 'detailed' : 'simple'
+                window.localStorage.setItem('pi-workbench.conversation-view', next)
                 return next
-              })} title={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} type="button">
+              })} title={conversationView === 'detailed' ? 'Vue simplifiée' : conversationView === 'simple' ? 'Vue simplifiée avec outils ouverts' : 'Vue détaillée'} type="button">
               <span aria-hidden="true">⌘</span>
             </button>
             {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}

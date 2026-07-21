@@ -26,9 +26,10 @@ export function Markdown({ children }: { children: string }) {
   return <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
 }
 
-/** Regroupe l'appel et son résultat afin que leur état visuel reste cohérent dans l'historique. */
-export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, repositoryRoot, resultContent, resultError, workspacePath }: {
+/** Affiche un appel d’outil et son résultat lorsqu’il est disponible. */
+export const ToolCallCard = memo(function ToolCallCard({ args, defaultExpanded = false, hasResult, id, name, repositoryRoot, resultContent, resultError, workspacePath }: {
   args: unknown
+  defaultExpanded?: boolean
   hasResult: boolean
   id: string
   name: string
@@ -38,7 +39,11 @@ export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, na
   workspacePath: string
 }) {
   const pending = !hasResult
-  const [expanded, setExpanded] = useState(false)
+  const filePath = name === 'read' || name === 'write' ? toolFilePath(args) : null
+  const display = filePath ? readContentDisplay({ path: filePath }) : { kind: 'text' as const }
+  const htmlFile = display.kind === 'html'
+  const canExpandResult = hasResult && !htmlFile
+  const [expanded, setExpanded] = useState(() => defaultExpanded && canExpandResult)
   const [writtenContent, setWrittenContent] = useState<string>()
   const [writtenContentError, setWrittenContentError] = useState<string>()
   const [loadingWrittenContent, setLoadingWrittenContent] = useState(false)
@@ -48,11 +53,12 @@ export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, na
   const displayedOutput = output || 'Aucune sortie.'
   const presentation = toolCallPresentation({ id, name, args }, repositoryRoot)
   const tooltip = formatToolCallTooltip(presentation.headerDetail?.title ?? input, input, hasResult ? displayedOutput : undefined)
-  const filePath = name === 'read' || name === 'write' ? toolFilePath(args) : null
-  const display = filePath ? readContentDisplay({ path: filePath }) : { kind: 'text' as const }
-  const htmlFile = display.kind === 'html'
   const codeContent = name === 'write' ? writtenContent : displayedOutput
   const toggleExpanded = () => setExpanded((isExpanded) => !isExpanded)
+
+  useEffect(() => {
+    if (defaultExpanded && canExpandResult) setExpanded(true)
+  }, [canExpandResult, defaultExpanded])
 
   useEffect(() => {
     if (!expanded || display.kind !== 'code' || loadingWrittenContent || writtenContentError || codeRendered) return

@@ -13,12 +13,13 @@ export interface ToolExecution {
 }
 
 /** Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi. */
-export function Conversation({ messages, liveText, activity, agentName, detailedView, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath }: {
+export function Conversation({ messages, liveText, activity, agentName, detailedView, expandToolCalls, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath }: {
   messages: JsonObject[]
   liveText: string
   activity: Activity | null
   agentName?: string
   detailedView: boolean
+  expandToolCalls: boolean
   repositoryRoot?: string | null
   scrollToBottomRequest: number
   toolExecutions: ToolExecution[]
@@ -107,11 +108,11 @@ export function Conversation({ messages, liveText, activity, agentName, detailed
           {isVisibleConversationMessage(message) && <MessageCard message={message} usage={usagesByMessage.get(index)} />}
           {calls.map((call) => {
             const result = resultsByCallId.get(call.id) ?? executionsByCallId.get(call.id)?.result
-            return <ToolCallCard args={call.args} hasResult={result !== undefined} id={call.id} key={call.id} name={call.name} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} workspacePath={workspacePath} />
+            return <ToolCallCard args={call.args} defaultExpanded={expandToolCalls} hasResult={result !== undefined} id={call.id} key={call.id} name={call.name} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} workspacePath={workspacePath} />
           })}
         </div>
       })}
-      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard args={execution.args} hasResult={execution.result !== undefined} id={execution.id} key={execution.id} name={execution.name} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} workspacePath={workspacePath} />)}
+      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard args={execution.args} defaultExpanded={expandToolCalls} hasResult={execution.result !== undefined} id={execution.id} key={execution.id} name={execution.name} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} workspacePath={workspacePath} />)}
       {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {activity && activity.kind !== 'writing' && <ActivityIndicator activity={activity} agentName={agentName} />}
       {visibleMessages.length === 0 && !liveText && !activity && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
