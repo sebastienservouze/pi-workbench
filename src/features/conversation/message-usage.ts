@@ -1,4 +1,4 @@
-import type { JsonObject } from '../shared/types.ts'
+import type { JsonObject } from '../../../shared/types.ts'
 
 export interface MessageUsage {
   cacheMiss: number
@@ -7,7 +7,7 @@ export interface MessageUsage {
   output: number
 }
 
-// Extrait les compteurs définitifs associés à une réponse assistant de Pi.
+/** Extrait les compteurs définitifs associés à une réponse assistant de Pi. */
 export function messageUsage(message: JsonObject): MessageUsage | null {
   const usage = isObject(message.usage) ? message.usage : null
   const cost = usage && isObject(usage.cost) ? usage.cost : null
@@ -20,7 +20,7 @@ export function formatTurnCost(value: number): string {
   return `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value)}`
 }
 
-// Additionne les réponses assistant d'un tour et les associe à sa dernière réponse.
+/** Additionne les réponses assistant d'un tour et les associe à sa dernière réponse. */
 export function turnUsageByMessage(messages: JsonObject[]): Map<number, MessageUsage> {
   const usages = new Map<number, MessageUsage>()
   let complete = true

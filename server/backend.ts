@@ -34,7 +34,7 @@ server.listen(port, host, () => {
   console.log(`Pi backend listening on http://${host}:${port}`)
 })
 
-// Centralise le routage HTTP afin que les validations et les réponses restent cohérentes entre les endpoints.
+/** Centralise le routage HTTP afin que les validations et les réponses restent cohérentes entre les endpoints. */
 async function route(request: IncomingMessage, response: ServerResponse): Promise<void> {
   const method = request.method ?? 'GET'
   const url = new URL(request.url ?? '/', `http://${host}`)
@@ -208,7 +208,7 @@ function arrayData(response: JsonObject, key: string): JsonObject[] {
   return response.data[key].filter(isObject)
 }
 
-// Canonicalise un chemin fourni par le client et refuse les entrées inexistantes ou non répertoires.
+/** Canonicalise un chemin fourni par le client et refuse les entrées inexistantes ou non répertoires. */
 async function resolveWorkingDirectory(input: string): Promise<string> {
   const trimmed = input.trim()
   if (!trimmed) throw new HttpError(400, 'Working directory is required')
@@ -223,7 +223,7 @@ async function resolveWorkingDirectory(input: string): Promise<string> {
   return canonical
 }
 
-// Retourne uniquement les sous-répertoires accessibles, avec un parent navigable pour le sélecteur.
+/** Retourne uniquement les sous-répertoires accessibles, avec un parent navigable pour le sélecteur. */
 async function listDirectories(path: string): Promise<DirectoryListing> {
   const canonicalPath = await resolveWorkingDirectory(path)
   const entries = await readdir(canonicalPath, { withFileTypes: true })
@@ -235,7 +235,7 @@ async function listDirectories(path: string): Promise<DirectoryListing> {
   return { path: canonicalPath, parentPath: parent === canonicalPath ? null : parent, directories }
 }
 
-// Lit le corps JSON avec une limite de taille pour protéger le backend des requêtes excessives.
+/** Lit le corps JSON avec une limite de taille pour protéger le backend des requêtes excessives. */
 async function readJsonBody(request: IncomingMessage): Promise<JsonObject> {
   const chunks: Buffer[] = []
   let size = 0
@@ -254,7 +254,7 @@ async function readJsonBody(request: IncomingMessage): Promise<JsonObject> {
   }
 }
 
-// Sert le build frontend tout en empêchant qu'un chemin HTTP sorte du répertoire de distribution.
+/** Sert le build frontend tout en empêchant qu'un chemin HTTP sorte du répertoire de distribution. */
 async function serveStatic(pathname: string, method: string, response: ServerResponse): Promise<void> {
   const requestedPath = pathname === '/' ? 'index.html' : pathname.slice(1)
   let filePath = resolve(distDirectory, requestedPath)

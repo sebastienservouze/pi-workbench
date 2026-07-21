@@ -7,7 +7,7 @@ interface GitCommandResult {
   stdout: string
 }
 
-// Agrège l'état Git, les statistiques de fichiers et le nombre de commits en attente de push.
+/** Agrège l'état Git, les statistiques de fichiers et le nombre de commits en attente de push. */
 export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
   const repository = await runGit(cwd, ['rev-parse', '--is-inside-work-tree'], [0, 128])
   if (repository.exitCode !== 0 || repository.stdout.trim() !== 'true') return { repository: false, root: null, branch: null, files: [], ahead: 0, commits: [] }
@@ -44,7 +44,7 @@ export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
   }
 }
 
-// Retourne le diff unifié d'un fichier modifié ou ajouté dans l'arbre ou un commit non poussé.
+/** Retourne le diff unifié d'un fichier modifié ou ajouté dans l'arbre ou un commit non poussé. */
 export async function getGitFileDiff(cwd: string, path: string, commitHash?: string): Promise<GitFileDiff> {
   const snapshot = await getGitSnapshot(cwd)
   if (commitHash) {
@@ -65,7 +65,7 @@ export async function getGitFileDiff(cwd: string, path: string, commitHash?: str
   return { path, diff: untrackedDiff.stdout }
 }
 
-// Liste les commits présents après la branche suivie et les fichiers de chacun.
+/** Liste les commits présents après la branche suivie et les fichiers de chacun. */
 async function unpushedCommits(cwd: string): Promise<GitCommit[]> {
   const result = await runGit(cwd, ['log', '--format=%H%x00%s%x00', '@{upstream}..HEAD'])
   const fields = result.stdout.split('\0')
@@ -93,7 +93,7 @@ async function unpushedCommits(cwd: string): Promise<GitCommit[]> {
   return commits
 }
 
-// Annule un commit local affiché en créant son commit inverse, sans réécrire l'historique.
+/** Annule un commit local affiché en créant son commit inverse, sans réécrire l'historique. */
 export async function revertGitCommit(cwd: string, hash: string): Promise<GitRevertResult> {
   const snapshot = await getGitSnapshot(cwd)
   if (!snapshot.repository) throw new Error('Le dossier courant n’est pas un dépôt Git.')
@@ -104,7 +104,7 @@ export async function revertGitCommit(cwd: string, hash: string): Promise<GitRev
   return { hash }
 }
 
-// Committe les changements présents puis tente de pousser, ou pousse les commits déjà en avance.
+/** Committe les changements présents puis tente de pousser, ou pousse les commits déjà en avance. */
 export async function commitAndPush(cwd: string, message: string): Promise<{ committed: boolean; pushed: boolean; pushError?: string }> {
   const snapshot = await getGitSnapshot(cwd)
   if (!snapshot.repository) throw new Error('Le dossier courant n’est pas un dépôt Git.')

@@ -1,4 +1,4 @@
-import type { JsonObject } from '../shared/types.ts'
+import type { JsonObject } from '../../../shared/types.ts'
 
 export interface ToolCall {
   id: string
@@ -81,7 +81,7 @@ export function toolCallPresentation(call: ToolCall, repositoryRoot?: string | n
   return toolCallPresentations[call.name]?.(call.args, repositoryRoot) ?? {}
 }
 
-// Valide les remplacements exacts fournis par l'outil edit avant leur rendu en diff.
+/** Valide les remplacements exacts fournis par l'outil edit avant leur rendu en diff. */
 export function editOperations(args: unknown): EditOperation[] | null {
   if (!isObject(args) || !Array.isArray(args.edits) || args.edits.length === 0) return null
 
@@ -92,12 +92,12 @@ export function editOperations(args: unknown): EditOperation[] | null {
   return operations.every((operation): operation is EditOperation => operation !== null) ? operations : null
 }
 
-// Retourne le chemin cible des outils qui manipulent directement un fichier.
+/** Retourne le chemin cible des outils qui manipulent directement un fichier. */
 export function toolFilePath(args: unknown): string | null {
   return isObject(args) && typeof args.path === 'string' && args.path.length > 0 ? args.path : null
 }
 
-// Détermine le rendu du fichier à partir de l'extension de son chemin.
+/** Détermine le rendu du fichier à partir de l'extension de son chemin. */
 export function readContentDisplay(args: unknown): ReadContentDisplay {
   const path = toolFilePath(args)
   if (!path) return { kind: 'text' }
@@ -139,7 +139,7 @@ const toolCallPresentations: Record<string, ToolCallPresenter> = {
   write: filePresentation,
 }
 
-// Adapte Bash en plaçant sa commande dans l'en-tête et son timeout dans le statut.
+/** Adapte Bash en plaçant sa commande dans l'en-tête et son timeout dans le statut. */
 function bashPresentation(args: unknown): ToolCallPresentation {
   if (!isObject(args) || typeof args.command !== 'string') return {}
 
@@ -151,7 +151,7 @@ function bashPresentation(args: unknown): ToolCallPresentation {
   }
 }
 
-// Affiche un chemin de fichier relatif au dépôt sans masquer un accès extérieur au dépôt.
+/** Affiche un chemin de fichier relatif au dépôt sans masquer un accès extérieur au dépôt. */
 function filePresentation(args: unknown, repositoryRoot?: string | null): ToolCallPresentation {
   if (!isObject(args) || typeof args.path !== 'string') return {}
 
@@ -159,7 +159,7 @@ function filePresentation(args: unknown, repositoryRoot?: string | null): ToolCa
   return { headerDetail: { text: truncateToolText(path, 80).text, title: path } }
 }
 
-// Expose le motif et son périmètre facultatif sans dupliquer la présentation des deux outils de recherche.
+/** Expose le motif et son périmètre facultatif sans dupliquer la présentation des deux outils de recherche. */
 function searchPresentation(args: unknown, repositoryRoot?: string | null): ToolCallPresentation {
   if (!isObject(args) || typeof args.pattern !== 'string') return {}
 
@@ -168,7 +168,7 @@ function searchPresentation(args: unknown, repositoryRoot?: string | null): Tool
   return { headerDetail: { text: truncateToolText(detail, 80).text, title: detail } }
 }
 
-// Complète le chemin lu avec une plage toujours visible, distincte du texte tronqué.
+/** Complète le chemin lu avec une plage toujours visible, distincte du texte tronqué. */
 function readPresentation(args: unknown, repositoryRoot?: string | null): ToolCallPresentation {
   const presentation = filePresentation(args, repositoryRoot)
   if (!presentation.headerDetail || !isObject(args)) return presentation

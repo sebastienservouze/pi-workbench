@@ -18,7 +18,7 @@ export function readGitSidebarWidth(value: string | null): number {
   return value === null ? defaultGitSidebarWidth : clampGitSidebarWidth(Number(value))
 }
 
-// Transforme un diff unifié en lignes colorables avec leurs numéros d'origine et de destination.
+/** Transforme un diff unifié en lignes colorables avec leurs numéros d'origine et de destination. */
 export function parseGitDiff(diff: string): GitDiffLine[] {
   const lines: GitDiffLine[] = []
   let inHunk = false

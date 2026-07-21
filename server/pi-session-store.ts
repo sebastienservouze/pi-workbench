@@ -22,7 +22,7 @@ export async function listRecentPiSessions(cwd: string, directory = sessionDirec
     .sort((left, right) => right.updatedAt - left.updatedAt)
 }
 
-// Vérifie qu'un fichier appartient au répertoire de sessions Pi avant d'en charger les métadonnées.
+/** Vérifie qu'un fichier appartient au répertoire de sessions Pi avant d'en charger les métadonnées. */
 export async function loadPiSession(path: string): Promise<RecentSession> {
   const [canonicalPath, canonicalDirectory] = await Promise.all([realpath(path), realpath(sessionDirectory)])
   const relativePath = relative(canonicalDirectory, canonicalPath)
@@ -32,7 +32,7 @@ export async function loadPiSession(path: string): Promise<RecentSession> {
   return session
 }
 
-// Parcourt récursivement le stockage Pi en ne retenant que les fichiers JSONL de session.
+/** Parcourt récursivement le stockage Pi en ne retenant que les fichiers JSONL de session. */
 async function listSessionFiles(directory: string): Promise<string[]> {
   let entries
   try {
@@ -50,7 +50,7 @@ async function listSessionFiles(directory: string): Promise<string[]> {
   return paths.flat()
 }
 
-// Extrait l'identité, le nom et la dernière activité d'une session sans charger son historique complet.
+/** Extrait l'identité, le nom et la dernière activité d'une session sans charger son historique complet. */
 async function readPiSession(path: string, updatedAt: number): Promise<RecentSession | null> {
   let lines: string[]
   try {

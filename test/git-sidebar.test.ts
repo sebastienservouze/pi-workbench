@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { clampGitSidebarWidth, defaultGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff, readGitSidebarWidth } from '../src/git-sidebar.ts'
+import { clampGitSidebarWidth, defaultGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff, readGitSidebarWidth } from '../src/features/git/git-sidebar.ts'
 
 test('borne et restaure la largeur de la sidebar Git', () => {
   assert.equal(maxGitSidebarWidth, 720)

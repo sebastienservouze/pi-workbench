@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { editOperations, formatToolCallTooltip, formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolFilePath, toolResultInMessage, truncateToolText } from '../src/tool-calls.ts'
+import { editOperations, formatToolCallTooltip, formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolFilePath, toolResultInMessage, truncateToolText } from '../src/features/conversation/tool-calls.ts'
 
 test('extracts tool calls and their resolved result from Pi messages', () => {
   const calls = toolCallsInMessage({

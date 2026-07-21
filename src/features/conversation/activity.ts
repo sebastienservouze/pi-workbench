@@ -1,4 +1,4 @@
-import type { JsonObject } from '../shared/types.ts'
+import type { JsonObject } from '../../../shared/types.ts'
 
 export interface Activity {
   kind: 'working' | 'thinking' | 'tool' | 'writing' | 'waiting'
@@ -18,7 +18,7 @@ const toolActivityText: Record<string, string> = {
   fetch_content: 'consulte du contenu',
 }
 
-// Convertit les événements Pi en un état d'activité stable pour l'indicateur de conversation.
+/** Convertit les événements Pi en un état d'activité stable pour l'indicateur de conversation. */
 export function activityForPiEvent(current: Activity | null, event: JsonObject): Activity | null {
   if (event.type === 'agent_start' || event.type === 'message_start') return { kind: 'working' }
   if (event.type === 'agent_settled') return null
@@ -42,7 +42,7 @@ export function waitingActivity(): Activity {
   return { kind: 'waiting' }
 }
 
-// Produit un libellé localisé et lisible à partir de l'état d'activité courant.
+/** Produit un libellé localisé et lisible à partir de l'état d'activité courant. */
 export function activityText(activity: Activity, agentName: string | undefined): string {
   const agent = displayAgentName(agentName)
   if (activity.kind === 'thinking') return activity.thinking ? `${agent} réfléchit — ${lastLine(activity.thinking).replaceAll('**', '')}` : `${agent} réfléchit…`

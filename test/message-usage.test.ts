@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { formatTurnCost, messageUsage, turnUsageByMessage } from '../src/message-usage.ts'
+import { formatTurnCost, messageUsage, turnUsageByMessage } from '../src/features/conversation/message-usage.ts'
 
 test('extracts per-response cost and token counters from Pi usage', () => {
   const usage = messageUsage({

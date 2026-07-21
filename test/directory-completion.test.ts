@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { directoryCompletionTarget } from '../src/directory-completion.ts'
+import { directoryCompletionTarget } from '../src/features/workspace/directory-completion.ts'
 
 test('détermine le dossier et le préfixe à compléter', () => {
   assert.deepEqual(directoryCompletionTarget('~/pro'), { parentPath: '~', pathPrefix: '~/', namePrefix: 'pro' })

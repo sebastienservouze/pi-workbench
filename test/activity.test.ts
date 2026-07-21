@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { activityForPiEvent, activityText } from '../src/activity.ts'
+import { activityForPiEvent, activityText } from '../src/features/conversation/activity.ts'
 
 test('keeps a current activity through thinking, tool execution, and writing', () => {
   let activity = activityForPiEvent(null, { type: 'agent_start' })

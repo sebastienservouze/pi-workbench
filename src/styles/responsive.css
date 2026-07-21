@@ -1,0 +1,53 @@
+@media (prefers-reduced-motion: reduce) {
+  .session-item .status-dot, .composer-session .status-dot { animation: none; }
+  .tool-call-tooltip[data-tooltip]::after { transition: none; }
+  .rail-tab { transition: none; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes activity-pulse { 50% { opacity: .58; } }
+@keyframes select-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slash-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+@media (max-width: 850px) {
+  .app-shell { grid-template-columns: 238px minmax(0, 1fr); }
+  .app-shell.git-sidebar-visible { grid-template-columns: 238px minmax(0, 1fr) 308px; }
+  .app-shell.git-sidebar-collapsed { grid-template-columns: 238px minmax(0, 1fr) 48px; }
+  .git-resize-handle { display: none; }
+  .conversation { padding: 28px 20px; }
+  .composer, .ask-user-question { width: calc(100% - 32px); }
+}
+
+@media (max-width: 700px) {
+  .app-shell { display: flex; flex-direction: column; }
+  .sidebar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 12px 14px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .brand { min-width: 0; }
+  .new-session { width: auto; padding-inline: 13px; }
+  .session-list { grid-column: 1 / -1; display: flex; flex-direction: row; overflow-x: auto; }
+  .session-item { min-width: 220px; }
+  .workspace { flex: 1; }
+  .git-sidebar { max-height: 38dvh; border-top: 1px solid var(--line); }
+  .git-widget-panel { border-left: 0; }
+  .message.user { max-width: 92%; }
+}
+
+@media (max-width: 480px) {
+  .brand-mark { width: 35px; height: 35px; border-radius: 10px; font-size: 22px; }
+  .brand small { display: none; }
+  .new-session { font-size: 12px; }
+  .conversation { padding: 20px 12px; }
+  .message.assistant { padding-inline: 2px; }
+  .composer, .ask-user-question { width: calc(100% - 20px); }
+  .composer { margin-bottom: 10px; }
+  .ask-user-question { max-height: 52vh; margin-bottom: 8px; }
+  .composer-info { align-items: flex-start; flex-direction: column; gap: 7px; }
+  .composer-session { width: 100%; }
+  .composer-stats { width: 100%; justify-content: space-between; }
+  .composer-actions { align-items: flex-end; }
+  .composer-tools { width: 100%; }
+  .composer-tools > * { flex: 1 1 auto; }
+  .composer-select { max-width: none; }
+
+}
