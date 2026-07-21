@@ -12,11 +12,12 @@ interface WorkspaceSidebarProps {
   onOpenSession: (session: RecentSession) => Promise<void>
   onSelectSession: (sessionId: string) => void
   onToggleTheme: () => void
+  onOpenSettings: () => void
   onError: (cause: unknown) => void
 }
 
 /** Affiche le workspace courant et ouvre ou sélectionne ses sessions Pi récentes. */
-export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspacePath, theme, onChooseWorkspace, onCreate, onOpenSession, onSelectSession, onToggleTheme, onError }: WorkspaceSidebarProps) {
+export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspacePath, theme, onChooseWorkspace, onCreate, onOpenSession, onSelectSession, onToggleTheme, onOpenSettings, onError }: WorkspaceSidebarProps) {
   const [openingSessionPath, setOpeningSessionPath] = useState('')
 
   return <aside className="sidebar">
@@ -25,6 +26,9 @@ export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspa
       <div><strong>Pi Workbench</strong><small>Local workspace</small></div>
       <button aria-label={theme === 'dark' ? 'Passer au thème clair' : 'Passer au thème sombre'} className="theme-toggle" onClick={onToggleTheme} title={theme === 'dark' ? 'Thème clair' : 'Thème sombre'} type="button">
         {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+      </button>
+      <button aria-label="Ouvrir les paramètres" className="theme-toggle" onClick={onOpenSettings} title="Paramètres" type="button">
+        <SettingsIcon />
       </button>
     </div>
     <div className="workspace-group">
@@ -85,6 +89,10 @@ function MoonIcon() {
       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
     </svg>
   )
+}
+
+function SettingsIcon() {
+  return <svg aria-hidden="true" fill="none" height="16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="16"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" /><path d="m19.4 15 .1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.9 1.9 0 0 0-3.2 1.3v.2a2 2 0 1 1-4 0v-.2a1.9 1.9 0 0 0-3.2-1.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.9 1.9 0 0 0 2.2 12a1.9 1.9 0 0 0 1.2-3.2l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.9 1.9 0 0 0 3.2-1.3v-.2a2 2 0 1 1 4 0v.2a1.9 1.9 0 0 0 3.2 1.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1A1.9 1.9 0 0 0 20.8 12a1.9 1.9 0 0 0-1.4 3Z" /></svg>
 }
 
 function SunIcon() {
