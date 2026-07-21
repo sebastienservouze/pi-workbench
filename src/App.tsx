@@ -31,12 +31,6 @@ interface AgentIntent {
   value?: string
 }
 
-interface Toast {
-  id: number
-  kind: 'notice' | 'error'
-  message: string
-}
-
 interface RailAction {
   key: string
   icon: ReactNode
@@ -145,19 +139,18 @@ function App() {
   const [agentOptions, setAgentOptions] = useState<Record<string, string[]>>({})
   const [agentBusy, setAgentBusy] = useState<Record<string, boolean>>({})
   const [dialog, setDialog] = useState<UiDialog | null>(null)
-  const [toast, setToast] = useState<Toast | null>(null)
+  const [systemMessages, setSystemMessages] = useState<JsonObject[]>([])
   const [gitSnapshot, setGitSnapshot] = useState<GitSnapshot | null>(null)
   const [activeRightWidget, setActiveRightWidget] = useState<'git' | null>(() => window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git')
   const [gitSidebarWidth, setGitSidebarWidth] = useState(() => readGitSidebarWidth(window.localStorage.getItem('pi-workbench.git-sidebar-width')))
   const selectedIdRef = useRef(selectedId)
   const refreshVersionRef = useRef(0)
   const gitRefreshVersionRef = useRef(0)
-  const toastIdRef = useRef(0)
   const agentIntentsRef = useRef(new Map<string, AgentIntent>())
   selectedIdRef.current = selectedId
 
-  const showToast = useCallback((kind: Toast['kind'], message: string) => {
-    setToast({ id: ++toastIdRef.current, kind, message })
+  const showToast = useCallback((kind: 'notice' | 'error', message: string) => {
+    setSystemMessages((current) => [...current, { role: 'system', content: message, kind, timestamp: Date.now() }])
   }, [])
 
   const updateGitSidebarWidth = useCallback((width: number) => {
@@ -165,14 +158,6 @@ function App() {
     window.localStorage.setItem('pi-workbench.git-sidebar-width', String(nextWidth))
     setGitSidebarWidth(nextWidth)
   }, [])
-
-  useEffect(() => {
-    if (!toast) return
-    const timeout = window.setTimeout(() => {
-      setToast((current) => current?.id === toast.id ? null : current)
-    }, toast.kind === 'error' ? 6000 : 4000)
-    return () => window.clearTimeout(timeout)
-  }, [toast])
 
   // Recharge les sessions et leurs demandes UI en ignorant les réponses obsolètes.
   const refreshSessions = useCallback(async (cwd = workspacePath) => {
@@ -442,7 +427,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} systemMessages={systemMessages} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <button aria-label={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} aria-pressed={detailedView} className={`chat-detail-toggle${detailedView ? ' active' : ''}`} onClick={() => setDetailedView((current) => {
                 const next = !current
                 window.localStorage.setItem('pi-workbench.detailed-view', String(next))
@@ -533,12 +518,6 @@ function App() {
           void refreshSessions(path)
         }}
       />}
-      {toast && (
-        <div className={`toast ${toast.kind === 'error' ? 'error' : ''}`} role={toast.kind === 'error' ? 'alert' : 'status'}>
-          <span>{toast.message}</span>
-          <button aria-label="Fermer la notification" className="toast-close" onClick={() => setToast(null)} type="button">×</button>
-        </div>
-      )}
       {dialog && !questionnaire && <ExtensionDialog dialog={dialog} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
     </div>
   )
@@ -891,21 +870,33 @@ function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>
 }
 
 // Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi.
-function Conversation({ messages, liveText, activity, agentName, detailedView, repositoryRoot, toolExecutions, workspacePath }: {
+function Conversation({ messages, liveText, activity, agentName, detailedView, repositoryRoot, systemMessages, toolExecutions, workspacePath }: {
   messages: JsonObject[]
   liveText: string
   activity: Activity | null
   agentName?: string
   detailedView: boolean
   repositoryRoot?: string | null
+  systemMessages: JsonObject[]
   toolExecutions: ToolExecution[]
   workspacePath: string
 }) {
-  const visibleMessages = messages.filter(isVisibleConversationMessage)
-  const usagesByMessage = turnUsageByMessage(messages)
-  const toolCalls = messages.flatMap(toolCallsInMessage)
+  // Fusionne les messages système dans l'historique en respectant la chronologie.
+  const allMessages = useMemo(() => {
+    if (systemMessages.length === 0) return messages
+    const merged = [...systemMessages, ...messages]
+    merged.sort((a, b) => {
+      const ta = typeof a.timestamp === 'number' ? a.timestamp : 0
+      const tb = typeof b.timestamp === 'number' ? b.timestamp : 0
+      return ta - tb
+    })
+    return merged
+  }, [messages, systemMessages])
+  const visibleMessages = allMessages.filter(isVisibleConversationMessage)
+  const usagesByMessage = turnUsageByMessage(allMessages)
+  const toolCalls = allMessages.flatMap(toolCallsInMessage)
   const toolCallIds = new Set(toolCalls.map((call) => call.id))
-  const resultsByCallId = new Map(messages.flatMap((message) => {
+  const resultsByCallId = new Map(allMessages.flatMap((message) => {
     const result = toolResultInMessage(message)
     return result ? [[result.toolCallId, result] as const] : []
   }))
@@ -939,7 +930,7 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, r
 
   return (
     <section className="conversation" aria-live="polite" onScroll={handleConversationScroll} ref={conversationRef}>
-      {messages.map((message, index) => {
+      {allMessages.map((message, index) => {
         const calls = detailedView ? toolCallsInMessage(message) : []
         if (!isVisibleConversationMessage(message) && calls.length === 0) return null
         return <div key={`${String(message.timestamp ?? '')}-${index}`}>
@@ -1092,7 +1083,7 @@ function ActivityIndicator({ activity, agentName }: { activity: Activity; agentN
 
 function isVisibleConversationMessage(message: JsonObject): boolean {
   const role = message.role
-  return (role === 'user' || role === 'assistant') && hasVisibleContent(message.content ?? message.output)
+  return (role === 'user' || role === 'assistant' || role === 'system') && hasVisibleContent(message.content ?? message.output)
 }
 
 function hasVisibleContent(content: unknown): boolean {

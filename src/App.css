@@ -502,10 +502,8 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .icon-button.danger { border-color: #e4beb7; background: var(--danger-soft); color: var(--danger); }
 .icon-button.danger svg { width: 13px; }
 
-.toast { position: fixed; right: 20px; bottom: 20px; z-index: 20; display: flex; align-items: flex-start; gap: 12px; max-width: min(420px, calc(100vw - 32px)); border: 1px solid #b9d8d0; border-radius: 10px; padding: 12px 11px 12px 15px; background: #f1fbf8; color: #24645b; box-shadow: var(--shadow); font-size: 13px; line-height: 1.4; animation: toast-in 200ms ease-out; }
-.toast.error { border-color: #e6bdb6; background: #fff7f5; color: var(--danger); }
-.toast-close { flex: 0 0 auto; margin: -4px -4px 0 0; border: 0; border-radius: 6px; padding: 2px 6px; background: transparent; color: currentColor; font-size: 18px; line-height: 1; }
-.toast-close:hover { background: rgb(0 0 0 / 6%); }
+.message.system { margin: 12px 0; padding: 8px 14px; border-radius: 8px; background: #f1fbf8; color: #24645b; font-size: 13px; line-height: 1.45; text-align: center; }
+.message.system.error { background: #fff7f5; color: var(--danger); }
 
 .modal-backdrop { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 20px; background: rgb(22 34 28 / 35%); backdrop-filter: blur(4px); }
 .modal { width: min(560px, 100%); max-height: 80vh; overflow: auto; border: 1px solid rgb(255 255 255 / 80%); border-radius: 14px; padding: 24px; background: var(--surface); box-shadow: 0 30px 90px rgb(17 29 23 / 24%); }
@@ -532,8 +530,6 @@ button:disabled, select:disabled { cursor: not-allowed; }
 @keyframes activity-pulse { 50% { opacity: .58; } }
 @keyframes select-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes slash-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
@@ -576,5 +572,5 @@ button:disabled, select:disabled { cursor: not-allowed; }
   .composer-tools { width: 100%; }
   .composer-tools > * { flex: 1 1 auto; }
   .composer-select { max-width: none; }
-  .toast { right: 16px; bottom: 16px; }
+
 }
