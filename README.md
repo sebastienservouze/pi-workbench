@@ -100,7 +100,7 @@ Lorsqu’un dépôt Git est détecté dans le dossier courant, le panneau de dro
 
 Cette action exécute réellement les opérations Git dans le dossier sélectionné. Vérifiez le diff et la destination distante avant de confirmer.
 
-Après un appel `read` ou `write` de Pi, le même panneau peut aussi afficher un aperçu du fichier concerné.
+Après un appel `read` ou `write` de Pi, la conversation peut développer le contenu concerné. Le Markdown est rendu directement dans l’historique et un document HTML du workspace peut être ouvert dans un nouvel onglet local.
 
 ## Dépannage
 
@@ -129,8 +129,12 @@ npm test -- test/pi-rpc.integration.test.ts
 
 ## Structure du projet
 
-- `src/` — interface React ;
+- `src/App.tsx` — orchestration de l’état transversal de l’interface ;
+- `src/features/` — composants, logique et styles regroupés par fonctionnalité ;
+- `src/styles/` — styles globaux et responsives ;
 - `server/manager.ts` — propriétaire des processus Pi ;
 - `server/backend.ts` — API locale et diffusion des événements ;
-- `shared/` — contrats échangés entre les composants ;
-- `test/` — tests d’intégration.
+- `shared/` — contrats échangés entre les couches ;
+- `test/` — tests automatisés.
+
+Consultez [`docs/architecture.md`](docs/architecture.md) pour les frontières, les flux et l’emplacement recommandé des changements.

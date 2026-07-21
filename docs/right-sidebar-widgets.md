@@ -1,6 +1,6 @@
 # Widgets de la sidebar droite
 
-La sidebar droite s’affiche lorsqu’un dépôt Git est détecté ou lorsque des actions sont épinglées dans le rail. Elle est rendue par `RightSidebar` dans `src/App.tsx`.
+La sidebar droite s’affiche lorsqu’un dépôt Git est détecté ou lorsque des actions sont épinglées dans le rail. Elle est rendue par `RightSidebar` dans `src/features/git/RightSidebar.tsx` et reliée à l’état transversal par `src/App.tsx`.
 
 ## Composition et comportement
 
@@ -40,12 +40,12 @@ Les fichiers `.md` et `.markdown` ouverts par les outils `read` ou `write` sont 
 
 ## Contrat de mise en page
 
-- Le panneau développé est redimensionnable entre 240 et 480 px. Sa valeur est locale au navigateur (`pi-workbench.git-sidebar-width`) et doit rester bornée avec `clampGitSidebarWidth` dans `src/git-sidebar.ts`.
+- Le panneau développé est redimensionnable entre 240 et 720 px. Sa valeur est locale au navigateur (`pi-workbench.git-sidebar-width`) et doit rester bornée avec `clampGitSidebarWidth` dans `src/features/git/git-sidebar.ts`.
 - La largeur totale de la colonne ouverte inclut le panneau et le rail : `largeur du panneau + 48 px`.
 - La poignée est un séparateur vertical accessible au pointeur et au clavier. Ne la rendez pas disponible quand le panneau est fermé. Les flèches gauche/droite, Début et Fin conservent leur sens et leurs bornes.
 - Sous 850 px, le panneau fait 260 px et le rail 48 px. Sous 700 px, la mise en page devient verticale : le panneau reste limité à `38dvh` et le rail reste visible à sa droite.
 - Le contenu défilant porte `min-height: 0`, `flex: 1` et `overflow: auto`. Les actions en bas de panneau restent hors de cette zone de défilement.
-- Réutilisez les variables de `src/App.css` (`--surface`, `--line`, `--muted`, `--teal`, etc.) et les styles de contrôles existants. N’ajoutez pas de bibliothèque UI.
+- Réutilisez les variables de `src/styles/base.css` (`--surface`, `--line`, `--muted`, `--teal`, etc.) et les styles de `src/features/git/git.css`. N’ajoutez pas de bibliothèque UI.
 
 La structure CSS actuelle est volontairement minimale : `.git-sidebar` aligne `.git-widget-panel` et `.git-rail`, tandis que `.git-panel` porte le contenu défilant. Préservez cette séparation : le rail ne doit jamais être un enfant du contenu défilant.
 

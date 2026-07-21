@@ -1,6 +1,6 @@
 # Présentations des appels d’outils
 
-Les appels d’outils sont affichés par `ToolCallCard` dans `src/App.tsx`. La présentation dépend de `toolCallPresentation()` dans `src/tool-calls.ts`.
+Les appels d’outils sont affichés par `ToolCallCard` dans `src/features/conversation/ToolCallCard.tsx`. La présentation dépend de `toolCallPresentation()` dans `src/features/conversation/tool-calls.ts`.
 
 Par défaut, l’en-tête de l’outil expose son titre complet et les tailles de l’appel et de la sortie au survol et au lecteur d’écran. Sa sortie complète est affichée après un clic sur le bloc, puis masquée par le clic suivant.
 

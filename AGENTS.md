@@ -2,7 +2,10 @@
 
 ## Architecture et limites
 
-- Le frontend React dans `src/` communique uniquement avec le backend HTTP.
+- Consultez [`docs/architecture.md`](docs/architecture.md) avant un changement transversal ou un déplacement de module.
+- Le frontend React communique uniquement avec le backend HTTP via `src/api.ts`.
+- `src/App.tsx` orchestre seulement l’état transversal ; placez le rendu et la logique propres à une zone dans `src/features/<feature>/`.
+- Colocalisez le CSS propre à une fonctionnalité avec celle-ci. Réservez `src/styles/` aux règles globales et responsives, et gardez `src/App.css` comme point d’entrée ordonné.
 - `server/backend.ts` porte l’API web et le flux SSE. Il peut redémarrer sans interrompre Pi.
 - `server/manager.ts` est le seul propriétaire des processus `pi --mode rpc`; ne déplacez pas cette responsabilité dans le backend.
 - Utilisez le protocole RPC public de Pi. Ne lisez pas ses fichiers internes pour reproduire une capacité déjà exposée en RPC.
@@ -64,7 +67,7 @@ Consultez [`docs/right-sidebar-widgets.md`](docs/right-sidebar-widgets.md) avant
 
 - Écrivez les identifiants, noms de fichiers et le code en anglais.
 - Gardez le code aéré, simple et lisible; donnez aux variables des noms explicites.
-- Documentez en français toute fonction applicative de plus de 4 lignes, sauf les fonctions utilitaires évidentes (garde de type, conversion, formatage ou parsing local) et celles déjà commentées. Décrivez son rôle, son contrat, son invariant, son effet de bord ou une raison non évidente; ne paraphrasez jamais le code.
+- Documentez en JSDoc français toute fonction applicative de plus de 4 lignes, sauf les fonctions utilitaires évidentes (garde de type, conversion, formatage ou parsing local). Décrivez son rôle, son contrat, son invariant, son effet de bord ou une raison non évidente ; ne paraphrasez jamais le code.
 - Respectez TypeScript strict et Oxlint avant de proposer un changement.
 - Utilisez des commits au format `<gitmoji> sujet impératif concis`, sans préfixe conventionnel tel que `feat:`.
 - Ne revendiquez jamais un test ou un contrôle qui n’a pas été réellement exécuté.
