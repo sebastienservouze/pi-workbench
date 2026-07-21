@@ -24,6 +24,11 @@ interface AgentIntent {
 }
 
 const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [], stats: null }
+const conversationViewDetails = {
+  simple: { label: 'Vue simplifiée', description: 'Messages uniquement, sans appels d’outils', icon: '∅' },
+  'simple-expanded': { label: 'Vue avec appels fermés', description: 'Appels visibles, résultats repliés', icon: '▸' },
+  detailed: { label: 'Vue avec appels ouverts', description: 'Appels visibles, résultats dépliés', icon: '▾' },
+} as const
 /** Orchestre l'état de l'espace de travail, les événements Pi et les panneaux de l'interface. */
 function App() {
   const [sessions, setSessions] = useState<SessionSummary[]>([])
@@ -42,6 +47,7 @@ function App() {
     if (stored === 'detailed' || stored === 'simple-expanded') return stored
     return window.localStorage.getItem('pi-workbench.detailed-view') === 'true' ? 'detailed' : 'simple'
   })
+  const conversationViewDetail = conversationViewDetails[conversationView]
   const [agentOptions, setAgentOptions] = useState<Record<string, string[]>>({})
   const [agentBusy, setAgentBusy] = useState<Record<string, boolean>>({})
   const [dialog, setDialog] = useState<UiDialog | null>(null)
@@ -389,12 +395,13 @@ function App() {
         {selectedSession ? (
           <>
             <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={conversationView !== 'simple'} expandToolCalls={conversationView === 'simple-expanded'} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
-            <button aria-label={conversationView === 'detailed' ? 'Vue simplifiée' : conversationView === 'simple' ? 'Vue simplifiée avec outils ouverts' : 'Vue détaillée'} aria-pressed={conversationView !== 'simple'} className={`chat-detail-toggle${conversationView !== 'simple' ? ' active' : ''}${conversationView === 'simple-expanded' ? ' expanded' : ''}`} onClick={() => setConversationView((current) => {
+            <button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Cliquer pour changer de vue.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
                 const next = current === 'simple' ? 'simple-expanded' : current === 'simple-expanded' ? 'detailed' : 'simple'
                 window.localStorage.setItem('pi-workbench.conversation-view', next)
                 return next
-              })} title={conversationView === 'detailed' ? 'Vue simplifiée' : conversationView === 'simple' ? 'Vue simplifiée avec outils ouverts' : 'Vue détaillée'} type="button">
-              <span aria-hidden="true">⌘</span>
+              })} title={`${conversationViewDetail.label} — ${conversationViewDetail.description}`} type="button">
+              <span aria-hidden="true" className="chat-detail-toggle-icon">{conversationViewDetail.icon}</span>
+              <span className="chat-detail-toggle-copy"><strong>{conversationViewDetail.label}</strong><small>{conversationViewDetail.description}</small></span>
             </button>
             {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
             <div className="composer-area">
