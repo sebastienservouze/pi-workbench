@@ -83,6 +83,9 @@
 .content pre { overflow-x: auto; padding: 13px 14px; border: 1px solid var(--line); border-radius: 9px; background: #f0f3f1; font: 12px/1.6 ui-monospace, monospace; white-space: pre-wrap; }
 .content :not(pre) > code { padding: 2px 5px; border-radius: 4px; background: #edf1ef; color: var(--ink); font: 12px ui-monospace, monospace; }
 .content a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.content table { width: 100%; margin: 0 0 13px; border-collapse: collapse; font-size: 13px; }
+.content th, .content td { padding: 6px 10px; border: 1px solid var(--line); text-align: left; }
+.content th { background: var(--accent-soft); font-weight: 650; }
 .user .content pre { border-color: rgb(255 255 255 / 13%); background: #2e3d36; }
 .tool-call { max-width: 760px; margin: 0 2px 18px; border: 1px solid #bfd5cf; border-radius: 9px; background: #f6fbf9; color: #21443d; font: 12px/1.5 ui-monospace, monospace; }
 .tool-call.error { border-color: #e4beb7; background: var(--danger-soft); color: #843b31; }
