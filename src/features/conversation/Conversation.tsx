@@ -13,13 +13,14 @@ export interface ToolExecution {
 }
 
 /** Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi. */
-export function Conversation({ messages, liveText, activity, agentName, detailedView, repositoryRoot, systemMessages, toolExecutions, workspacePath }: {
+export function Conversation({ messages, liveText, activity, agentName, detailedView, repositoryRoot, scrollToBottomRequest, systemMessages, toolExecutions, workspacePath }: {
   messages: JsonObject[]
   liveText: string
   activity: Activity | null
   agentName?: string
   detailedView: boolean
   repositoryRoot?: string | null
+  scrollToBottomRequest: number
   systemMessages: JsonObject[]
   toolExecutions: ToolExecution[]
   workspacePath: string
@@ -54,6 +55,11 @@ export function Conversation({ messages, liveText, activity, agentName, detailed
     const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
     conversationRef.current?.scrollTo({ top: conversationRef.current.scrollHeight, behavior })
   }, [visibleMessages.length, liveText, activity, toolExecutions])
+
+  useEffect(() => {
+    if (scrollToBottomRequest > 0) resumeAutoScroll()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrollToBottomRequest])
 
   /** Détecte si l'utilisateur est en bas de la conversation pour activer ou suspendre le défilement automatique. */
   function handleConversationScroll(): void {

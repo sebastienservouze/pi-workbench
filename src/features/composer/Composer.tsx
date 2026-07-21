@@ -4,7 +4,7 @@ import type { JsonObject, SessionSnapshot, SessionSummary } from '../../../share
 import { maxComposerImages, prepareComposerImage, type ComposerImage } from './composer-images.ts'
 
 /** Fournit la saisie utilisateur et les commandes de session tout en reflétant l'état Pi courant. */
-export function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, agentLoading, showAgentSelector, onAgentChange, onCommand, commands, running, onSend, onAbort, onError, requestedSelect, onSelectOpened, submitRequest = 0 }: {
+export function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, agentLoading, showAgentSelector, onAgentChange, onCommand, commands, running, onSend, onAbort, onError, requestedSelect, onSelectOpened, submitRequest = 0, focusRequest }: {
   session: SessionSummary
   snapshot: SessionSnapshot
   agentBusy: boolean
@@ -22,6 +22,7 @@ export function Composer({ session, snapshot, agentBusy, agentOptions, selectedA
   requestedSelect?: 'agent' | 'model' | 'thinking' | null
   onSelectOpened?: () => void
   submitRequest?: number
+  focusRequest?: number
 }) {
   const [message, setMessage] = useState('')
   const [images, setImages] = useState<ComposerImage[]>([])
@@ -29,6 +30,7 @@ export function Composer({ session, snapshot, agentBusy, agentOptions, selectedA
   const [submitting, setSubmitting] = useState(false)
   const [openSelect, setOpenSelect] = useState<'agent' | 'model' | 'thinking' | null>(null)
   const formRef = useRef<HTMLFormElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const agentTriggerRef = useRef<HTMLButtonElement>(null)
   const modelTriggerRef = useRef<HTMLButtonElement>(null)
   const thinkingTriggerRef = useRef<HTMLButtonElement>(null)
@@ -46,6 +48,11 @@ export function Composer({ session, snapshot, agentBusy, agentOptions, selectedA
   useEffect(() => {
     if (submitRequest > 0) formRef.current?.requestSubmit()
   }, [submitRequest])
+
+  // oxlint-disable react-hooks/exhaustive-deps
+  useEffect(() => {
+    if ((focusRequest ?? 0) > 0) textareaRef.current?.focus()
+  }, [focusRequest])
 
   useEffect(() => {
     if (!requestedSelect) return
@@ -152,7 +159,7 @@ export function Composer({ session, snapshot, agentBusy, agentOptions, selectedA
           ))}
         </div>
       )}
-      <textarea aria-label="Message" disabled={submitting} onPaste={(event) => void handlePaste(event)} value={message} onChange={(event) => {
+      <textarea aria-label="Message" disabled={submitting} onPaste={(event) => void handlePaste(event)} ref={textareaRef} value={message} onChange={(event) => {
         const next = event.target.value
         setMessage(next)
         if (next.startsWith('/') && commands.length > 0) {

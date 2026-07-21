@@ -49,6 +49,8 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [requestedSelect, setRequestedSelect] = useState<'agent' | 'model' | 'thinking' | null>(null)
   const [submitRequest, setSubmitRequest] = useState(0)
+  const [focusComposerRequest, setFocusComposerRequest] = useState(0)
+  const [scrollToBottomRequest, setScrollToBottomRequest] = useState(0)
   const [shortcuts, setShortcuts] = useState(() => readShortcuts())
   const selectedIdRef = useRef(selectedId)
   const refreshVersionRef = useRef(0)
@@ -229,6 +231,7 @@ function App() {
       }
       if (event.type === 'message_end' || event.type === 'agent_settled') {
         void refreshSnapshot(sessionId, true)
+        setFocusComposerRequest((current) => current + 1)
       }
 
       /** Remplace une exécution existante afin de conserver un seul état par appel d'outil. */
@@ -359,7 +362,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} systemMessages={systemMessages[selectedSession.id] ?? []} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} systemMessages={systemMessages[selectedSession.id] ?? []} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <button aria-label={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} aria-pressed={detailedView} className={`chat-detail-toggle${detailedView ? ' active' : ''}`} onClick={() => setDetailedView((current) => {
                 const next = !current
                 window.localStorage.setItem('pi-workbench.detailed-view', String(next))
@@ -382,6 +385,7 @@ function App() {
               }}
               commands={snapshot.commands}
               agentLoading={snapshotSessionId !== selectedSession.id}
+              focusRequest={focusComposerRequest}
               showAgentSelector={snapshotSessionId !== selectedSession.id || snapshot.commands.some((command) => command.name === 'agent')}
               running={selectedSession.status === 'running'}
               onSend={async (message, images, behavior) => {
@@ -389,6 +393,7 @@ function App() {
                 if (selectedSession.status === 'running') command.streamingBehavior = behavior
                 await sendPiCommand(selectedSession.id, command)
                 await refreshSessions()
+                setScrollToBottomRequest((current) => current + 1)
               }}
               onAbort={() => sendPiCommand(selectedSession.id, { type: 'abort' })}
               onError={(cause) => showToast('error', messageOf(cause))}
