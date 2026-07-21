@@ -3,6 +3,7 @@ import { parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../../
 import type { JsonObject } from '../../../shared/types.ts'
 import { sendPiCommand } from '../../api.ts'
 import type { UiDialog } from './dialog-protocol.ts'
+import ReactMarkdown from 'react-markdown'
 
 /** Supprime la syntaxe Markdown d'une chaîne tout en conservant le texte visible. */
 function stripMarkdown(text: string): string {
@@ -117,7 +118,7 @@ export function AskUserQuestionDialog({ dialog, onClose, onError }: { dialog: Ui
                 const selected = selectedOptions[activeQuestion].includes(option.label)
                 return <button aria-pressed={selected} className={selected ? 'selected' : ''} key={option.label} onClick={() => toggle(activeQuestion, option.label)} type="button">
                   <span aria-hidden="true" className="ask-user-option-mark">{selected ? '✓' : ''}</span>
-                  <span><strong>{option.label}</strong><small>{option.description}</small></span>
+                  <span><strong>{option.label}</strong><small><ReactMarkdown components={{ p: ({ children }) => <>{children}</> }}>{option.description}</ReactMarkdown></small></span>
                 </button>
               })}
             </div>
