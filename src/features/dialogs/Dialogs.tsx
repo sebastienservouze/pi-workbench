@@ -4,13 +4,34 @@ import type { JsonObject } from '../../../shared/types.ts'
 import { sendPiCommand } from '../../api.ts'
 import type { UiDialog } from './dialog-protocol.ts'
 
+/** Supprime la syntaxe Markdown d'une chaîne tout en conservant le texte visible. */
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/\[([^\]]*)\]\([^)]+\)/g, '$1')
+    .replace(/(\*{1,3}|_{1,3})([\s\S]*?)\1/g, '$2')
+    .replace(/~~([^~]+)~~/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^[-*+]\s+/gm, '')
+    .replace(/^\d+\.\s+/gm, '')
+    .replace(/^>\s+/gm, '')
+    .replace(/^\s*[-*_]{3,}\s*$/gm, '')
+    .trim()
+}
+
 /** Présente une question à la fois et conserve les réponses jusqu'à leur envoi groupé à Pi. */
 export function AskUserQuestionDialog({ dialog, onClose, onError }: { dialog: UiDialog; onClose: () => void; onError: (cause: unknown) => void }) {
   const request = parseQuestionnaire(dialog.request)
   const [selectedOptions, setSelectedOptions] = useState<string[][]>(() => request.questions.map(() => []))
   const [freeText, setFreeText] = useState<string[]>(() => request.questions.map(() => ''))
   const [activeQuestion, setActiveQuestion] = useState(0)
+  const [minimized, setMinimized] = useState(false)
   const question = request.questions[activeQuestion]
+
+  const cleanHeader = stripMarkdown(question.header)
+  const cleanQuestion = stripMarkdown(question.question)
 
   function isAnswered(index: number): boolean {
     return selectedOptions[index].length > 0 || (!request.questions[index].multiSelect && freeText[index].trim().length > 0)
@@ -48,42 +69,70 @@ export function AskUserQuestionDialog({ dialog, onClose, onError }: { dialog: Ui
   const complete = request.questions.every((_, index) => isAnswered(index))
   const lastQuestion = activeQuestion === request.questions.length - 1
 
+  if (minimized) {
+    return (
+      <button className="ask-user-question-minimized" onClick={() => setMinimized(false)} type="button">
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5"/>
+          <path d="M6 8h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+        <span>Question {activeQuestion + 1} sur {request.questions.length}</span>
+        <span>·</span>
+        <span>Afficher</span>
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
+          <path d="M6 10l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+    )
+  }
+
   return (
-    <section aria-labelledby="ask-user-question-title" className="ask-user-question" role="dialog">
-      <div className="ask-user-question-heading">
-        <span>Pi attend votre réponse</span>
-        <strong id="ask-user-question-title">Question {activeQuestion + 1} sur {request.questions.length}</strong>
-      </div>
-      <nav aria-label="Questions du questionnaire" className="ask-user-question-tabs">
-        {request.questions.map((item, index) => <button aria-current={index === activeQuestion ? 'step' : undefined} className={index === activeQuestion ? 'active' : isAnswered(index) ? 'answered' : ''} key={`${item.question}-${index}`} onClick={() => setActiveQuestion(index)} type="button">
-          <span>Question {index + 1}</span>
-          {isAnswered(index) && <b aria-label="Répondue">✓</b>}
-        </button>)}
-      </nav>
-      <div className="ask-user-question-list">
-        <fieldset>
-          <legend><span>{question.header}</span>{question.question}</legend>
-          <p className="ask-user-question-hint">{question.multiSelect ? 'Plusieurs réponses possibles' : 'Choisissez une réponse ou écrivez la vôtre'}</p>
-          <div className="ask-user-options">
-            {question.options.map((option) => {
-              const selected = selectedOptions[activeQuestion].includes(option.label)
-              return <button aria-pressed={selected} className={selected ? 'selected' : ''} key={option.label} onClick={() => toggle(activeQuestion, option.label)} type="button">
-                <span aria-hidden="true" className="ask-user-option-mark">{selected ? '✓' : ''}</span>
-                <span><strong>{option.label}</strong><small>{option.description}</small></span>
-              </button>
-            })}
+    <div className="ask-user-question-backdrop" onClick={() => setMinimized(true)}>
+      <section aria-labelledby="ask-user-question-title" className="ask-user-question" role="dialog" onClick={(e) => e.stopPropagation()}>
+        <div className="ask-user-question-heading">
+          <div className="ask-user-question-heading-row">
+            <div>
+              <span>Pi attend votre réponse</span>
+              <strong id="ask-user-question-title">Question {activeQuestion + 1} sur {request.questions.length}</strong>
+            </div>
+            <button className="ask-user-question-minimize" onClick={() => setMinimized(true)} aria-label="Masquer la question" type="button">
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
           </div>
-          {!question.multiSelect && <textarea aria-label={`Réponse libre : ${question.question}`} onChange={(event) => setFreeText((current) => current.map((text, index) => index === activeQuestion ? event.target.value : text))} placeholder="Ou saisissez votre propre réponse…" rows={2} value={freeText[activeQuestion]} />}
-        </fieldset>
-      </div>
-      <div className="ask-user-question-actions">
-        <button onClick={() => void respond(true)} type="button">Annuler</button>
-        <div>
-          {activeQuestion > 0 && <button onClick={() => setActiveQuestion((index) => index - 1)} type="button">Précédente</button>}
-          {lastQuestion ? <button disabled={!complete} onClick={() => void respond(false)} type="button">Envoyer les réponses</button> : <button disabled={!isAnswered(activeQuestion)} onClick={() => setActiveQuestion((index) => index + 1)} type="button">Suivante</button>}
         </div>
-      </div>
-    </section>
+        <nav aria-label="Questions du questionnaire" className="ask-user-question-tabs">
+          {request.questions.map((item, index) => <button aria-current={index === activeQuestion ? 'step' : undefined} className={index === activeQuestion ? 'active' : isAnswered(index) ? 'answered' : ''} key={`${item.question}-${index}`} onClick={() => setActiveQuestion(index)} type="button">
+            <span>Question {index + 1}</span>
+            {isAnswered(index) && <b aria-label="Répondue">✓</b>}
+          </button>)}
+        </nav>
+        <div className="ask-user-question-list">
+          <fieldset>
+            <legend><span>{cleanHeader}</span>{cleanQuestion}</legend>
+            <p className="ask-user-question-hint">{question.multiSelect ? 'Plusieurs réponses possibles' : 'Choisissez une réponse ou écrivez la vôtre'}</p>
+            <div className="ask-user-options">
+              {question.options.map((option) => {
+                const selected = selectedOptions[activeQuestion].includes(option.label)
+                return <button aria-pressed={selected} className={selected ? 'selected' : ''} key={option.label} onClick={() => toggle(activeQuestion, option.label)} type="button">
+                  <span aria-hidden="true" className="ask-user-option-mark">{selected ? '✓' : ''}</span>
+                  <span><strong>{option.label}</strong><small>{option.description}</small></span>
+                </button>
+              })}
+            </div>
+            {!question.multiSelect && <textarea aria-label={`Réponse libre : ${cleanQuestion}`} onChange={(event) => setFreeText((current) => current.map((text, index) => index === activeQuestion ? event.target.value : text))} placeholder="Ou saisissez votre propre réponse…" rows={2} value={freeText[activeQuestion]} />}
+          </fieldset>
+        </div>
+        <div className="ask-user-question-actions">
+          <button onClick={() => void respond(true)} type="button">Annuler</button>
+          <div>
+            {activeQuestion > 0 && <button onClick={() => setActiveQuestion((index) => index - 1)} type="button">Précédente</button>}
+            {lastQuestion ? <button disabled={!complete} onClick={() => void respond(false)} type="button">Envoyer les réponses</button> : <button disabled={!isAnswered(activeQuestion)} onClick={() => setActiveQuestion((index) => index + 1)} type="button">Suivante</button>}
+          </div>
+        </div>
+      </section>
+    </div>
   )
 }
 
