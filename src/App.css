@@ -340,7 +340,7 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .ask-user-question-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px solid var(--line); padding: 10px 12px; background: #f8faf8; }
 .ask-user-question-actions > div { display: flex; gap: 8px; }
 .ask-user-question-actions button, .modal-actions button { border: 1px solid var(--line-strong); border-radius: 8px; padding: 8px 11px; background: var(--surface); color: var(--ink); font-size: 12px; }
-.ask-user-question-actions > div button:last-child, .modal-actions button:first-child { border-color: var(--ink); background: var(--ink); color: white; font-weight: 750; }
+.modal-actions button.primary, .ask-user-question-actions > div button.primary { border-color: var(--accent); background: var(--accent); color: white; font-weight: 750; }
 .ask-user-question-actions button:focus-visible, .ask-user-options button:focus-visible, .ask-user-question-tabs button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 .ask-user-question-actions button:disabled { opacity: .5; }
 

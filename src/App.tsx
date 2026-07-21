@@ -915,7 +915,7 @@ function DirectoryPicker({ initialPath, recentPaths, onClose, onError, onSelect 
           <strong>Workspaces récents</strong>
           <div>{recentPaths.map((recentPath) => <button key={recentPath} onClick={() => selectDirectory(recentPath)} type="button">{recentPath}</button>)}</div>
         </section>}
-        <div className="modal-actions"><button onClick={onClose} type="button">Annuler</button><button onClick={() => selectDirectory(path)} type="button">Ouvrir</button></div>
+        <div className="modal-actions"><button onClick={onClose} type="button">Annuler</button><button className="primary" onClick={() => selectDirectory(path)} type="button">Ouvrir</button></div>
       </section>
     </div>
   )
@@ -1450,8 +1450,8 @@ function ExtensionDialog({ dialog, onClose, onError }: { dialog: UiDialog; onClo
         {request.method === 'select' && Array.isArray(request.options) && <div className="option-list">{request.options.map((option) => <button key={String(option)} onClick={() => void respond({ value: option })} type="button">{String(option)}</button>)}</div>}
         {(request.method === 'input' || request.method === 'editor') && <textarea autoFocus value={value} onChange={(event) => setValue(event.target.value)} rows={request.method === 'editor' ? 8 : 2} />}
         <div className="modal-actions">
-          {request.method === 'confirm' && <><button onClick={() => void respond({ confirmed: true })} type="button">Confirmer</button><button onClick={() => void respond({ confirmed: false })} type="button">Refuser</button></>}
-          {(request.method === 'input' || request.method === 'editor') && <button onClick={() => void respond({ value })} type="button">Valider</button>}
+          {request.method === 'confirm' && <><button className="primary" onClick={() => void respond({ confirmed: true })} type="button">Confirmer</button><button onClick={() => void respond({ confirmed: false })} type="button">Refuser</button></>}
+          {(request.method === 'input' || request.method === 'editor') && <button className="primary" onClick={() => void respond({ value })} type="button">Valider</button>}
           <button onClick={() => void respond({ cancelled: true })} type="button">Annuler</button>
         </div>
       </section>
