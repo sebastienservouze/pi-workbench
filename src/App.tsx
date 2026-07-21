@@ -274,17 +274,14 @@ function App() {
   const selectedSession = sessions.find((session) => session.id === selectedId)
   const questionnaire = dialog && dialog.sessionId === selectedId && isAskUserQuestionDialog(dialog.request) ? dialog : null
 
-  /** Crée une session, affiche immédiatement son état de chargement et la sélectionne dès son premier événement Pi. */
-  const createAndSelectSession = useCallback(async (): Promise<void> => {
+  /** Lance une session (création ou ouverture), affiche l'écran de chargement et sélectionne après synchronisation locale. */
+  const startAndSelectSession = useCallback(async (start: () => Promise<SessionSummary>): Promise<void> => {
     creatingSessionRef.current = true
     setCreatingSession(true)
     setSelectedId('')
     try {
-      const session = await createSession(workspacePath)
+      const session = await start()
       await refreshSessions()
-      // ponytail: le session_created SSE arrive parfois avant la réponse HTTP ;
-      // la session est déjà enregistrée côté manager, on verrouille la sélection
-      // seulement après que refreshSessions a mis la liste locale à jour.
       setSelectedId(session.id)
       creatingSessionRef.current = false
       setCreatingSession(false)
@@ -293,13 +290,13 @@ function App() {
       setCreatingSession(false)
       showToast('error', messageOf(cause))
     }
-  }, [refreshSessions, showToast, workspacePath])
+  }, [refreshSessions, showToast])
 
   /** Exécute une commande de productivité dans le contexte de la session active. */
   const executeCommand = useCallback((id: CommandId): void => {
     if (id === 'open-palette') { setCommandPaletteOpen(true); return }
     if (id === 'open-settings') { setSettingsOpen(true); return }
-    if (id === 'new-session') { void createAndSelectSession().catch((cause) => showToast('error', messageOf(cause))); return }
+    if (id === 'new-session') { void startAndSelectSession(() => createSession(workspacePath)).catch((cause) => showToast('error', messageOf(cause))); return }
     if (id === 'send') { setSubmitRequest((current) => current + 1); return }
     if (id === 'abort' && selectedId) { void sendPiCommand(selectedId, { type: 'abort' }).catch((cause) => showToast('error', messageOf(cause))); return }
     if (id === 'toggle-git') { setActiveRightWidget((current) => current === null ? 'git' : null); return }
@@ -309,7 +306,7 @@ function App() {
       if (!text) { showToast('notice', 'Aucune réponse assistant à copier.'); return }
       void navigator.clipboard.writeText(text).then(() => showToast('notice', 'Dernière réponse copiée.')).catch((cause) => showToast('error', messageOf(cause)))
     }
-  }, [createAndSelectSession, selectedId, showToast, snapshot.messages])
+  }, [selectedId, showToast, snapshot.messages, startAndSelectSession, workspacePath])
 
   const paletteCommands: PaletteCommand[] = useMemo(() => commandDefinitions.map((definition) => ({
     ...definition,
@@ -375,12 +372,8 @@ function App() {
         selectedId={selectedId}
         workspacePath={workspacePath}
         onChooseWorkspace={() => setDirectoryPickerOpen(true)}
-        onCreate={createAndSelectSession}
-        onOpenSession={async (recentSession) => {
-          const session = await openSession(workspacePath, recentSession.sessionPath)
-          await refreshSessions()
-          setSelectedId(session.id)
-        }}
+        onCreate={() => startAndSelectSession(() => createSession(workspacePath))}
+        onOpenSession={(recentSession) => startAndSelectSession(() => openSession(workspacePath, recentSession.sessionPath))}
         onSelectSession={setSelectedId}
         onError={(cause) => showToast('error', messageOf(cause))}
         theme={theme}
