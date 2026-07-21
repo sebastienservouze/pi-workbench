@@ -4,4 +4,5 @@
 @import './features/conversation/conversation.css';
 @import './features/dialogs/dialogs.css';
 @import './features/composer/composer.css';
+@import './features/notifications/notifications.css';
 @import './styles/responsive.css';

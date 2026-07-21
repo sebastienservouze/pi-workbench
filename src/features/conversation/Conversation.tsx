@@ -1,4 +1,4 @@
-import { memo, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { memo, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { JsonObject } from '../../../shared/types.ts'
 import { activityText, type Activity } from './activity.ts'
 import { formatTurnCost, turnUsageByMessage, type MessageUsage } from './message-usage.ts'
@@ -13,7 +13,7 @@ export interface ToolExecution {
 }
 
 /** Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi. */
-export function Conversation({ messages, liveText, activity, agentName, detailedView, repositoryRoot, scrollToBottomRequest, systemMessages, toolExecutions, workspacePath }: {
+export function Conversation({ messages, liveText, activity, agentName, detailedView, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath }: {
   messages: JsonObject[]
   liveText: string
   activity: Activity | null
@@ -21,21 +21,10 @@ export function Conversation({ messages, liveText, activity, agentName, detailed
   detailedView: boolean
   repositoryRoot?: string | null
   scrollToBottomRequest: number
-  systemMessages: JsonObject[]
   toolExecutions: ToolExecution[]
   workspacePath: string
 }) {
-  /** Fusionne les messages système dans l'historique en respectant la chronologie. */
-  const allMessages = useMemo(() => {
-    if (systemMessages.length === 0) return messages
-    const merged = [...systemMessages, ...messages]
-    merged.sort((a, b) => {
-      const ta = typeof a.timestamp === 'number' ? a.timestamp : 0
-      const tb = typeof b.timestamp === 'number' ? b.timestamp : 0
-      return ta - tb
-    })
-    return merged
-  }, [messages, systemMessages])
+  const allMessages = messages
   const visibleMessages = allMessages.filter(isVisibleConversationMessage)
   const usagesByMessage = turnUsageByMessage(allMessages)
   const toolCalls = allMessages.flatMap(toolCallsInMessage)

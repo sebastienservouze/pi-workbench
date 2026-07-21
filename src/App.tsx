@@ -3,6 +3,7 @@ import './App.css'
 import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getSnapshot, getVsCodeStatus, listRecentSessions, listSessions, openExplorer, openSession, openVsCode, revertGitCommit, sendPiCommand } from './api.ts'
 import type { GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 import { Composer } from './features/composer/Composer.tsx'
+import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
 import { activityForPiEvent, waitingActivity, type Activity } from './features/conversation/activity.ts'
 import { Conversation, type ToolExecution } from './features/conversation/Conversation.tsx'
 import { toolCallInUpdate, type ToolResult } from './features/conversation/tool-calls.ts'
@@ -40,7 +41,7 @@ function App() {
   const [agentOptions, setAgentOptions] = useState<Record<string, string[]>>({})
   const [agentBusy, setAgentBusy] = useState<Record<string, boolean>>({})
   const [dialog, setDialog] = useState<UiDialog | null>(null)
-  const [systemMessages, setSystemMessages] = useState<Record<string, JsonObject[]>>({})
+  const [toasts, setToasts] = useState<Toast[]>([])
   const [gitSnapshot, setGitSnapshot] = useState<GitSnapshot | null>(null)
   const [activeRightWidget, setActiveRightWidget] = useState<'git' | null>(() => window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git')
   const [gitSidebarWidth, setGitSidebarWidth] = useState(() => readGitSidebarWidth(window.localStorage.getItem('pi-workbench.git-sidebar-width')))
@@ -58,13 +59,18 @@ function App() {
   const agentIntentsRef = useRef(new Map<string, AgentIntent>())
   selectedIdRef.current = selectedId
 
-  const showToast = useCallback((kind: 'notice' | 'error', message: string) => {
-    const sid = selectedIdRef.current || '__global__'
-    setSystemMessages((current) => ({
-      ...current,
-      [sid]: [...(current[sid] ?? []), { role: 'system', content: message, kind, timestamp: Date.now() }],
-    }))
+  const showToast = useCallback((kind: Toast['kind'], message: string) => {
+    const toast = { id: crypto.randomUUID(), kind, message, sessionId: selectedIdRef.current }
+    setToasts((current) => [...current, toast])
+    window.setTimeout(() => setToasts((current) => current.filter((item) => item.id !== toast.id)), 5000)
   }, [])
+
+  /** Retire un toast après sa fermeture explicite ou automatique. */
+  const dismissToast = useCallback((id: string) => {
+    setToasts((current) => current.filter((toast) => toast.id !== id))
+  }, [])
+
+  const visibleToasts = toasts.filter((toast) => toast.sessionId === null || toast.sessionId === selectedId)
 
   const updateGitSidebarWidth = useCallback((width: number) => {
     const nextWidth = clampGitSidebarWidth(width)
@@ -362,7 +368,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} systemMessages={systemMessages[selectedSession.id] ?? []} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <button aria-label={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} aria-pressed={detailedView} className={`chat-detail-toggle${detailedView ? ' active' : ''}`} onClick={() => setDetailedView((current) => {
                 const next = !current
                 window.localStorage.setItem('pi-workbench.detailed-view', String(next))
@@ -371,7 +377,9 @@ function App() {
               <span aria-hidden="true">⌘</span>
             </button>
             {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
-            <Composer
+            <div className="composer-area">
+              <ToastStack onDismiss={dismissToast} toasts={visibleToasts} />
+              <Composer
               session={selectedSession}
               snapshot={snapshot}
               agentBusy={Boolean(agentBusy[selectedSession.id])}
@@ -400,14 +408,18 @@ function App() {
               requestedSelect={requestedSelect}
               onSelectOpened={() => setRequestedSelect(null)}
               submitRequest={submitRequest}
-            />
+              />
+            </div>
           </>
         ) : (
-          <section className="welcome">
-            <span className="brand-mark large">π</span>
-            <h1>Pilotez Pi depuis votre navigateur</h1>
-            <p>Créez une session locale pour retrouver vos modèles, agents, outils et commandes.</p>
-          </section>
+          <>
+            <section className="welcome">
+              <span className="brand-mark large">π</span>
+              <h1>Pilotez Pi depuis votre navigateur</h1>
+              <p>Créez une session locale pour retrouver vos modèles, agents, outils et commandes.</p>
+            </section>
+            <ToastStack onDismiss={dismissToast} standalone toasts={visibleToasts} />
+          </>
         )}
       </main>
 
