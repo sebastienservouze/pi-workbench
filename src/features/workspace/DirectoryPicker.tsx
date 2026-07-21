@@ -36,6 +36,8 @@ export function DirectoryPicker({ initialPath, recentPaths, onClose, onError, on
     })
   }, [path])
 
+  const visibleRecentPaths = recentPaths.filter((recentPath) => recentPath !== initialPath)
+
   /** Valide que le chemin est toujours accessible avant de l'adopter comme workspace. */
   function selectDirectory(nextPath: string): void {
     void listDirectories(nextPath).then((directory) => onSelect(directory.path)).catch(onError)
@@ -101,9 +103,9 @@ export function DirectoryPicker({ initialPath, recentPaths, onClose, onError, on
             role="option"
           >{suggestion}</div>)}
         </div>}
-        {recentPaths.length > 0 && <section aria-label="Workspaces récents" className="recent-workspaces">
+        {visibleRecentPaths.length > 0 && <section aria-label="Workspaces récents" className="recent-workspaces">
           <strong>Workspaces récents</strong>
-          <div>{recentPaths.map((recentPath) => <button key={recentPath} onClick={() => selectDirectory(recentPath)} type="button">{recentPath}</button>)}</div>
+          <div>{visibleRecentPaths.map((recentPath) => <button key={recentPath} onClick={() => selectDirectory(recentPath)} type="button">{recentPath}</button>)}</div>
         </section>}
         <div className="modal-actions"><button onClick={onClose} type="button">Annuler</button><button className="primary" onClick={() => selectDirectory(path)} type="button">Ouvrir</button></div>
       </section>
