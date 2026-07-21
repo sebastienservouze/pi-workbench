@@ -1224,6 +1224,9 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, a
     ? `${formatTokens(contextUsage.tokens)} / ${formatTokens(contextUsage.contextWindow)}`
     : 'Indisponible'
   const cost = typeof stats?.cost === 'number' ? `$${stats.cost.toFixed(2)}` : '—'
+  const contextClass = typeof contextUsage?.percent === 'number'
+    ? contextUsage.percent >= 40 ? 'context-danger' : contextUsage.percent >= 30 ? 'context-warning-strong' : contextUsage.percent >= 20 ? 'context-warning' : ''
+    : ''
 
   return (
     <form className="composer" onSubmit={(event) => void submit(event)}>
@@ -1294,7 +1297,7 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, a
         </div>
         <div className="composer-info" aria-label="Informations de la session">
           <div className="composer-session">{session.status === 'running' && <span className="status-dot" aria-label="Agent en cours de travail" role="img" />}<strong>{session.name}</strong><span title={session.cwd}>{session.cwd}</span></div>
-          <div className="composer-stats"><span><b>Coût</b>{cost}</span><span><b>Contexte</b>{contextPercent}<small>{contextTokens}</small></span></div>
+          <div className="composer-stats"><span><b>Coût</b>{cost}</span><span className={contextClass}><b>Contexte</b>{contextPercent}<small>{contextTokens}</small></span></div>
         </div>
       </div>
     </form>

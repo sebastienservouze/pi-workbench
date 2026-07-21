@@ -16,6 +16,8 @@
   --violet: #6851a4;
   --violet-soft: #ede9fa;
   --success: #28734b;
+  --warning: #b8860b;
+  --warning-strong: #c75b00;
   --danger: #a13f37;
   --danger-soft: #fbe9e7;
   --shadow: 0 18px 45px rgb(29 41 36 / 10%);
@@ -361,6 +363,9 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .composer-stats span { display: inline-flex; align-items: baseline; gap: 4px; white-space: nowrap; }
 .composer-stats b { color: var(--subtle); font: 700 9px ui-sans-serif, system-ui, sans-serif; text-transform: uppercase; }
 .composer-stats small { color: var(--muted); font-size: 9px; }
+.context-warning { color: var(--warning); }
+.context-warning-strong { color: var(--warning-strong); }
+.context-danger { color: var(--danger); }
 .composer-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px 8px; }
 .composer-tools { display: flex; flex-wrap: wrap; gap: 5px; min-width: 0; }
 .composer-select {
