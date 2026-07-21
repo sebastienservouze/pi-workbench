@@ -156,7 +156,7 @@ button:disabled, select:disabled { cursor: not-allowed; }
 }
 .empty-sidebar { padding: 14px; color: var(--muted); font-size: 13px; line-height: 1.5; text-align: center; }
 
-.workspace { display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: var(--surface-raised); }
+.workspace { position: relative; display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: var(--surface-raised); }
 
 .git-sidebar { display: flex; min-width: 0; min-height: 0; background: var(--surface); }
 .git-widget-panel { position: relative; display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; border-left: 1px solid var(--line); }
@@ -267,23 +267,18 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .turn-usage dd { margin: 0; color: var(--ink); }
 .message-time { display: block; margin-top: 8px; color: rgb(255 255 255 / 76%); font: 10px ui-monospace, monospace; text-align: right; }
 .message-image { display: block; max-width: min(100%, 480px); max-height: 420px; margin: 0 0 10px; border-radius: 8px; object-fit: contain; }
-.chat-detail-bar {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  display: flex;
-  justify-content: flex-end;
-  padding: 14px 20px 6px;
-  background: linear-gradient(to bottom, var(--surface-raised) 60%, transparent);
-}
 .chat-detail-toggle {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 2;
   display: grid;
   place-items: center;
   width: 29px;
   height: 29px;
   border: 1px solid transparent;
   border-radius: 7px;
-  background: transparent;
+  background: var(--surface-raised);
   color: var(--muted);
   font-size: 14px;
   transition: border-color 180ms ease, background 180ms ease, color 180ms ease;

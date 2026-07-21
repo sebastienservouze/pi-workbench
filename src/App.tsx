@@ -442,11 +442,14 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} onDetailedViewChange={() => setDetailedView((current) => {
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <button aria-label={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} aria-pressed={detailedView} className={`chat-detail-toggle${detailedView ? ' active' : ''}`} onClick={() => setDetailedView((current) => {
                 const next = !current
                 window.localStorage.setItem('pi-workbench.detailed-view', String(next))
                 return next
-              })} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+              })} title={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} type="button">
+              <span aria-hidden="true">⌘</span>
+            </button>
             {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
             <Composer
               session={selectedSession}
@@ -888,13 +891,12 @@ function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>
 }
 
 // Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi.
-function Conversation({ messages, liveText, activity, agentName, detailedView, onDetailedViewChange, repositoryRoot, toolExecutions, workspacePath }: {
+function Conversation({ messages, liveText, activity, agentName, detailedView, repositoryRoot, toolExecutions, workspacePath }: {
   messages: JsonObject[]
   liveText: string
   activity: Activity | null
   agentName?: string
   detailedView: boolean
-  onDetailedViewChange: () => void
   repositoryRoot?: string | null
   toolExecutions: ToolExecution[]
   workspacePath: string
@@ -937,11 +939,6 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, o
 
   return (
     <section className="conversation" aria-live="polite" onScroll={handleConversationScroll} ref={conversationRef}>
-      <div className="chat-detail-bar">
-        <button aria-label={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} aria-pressed={detailedView} className={`chat-detail-toggle${detailedView ? ' active' : ''}`} onClick={onDetailedViewChange} title={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} type="button">
-          <span aria-hidden="true">⌘</span>
-        </button>
-      </div>
       {messages.map((message, index) => {
         const calls = detailedView ? toolCallsInMessage(message) : []
         if (!isVisibleConversationMessage(message) && calls.length === 0) return null
