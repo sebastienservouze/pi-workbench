@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState, useTransition, type ClipboardEvent as ReactClipboardEvent, type CSSProperties, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ClipboardEvent as ReactClipboardEvent, type CSSProperties, type FormEvent, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import * as Select from '@radix-ui/react-select'
 import ReactMarkdown from 'react-markdown'
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -12,7 +12,7 @@ import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typesc
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import './App.css'
 import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getSnapshot, getVsCodeStatus, getWorkspaceFile, listDirectories, listRecentSessions, listSessions, openExplorer, openSession, openVsCode, revertGitCommit, sendPiCommand } from './api.ts'
-import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary, WorkspaceFile } from '../shared/types.ts'
+import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 import { askUserQuestionProtocol, parseAskUserQuestionRequest, type AskUserQuestionRequest } from '../shared/ask-user-question.ts'
 import { activityForPiEvent, activityText, waitingActivity, type Activity } from './activity.ts'
 import { canHighlightFile } from './file-preview.ts'
@@ -20,7 +20,7 @@ import { formatTurnCost, turnUsageByMessage, type MessageUsage } from './message
 import { directoryCompletionTarget } from './directory-completion.ts'
 import { recentWorkspaces } from './recent-workspaces.ts'
 import { clampGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff, readGitSidebarWidth } from './git-sidebar.ts'
-import { editOperations, formatToolCallTooltip, formatToolData, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolFilePath, toolResultInMessage, type EditOperation, type ReadContentDisplay, type ToolResult } from './tool-calls.ts'
+import { editOperations, formatToolCallTooltip, formatToolData, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolFilePath, toolResultInMessage, type EditOperation, type ToolResult } from './tool-calls.ts'
 
 interface UiDialog {
   sessionId: string
@@ -37,19 +37,19 @@ interface Toast {
   message: string
 }
 
+interface RailAction {
+  key: string
+  icon: ReactNode
+  label: string
+  disabled?: boolean
+  onClick: () => void
+}
+
 interface ToolExecution {
   id: string
   name: string
   args: unknown
   result?: ToolResult
-}
-
-interface FilePreview {
-  path: string
-  display: ReadContentDisplay
-  file?: WorkspaceFile
-  error?: string
-  phase?: 'loading' | 'rendering'
 }
 
 const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [], stats: null }
@@ -147,12 +147,9 @@ function App() {
   const [dialog, setDialog] = useState<UiDialog | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
   const [gitSnapshot, setGitSnapshot] = useState<GitSnapshot | null>(null)
-  const [activeRightWidget, setActiveRightWidget] = useState<'file' | 'git' | null>(() => window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git')
-  const [filePreview, setFilePreview] = useState<FilePreview | null>(null)
-  const [, startTransition] = useTransition()
+  const [activeRightWidget, setActiveRightWidget] = useState<'git' | null>(() => window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git')
   const [gitSidebarWidth, setGitSidebarWidth] = useState(() => readGitSidebarWidth(window.localStorage.getItem('pi-workbench.git-sidebar-width')))
   const selectedIdRef = useRef(selectedId)
-  const fileRequestVersionRef = useRef(0)
   const refreshVersionRef = useRef(0)
   const gitRefreshVersionRef = useRef(0)
   const toastIdRef = useRef(0)
@@ -168,33 +165,6 @@ function App() {
     window.localStorage.setItem('pi-workbench.git-sidebar-width', String(nextWidth))
     setGitSidebarWidth(nextWidth)
   }, [])
-
-  // Ouvre uniquement les Markdown dans le widget et délègue les documents HTML au navigateur local.
-  const openWorkspaceFile = useCallback(async (path: string) => {
-    const display = readContentDisplay({ path })
-    if (display.kind === 'html') {
-      const url = workspaceFileUrl(workspacePath, path)
-      const tab = url ? window.open(url, '_blank') : null
-      if (tab) tab.opener = null
-      else showToast('error', "Le fichier HTML n'a pas pu être ouvert dans un nouvel onglet.")
-      return
-    }
-    if (display.kind !== 'markdown') return
-
-    const version = ++fileRequestVersionRef.current
-    setActiveRightWidget('file')
-    setFilePreview({ path, display, phase: 'loading' })
-    try {
-      const file = await getWorkspaceFile(workspacePath, path)
-      if (version !== fileRequestVersionRef.current) return
-      setFilePreview({ path: file.path, display: readContentDisplay({ path: file.path }), phase: 'rendering' })
-      window.setTimeout(() => {
-        if (version === fileRequestVersionRef.current) startTransition(() => setFilePreview({ path: file.path, display: readContentDisplay({ path: file.path }), file }))
-      }, 0)
-    } catch (cause) {
-      if (version === fileRequestVersionRef.current) setFilePreview({ path, display, error: messageOf(cause) })
-    }
-  }, [showToast, startTransition, workspacePath])
 
   useEffect(() => {
     if (!toast) return
@@ -393,7 +363,24 @@ function App() {
     return () => { cancelled = true }
   }, [])
 
-  const rightSidebarVisible = Boolean(gitSnapshot?.repository) || activeRightWidget === 'file'
+  // Actions épinglées dans le rail droit, sans panneau associé.
+  const railActions = useMemo(() => [
+    {
+      key: 'explorer',
+      icon: <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h4l2 2h7A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" /><path d="M3 9h18" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" /></svg>,
+      label: 'Ouvrir le dossier dans l\'Explorateur',
+      onClick: () => { void openExplorer(workspacePath).catch((cause) => showToast('error', messageOf(cause))) },
+    },
+    {
+      key: 'vscode',
+      icon: <span aria-hidden="true" className="code-symbol code-symbol-rail">{'<>'}</span>,
+      label: vsCodeAvailable === null ? 'Vérification de VS Code…' : vsCodeAvailable ? 'Ouvrir le dossier dans VS Code' : 'VS Code indisponible',
+      disabled: vsCodeAvailable !== true,
+      onClick: () => { void openVsCode(workspacePath).catch((cause) => { setVsCodeAvailable(false); showToast('error', messageOf(cause)) }) },
+    },
+  ], [showToast, vsCodeAvailable, workspacePath])
+
+  const rightSidebarVisible = Boolean(gitSnapshot?.repository) || railActions.length > 0
 
   return (
     <div
@@ -409,33 +396,7 @@ function App() {
           <button className="workspace-path" onClick={() => setDirectoryPickerOpen(true)} title={workspacePath} type="button">
             <span>Dossier courant</span><strong>{workspacePath}</strong>
           </button>
-          <div className="sidebar-actions">
-            <button
-              className="sidebar-action"
-              onClick={() => void openExplorer(workspacePath).catch((cause) => showToast('error', messageOf(cause)))}
-              title="Ouvrir le dossier dans l'Explorateur"
-              type="button"
-            >
-              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h4l2 2h7A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z" /><path d="M3 9h18" /></svg>
-              <span>Explorateur</span>
-            </button>
-            <button
-              className="sidebar-action"
-              disabled={vsCodeAvailable !== true}
-              onClick={() => {
-                void openVsCode(workspacePath)
-                  .catch((cause) => {
-                    setVsCodeAvailable(false)
-                    showToast('error', messageOf(cause))
-                  })
-              }}
-              title={vsCodeAvailable === null ? 'Vérification de VS Code…' : vsCodeAvailable ? 'Ouvrir le dossier dans VS Code' : 'VS Code est indisponible. Tapez code dans WSL, puis rechargez la page.'}
-              type="button"
-            >
-              <span aria-hidden="true" className="code-symbol">{'<>'}</span>
-              <span>VS Code</span>
-            </button>
-          </div>
+
         </div>
         <NewSessionButton
           onCreate={async () => {
@@ -481,7 +442,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} onFileOpen={openWorkspaceFile} repositoryRoot={gitSnapshot?.root} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
             <Composer
               session={selectedSession}
@@ -526,10 +487,10 @@ function App() {
 
       {rightSidebarVisible && <RightSidebar
         activeWidget={activeRightWidget}
-        filePreview={filePreview}
         onResize={updateGitSidebarWidth}
         snapshot={gitSnapshot?.repository ? gitSnapshot : null}
         width={gitSidebarWidth}
+        railActions={railActions}
         onAction={async (message) => {
           const result = await commitAndPush(workspacePath, message)
           await refreshGit(workspacePath, true)
@@ -546,9 +507,9 @@ function App() {
           showToast('notice', `Commit ${hash.slice(0, 7)} revert.`)
           return result
         }}
-        onWidgetSelect={(widget) => setActiveRightWidget((current) => {
-          const next = current === widget ? null : widget
-          if (widget === 'git') window.localStorage.setItem('pi-workbench.git-sidebar-collapsed', String(next === null))
+        onWidgetSelect={() => setActiveRightWidget((current) => {
+          const next = current === null ? 'git' : null
+          window.localStorage.setItem('pi-workbench.git-sidebar-collapsed', String(next === null))
           return next
         })}
       />}
@@ -564,9 +525,7 @@ function App() {
           window.localStorage.setItem('pi-workbench.recent-workspace-paths', JSON.stringify(nextRecentWorkspacePaths))
           setRecentWorkspacePaths(nextRecentWorkspacePaths)
           setGitSnapshot(null)
-          setFilePreview(null)
           setActiveRightWidget(null)
-          fileRequestVersionRef.current += 1
           setWorkspacePath(path)
           setSelectedId('')
           setDirectoryPickerOpen(false)
@@ -584,19 +543,19 @@ function App() {
   )
 }
 
-// Coordonne les panneaux Git et fichier, leur rail commun et le redimensionnement du panneau actif.
-function RightSidebar({ activeWidget, filePreview, onResize, snapshot, width, onAction, onError, onFileSelect, onRefresh, onRevert, onWidgetSelect }: {
-  activeWidget: 'file' | 'git' | null
-  filePreview: FilePreview | null
+// Coordonne le panneau Git, le rail commun et le redimensionnement.
+function RightSidebar({ activeWidget, onResize, snapshot, width, railActions, onAction, onError, onFileSelect, onRefresh, onRevert, onWidgetSelect }: {
+  activeWidget: 'git' | null
   onResize: (width: number) => void
   snapshot: GitSnapshot | null
   width: number
+  railActions: RailAction[]
   onAction: (message: string) => Promise<GitActionResult>
   onError: (cause: unknown) => void
   onFileSelect: (path: string, commitHash?: string) => Promise<GitFileDiff>
   onRefresh: () => void
   onRevert: (hash: string) => Promise<GitRevertResult>
-  onWidgetSelect: (widget: 'file' | 'git') => void
+  onWidgetSelect: () => void
 }) {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
@@ -682,7 +641,7 @@ function RightSidebar({ activeWidget, filePreview, onResize, snapshot, width, on
   return <aside className="git-sidebar" aria-label="Informations Git">
     {!collapsed && <div className="git-widget-panel">
       <div
-        aria-controls={activeWidget === 'file' ? 'file-panel' : 'git-panel'}
+        aria-controls={activeWidget === 'git' ? 'git-panel' : undefined}
         aria-label="Redimensionner le panneau latéral"
         aria-orientation="vertical"
         aria-valuemax={maxGitSidebarWidth}
@@ -694,8 +653,8 @@ function RightSidebar({ activeWidget, filePreview, onResize, snapshot, width, on
         role="separator"
         tabIndex={0}
       />
-      <section aria-label={activeWidget === 'file' ? 'Fichier' : fileDiff || selectedPath ? 'Diff Git' : 'Informations Git'} className="git-panel" id={activeWidget === 'file' ? 'file-panel' : 'git-panel'}>
-        {activeWidget === 'file' ? <WidgetLayout header={<strong title={filePreview?.path}>{filePreview?.path}</strong>}><FilePreviewContent preview={filePreview} /></WidgetLayout> : snapshot && <WidgetLayout
+      <section aria-label={activeWidget === 'git' && fileDiff || selectedPath ? 'Diff Git' : 'Informations Git'} className="git-panel" id="git-panel">
+        {snapshot && <WidgetLayout
           footer={activeWidget === 'git' && !selectedPath && (hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>
             {hasChanges && <input aria-label="Message de commit" disabled={busy} onChange={(event) => setMessage(event.target.value)} placeholder="Message de commit" value={message} />}
             <button disabled={busy || (hasChanges && !message.trim())} type="submit">{busy ? 'Git en cours…' : hasChanges ? 'Committer et pousser' : `Pousser ${snapshot.ahead} commit${snapshot.ahead > 1 ? 's' : ''}`}</button>
@@ -731,23 +690,22 @@ function RightSidebar({ activeWidget, filePreview, onResize, snapshot, width, on
         aria-expanded={activeWidget === 'git'}
         aria-label={activeWidget === 'git' ? 'Réduire le panneau Git' : 'Développer le panneau Git'}
         className="rail-tab"
-        onClick={() => onWidgetSelect('git')}
+        onClick={onWidgetSelect}
         title="Git"
         type="button"
       >
         <span aria-hidden="true">⎇</span>
         {(hasChanges || snapshot.ahead > 0) && <small>{snapshot.files.length + snapshot.ahead}</small>}
       </button>}
-      <button
-        aria-controls={activeWidget === 'file' ? 'file-panel' : undefined}
-        aria-expanded={activeWidget === 'file'}
-        aria-label={activeWidget === 'file' ? 'Réduire le panneau Markdown' : 'Développer le panneau Markdown'}
+      {railActions.map((action) => <button
+        aria-label={action.label}
         className="rail-tab"
-        disabled={!filePreview}
-        onClick={() => onWidgetSelect('file')}
-        title="Markdown"
+        disabled={action.disabled}
+        key={action.key}
+        onClick={action.onClick}
+        title={action.label}
         type="button"
-      ><span aria-hidden="true">¶</span></button>
+      >{action.icon}</button>)}
     </div>
   </aside>
 }
@@ -759,15 +717,6 @@ function WidgetLayout({ children, footer, header }: { children: ReactNode; foote
     <div className="widget-content">{children}</div>
     {footer && <footer className="widget-footer">{footer}</footer>}
   </>
-}
-
-// Affiche le contenu Markdown relu depuis le disque.
-function FilePreviewContent({ preview }: { preview: FilePreview | null }) {
-  if (!preview) return <p className="git-empty">Choisissez un appel read ou write sur un fichier Markdown.</p>
-  if (preview.error) return <p className="file-preview-error" role="alert">{preview.error}</p>
-  if (!preview.file) return <p className="git-empty" role="status"><span aria-hidden="true" className="spinner" />{preview.phase === 'rendering' ? 'Colorisation du fichier…' : 'Chargement du fichier…'}</p>
-
-  return <section className="file-preview file-preview-markdown"><Markdown>{preview.file.content}</Markdown></section>
 }
 
 // Affiche les métadonnées communes d'un fichier dans les listes Git.
@@ -941,13 +890,12 @@ function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>
 }
 
 // Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi.
-function Conversation({ messages, liveText, activity, agentName, detailedView, onFileOpen, repositoryRoot, toolExecutions, workspacePath }: {
+function Conversation({ messages, liveText, activity, agentName, detailedView, repositoryRoot, toolExecutions, workspacePath }: {
   messages: JsonObject[]
   liveText: string
   activity: Activity | null
   agentName?: string
   detailedView: boolean
-  onFileOpen: (path: string) => void
   repositoryRoot?: string | null
   toolExecutions: ToolExecution[]
   workspacePath: string
@@ -976,11 +924,11 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, o
           {isVisibleConversationMessage(message) && <MessageCard message={message} usage={usagesByMessage.get(index)} />}
           {calls.map((call) => {
             const result = resultsByCallId.get(call.id) ?? executionsByCallId.get(call.id)?.result
-            return <ToolCallCard args={call.args} hasResult={result !== undefined} id={call.id} key={call.id} name={call.name} onFileOpen={onFileOpen} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} workspacePath={workspacePath} />
+            return <ToolCallCard args={call.args} hasResult={result !== undefined} id={call.id} key={call.id} name={call.name} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} workspacePath={workspacePath} />
           })}
         </div>
       })}
-      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard args={execution.args} hasResult={execution.result !== undefined} id={execution.id} key={execution.id} name={execution.name} onFileOpen={onFileOpen} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} workspacePath={workspacePath} />)}
+      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard args={execution.args} hasResult={execution.result !== undefined} id={execution.id} key={execution.id} name={execution.name} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} workspacePath={workspacePath} />)}
       {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {activity && activity.kind !== 'writing' && <ActivityIndicator activity={activity} agentName={agentName} />}
       {visibleMessages.length === 0 && !liveText && !activity && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
@@ -990,12 +938,11 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, o
 }
 
 // Regroupe l'appel et son résultat afin que leur état visuel reste cohérent dans l'historique.
-const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, onFileOpen, repositoryRoot, resultContent, resultError, workspacePath }: {
+const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, repositoryRoot, resultContent, resultError, workspacePath }: {
   args: unknown
   hasResult: boolean
   id: string
   name: string
-  onFileOpen: (path: string) => void
   repositoryRoot?: string | null
   resultContent?: unknown
   resultError?: boolean
@@ -1014,7 +961,7 @@ const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, onF
   const tooltip = formatToolCallTooltip(presentation.headerDetail?.title ?? input, input, hasResult ? displayedOutput : undefined)
   const filePath = name === 'read' || name === 'write' ? toolFilePath(args) : null
   const display = filePath ? readContentDisplay({ path: filePath }) : { kind: 'text' as const }
-  const specialFile = display.kind === 'markdown' || display.kind === 'html'
+  const htmlFile = display.kind === 'html'
   const codeContent = name === 'write' ? writtenContent : displayedOutput
   const toggleExpanded = () => setExpanded((isExpanded) => !isExpanded)
 
@@ -1024,9 +971,14 @@ const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, onF
     return () => window.clearTimeout(timeout)
   }, [codeRendered, display.kind, expanded, loadingWrittenContent, writtenContentError])
 
+  // Ouvre un fichier HTML dans un nouvel onglet local et expand les autres types dans l'historique.
   const activate = () => {
-    if (filePath && specialFile) {
-      onFileOpen(filePath)
+    if (filePath && htmlFile) {
+      const url = htmlFileUrl(workspacePath, filePath)
+      if (url) {
+        const tab = window.open(url, '_blank')
+        if (tab) tab.opener = null
+      }
       return
     }
     if (filePath && display.kind === 'code' && name === 'write' && writtenContent === undefined) {
@@ -1043,7 +995,7 @@ const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, onF
   const contentError = resultError || Boolean(writtenContentError)
   const renderingCode = display.kind === 'code' && canHighlightFile(content) && expanded && !loadingWrittenContent && !writtenContentError && !codeRendered
   return <article className={`tool-call${contentError ? ' error' : ''}`}>
-    <button aria-expanded={specialFile ? undefined : hasResult ? expanded : undefined} className="tool-call-heading tool-call-tooltip" data-tooltip={tooltip} disabled={!hasResult} onClick={activate} type="button">
+    <button aria-expanded={htmlFile ? undefined : hasResult ? expanded : undefined} className="tool-call-heading tool-call-tooltip" data-tooltip={tooltip} disabled={!hasResult} onClick={activate} type="button">
       <span aria-hidden="true">⌘</span>
       <span><strong aria-label={tooltip}>{name}</strong></span>
       {presentation.headerDetail && <span className="tool-call-command"><code aria-label={`Commande complète : ${presentation.headerDetail.title}`}>{presentation.headerDetail.text}</code></span>}
@@ -1054,7 +1006,7 @@ const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, onF
         {pending && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
       </small>
     </button>
-    {hasResult && !specialFile && expanded && <ToolCallContent call={{ name, args }} content={content} error={contentError} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} />}
+    {hasResult && !htmlFile && expanded && <ToolCallContent call={{ name, args }} content={content} error={contentError} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} />}
   </article>
 })
 
@@ -1507,7 +1459,8 @@ function messageOf(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause)
 }
 
-function workspaceFileUrl(workspacePath: string, path: string): string | null {
+// Construit l'URL file:// d'un document HTML dans le workspace pour l'ouvrir dans un nouvel onglet.
+function htmlFileUrl(workspacePath: string, path: string): string | null {
   const root = new URL(workspacePath.endsWith('/') ? workspacePath : `${workspacePath}/`, 'file:///')
   const target = new URL(path, root)
   return target.pathname.startsWith(root.pathname) ? target.href : null
