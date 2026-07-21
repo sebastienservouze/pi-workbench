@@ -6,6 +6,31 @@ import { spawn } from 'node:child_process'
 import { connect, type Socket } from 'node:net'
 import test from 'node:test'
 
+test('accepts commands after an event emitted before Pi finishes starting', { timeout: 10_000 }, async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'pi-manager-'))
+  const port = 45_000 + (process.pid % 10_000)
+  await writeFakePi(directory, true)
+  const manager = spawn(process.execPath, ['server/manager.ts'], {
+    cwd: process.cwd(),
+    env: { ...process.env, PATH: `${directory}:${process.env.PATH}`, PI_WORKBENCH_MANAGER_PORT: String(port) },
+    stdio: 'ignore',
+  })
+  const client = await connectManager(port)
+  try {
+    const startupEvent = client.waitForEvent((event) => event.event === 'pi')
+    const opening = client.request('open', { cwd: process.cwd(), name: 'Archived', sessionPath: join(directory, 'archived.jsonl') })
+    const event = await startupEvent
+    const command = await client.request('command', { sessionId: event.sessionId, command: { type: 'get_commands' } })
+    assert.equal(command.ok, true)
+    await opening
+  } finally {
+    client.close()
+    manager.kill('SIGTERM')
+    await once(manager, 'exit')
+    await rm(directory, { force: true, recursive: true })
+  }
+})
+
 test('restarts an exited Pi session when reopening it', { timeout: 10_000 }, async () => {
   const directory = await mkdtemp(join(tmpdir(), 'pi-manager-'))
   const port = 45_000 + (process.pid % 10_000)
@@ -34,15 +59,21 @@ test('restarts an exited Pi session when reopening it', { timeout: 10_000 }, asy
   }
 })
 
-async function writeFakePi(directory: string): Promise<void> {
+async function writeFakePi(directory: string, emitStartupEvent = false): Promise<void> {
   const path = join(directory, 'pi')
   await writeFile(path, `#!/usr/bin/env node
 import readline from 'node:readline'
 const sessionPath = process.argv[process.argv.indexOf('--session') + 1]
+const emitStartupEvent = ${emitStartupEvent}
 readline.createInterface({ input: process.stdin }).on('line', (line) => {
   const command = JSON.parse(line)
   if (command.type === 'quit_test') process.exit(0)
   const data = command.type === 'get_state' ? { sessionFile: sessionPath } : {}
+  if (command.type === 'get_state' && emitStartupEvent) {
+    console.log(JSON.stringify({ type: 'extension_ui_request', method: 'notify', message: 'Starting' }))
+    setTimeout(() => console.log(JSON.stringify({ type: 'response', id: command.id, success: true, data })), 100)
+    return
+  }
   console.log(JSON.stringify({ type: 'response', id: command.id, success: true, data }))
 })
 `)
@@ -56,11 +87,19 @@ interface ManagerResponse {
   data?: unknown
 }
 
-async function connectManager(port: number): Promise<{ request: (action: string, fields: Record<string, unknown>) => Promise<ManagerResponse>; close: () => void }> {
+interface ManagerEvent {
+  kind: 'event'
+  event: string
+  sessionId: string
+}
+
+async function connectManager(port: number): Promise<{ request: (action: string, fields: Record<string, unknown>) => Promise<ManagerResponse>; waitForEvent: (predicate: (event: ManagerEvent) => boolean) => Promise<ManagerEvent>; close: () => void }> {
   const socket = await connectWithRetry(port)
   let buffer = ''
   let requestId = 0
   const pending = new Map<string, (response: ManagerResponse) => void>()
+  const events: ManagerEvent[] = []
+  const eventWaiters = new Set<() => void>()
   socket.on('data', (chunk) => {
     buffer += chunk.toString('utf8')
     const lines = buffer.split('\n')
@@ -68,9 +107,15 @@ async function connectManager(port: number): Promise<{ request: (action: string,
     for (const line of lines) {
       if (!line) continue
       const response: unknown = JSON.parse(line)
-      if (!isManagerResponse(response)) continue
-      pending.get(response.id)?.(response)
-      pending.delete(response.id)
+      if (isManagerResponse(response)) {
+        pending.get(response.id)?.(response)
+        pending.delete(response.id)
+        continue
+      }
+      if (isManagerEvent(response)) {
+        events.push(response)
+        for (const notify of eventWaiters) notify()
+      }
     }
   })
 
@@ -80,6 +125,23 @@ async function connectManager(port: number): Promise<{ request: (action: string,
       return new Promise((resolve) => {
         pending.set(id, resolve)
         socket.write(`${JSON.stringify({ id, action, ...fields })}\n`)
+      })
+    },
+    waitForEvent(predicate) {
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          eventWaiters.delete(check)
+          reject(new Error('Timed out waiting for manager event'))
+        }, 5_000)
+        function check(): void {
+          const index = events.findIndex(predicate)
+          if (index === -1) return
+          clearTimeout(timeout)
+          eventWaiters.delete(check)
+          resolve(events.splice(index, 1)[0])
+        }
+        eventWaiters.add(check)
+        check()
       })
     },
     close: () => socket.end(),
@@ -108,6 +170,10 @@ function sessionId(response: ManagerResponse): string {
 
 function isManagerResponse(value: unknown): value is ManagerResponse {
   return isObject(value) && value.kind === 'response' && typeof value.id === 'string' && typeof value.ok === 'boolean'
+}
+
+function isManagerEvent(value: unknown): value is ManagerEvent {
+  return isObject(value) && value.kind === 'event' && typeof value.event === 'string' && typeof value.sessionId === 'string'
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {

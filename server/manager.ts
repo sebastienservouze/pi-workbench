@@ -94,8 +94,7 @@ async function createSession(request: ManagerRequest): Promise<SessionSummary> {
     pendingUi: [],
   }
 
-  const session = await startSession(summary)
-  sessions.set(summary.id, session)
+  await startSession(summary)
   broadcast({ kind: 'event', event: 'session_created', sessionId: summary.id, data: summary })
   return { ...summary, pendingUi: [] }
 }
@@ -116,16 +115,17 @@ async function openSession(request: ManagerRequest): Promise<SessionSummary> {
     status: 'starting',
     pendingUi: [],
   }
-  const session = await startSession(summary)
-  sessions.set(summary.id, session)
+  await startSession(summary)
   broadcast({ kind: 'event', event: 'session_created', sessionId: summary.id, data: summary })
   return { ...summary, pendingUi: [] }
 }
 
-async function startSession(summary: SessionSummary): Promise<ManagedSession> {
+/** Enregistre une session dès le lancement de Pi afin que ses premiers événements puissent être interrogés sans course. */
+async function startSession(summary: SessionSummary): Promise<void> {
   const pi = new PiProcess(summary.cwd, summary.id, summary.sessionPath)
   const session: ManagedSession = { summary, pi, pendingUi: new Map() }
 
+  sessions.set(summary.id, session)
   pi.on('event', (event: JsonObject) => handlePiEvent(summary.id, session, event))
   pi.on('exit', (detail: unknown) => {
     summary.status = 'exited'
@@ -137,8 +137,8 @@ async function startSession(summary: SessionSummary): Promise<ManagedSession> {
     const sessionPath = isObject(state.data) && typeof state.data.sessionFile === 'string' ? state.data.sessionFile : undefined
     if (sessionPath) summary.sessionPath = sessionPath
     summary.status = 'idle'
-    return session
   } catch (error) {
+    sessions.delete(summary.id)
     pi.terminate()
     throw error
   }
