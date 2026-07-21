@@ -48,19 +48,21 @@ function App() {
   const [theme, setTheme] = useState(() => window.localStorage.getItem('pi-workbench.theme') ?? 'light')
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [creatingSession, setCreatingSession] = useState(false)
   const [requestedSelect, setRequestedSelect] = useState<'agent' | 'model' | 'thinking' | null>(null)
   const [submitRequest, setSubmitRequest] = useState(0)
   const [focusComposerRequest, setFocusComposerRequest] = useState(0)
   const [scrollToBottomRequest, setScrollToBottomRequest] = useState(0)
   const [shortcuts, setShortcuts] = useState(() => readShortcuts())
   const selectedIdRef = useRef(selectedId)
+  const creatingSessionRef = useRef(false)
   const refreshVersionRef = useRef(0)
   const gitRefreshVersionRef = useRef(0)
   const agentIntentsRef = useRef(new Map<string, AgentIntent>())
   selectedIdRef.current = selectedId
 
-  const showToast = useCallback((kind: Toast['kind'], message: string) => {
-    const toast = { id: crypto.randomUUID(), kind, message, sessionId: selectedIdRef.current }
+  const showToast = useCallback((kind: Toast['kind'], message: string, sessionId = selectedIdRef.current) => {
+    const toast = { id: crypto.randomUUID(), kind, message, sessionId }
     setToasts((current) => [...current, toast])
     if (kind !== 'error') window.setTimeout(() => setToasts((current) => current.filter((item) => item.id !== toast.id)), 3000)
   }, [])
@@ -194,7 +196,10 @@ function App() {
       }
 
       if (event.type === 'extension_ui_request') {
-        if (event.method === 'notify' && typeof event.message === 'string') showToast('notice', event.message)
+        if (creatingSessionRef.current && (event.method === 'notify' || (event.method === 'setStatus' && event.statusKey === 'agent'))) {
+          setSelectedId(sessionId)
+        }
+        if (event.method === 'notify' && typeof event.message === 'string') showToast('notice', event.message, sessionId)
         const agentIntent = agentIntentsRef.current.get(sessionId)
         if (agentIntent && isAgentSelector(event)) {
           const options = event.options.filter((option): option is string => typeof option === 'string')
@@ -268,11 +273,26 @@ function App() {
   const selectedSession = sessions.find((session) => session.id === selectedId)
   const questionnaire = dialog && dialog.sessionId === selectedId && isAskUserQuestionDialog(dialog.request) ? dialog : null
 
+  /** Crée une session, affiche immédiatement son état de chargement et la sélectionne dès son premier événement Pi. */
+  const createAndSelectSession = useCallback(async (): Promise<void> => {
+    creatingSessionRef.current = true
+    setCreatingSession(true)
+    setSelectedId('')
+    try {
+      const session = await createSession(workspacePath)
+      await refreshSessions()
+      setSelectedId(session.id)
+    } finally {
+      creatingSessionRef.current = false
+      setCreatingSession(false)
+    }
+  }, [refreshSessions, workspacePath])
+
   /** Exécute une commande de productivité dans le contexte de la session active. */
   const executeCommand = useCallback((id: CommandId): void => {
     if (id === 'open-palette') { setCommandPaletteOpen(true); return }
     if (id === 'open-settings') { setSettingsOpen(true); return }
-    if (id === 'new-session') { void createSession(workspacePath).then(async (session) => { await refreshSessions(); setSelectedId(session.id) }).catch((cause) => showToast('error', messageOf(cause))); return }
+    if (id === 'new-session') { void createAndSelectSession().catch((cause) => showToast('error', messageOf(cause))); return }
     if (id === 'send') { setSubmitRequest((current) => current + 1); return }
     if (id === 'abort' && selectedId) { void sendPiCommand(selectedId, { type: 'abort' }).catch((cause) => showToast('error', messageOf(cause))); return }
     if (id === 'toggle-git') { setActiveRightWidget((current) => current === null ? 'git' : null); return }
@@ -282,7 +302,7 @@ function App() {
       if (!text) { showToast('notice', 'Aucune réponse assistant à copier.'); return }
       void navigator.clipboard.writeText(text).then(() => showToast('notice', 'Dernière réponse copiée.')).catch((cause) => showToast('error', messageOf(cause)))
     }
-  }, [refreshSessions, selectedId, showToast, snapshot.messages, workspacePath])
+  }, [createAndSelectSession, selectedId, showToast, snapshot.messages])
 
   const paletteCommands: PaletteCommand[] = useMemo(() => commandDefinitions.map((definition) => ({
     ...definition,
@@ -348,11 +368,7 @@ function App() {
         selectedId={selectedId}
         workspacePath={workspacePath}
         onChooseWorkspace={() => setDirectoryPickerOpen(true)}
-        onCreate={async () => {
-          const session = await createSession(workspacePath)
-          await refreshSessions()
-          setSelectedId(session.id)
-        }}
+        onCreate={createAndSelectSession}
         onOpenSession={async (recentSession) => {
           const session = await openSession(workspacePath, recentSession.sessionPath)
           await refreshSessions()
@@ -410,6 +426,15 @@ function App() {
               submitRequest={submitRequest}
               />
             </div>
+          </>
+        ) : creatingSession ? (
+          <>
+            <section className="welcome" aria-busy="true">
+              <span className="brand-mark large">π</span>
+              <h1>Nouvelle session en cours…</h1>
+              <p>Initialisation de Pi et de ses agents.</p>
+            </section>
+            <ToastStack onDismiss={dismissToast} standalone toasts={visibleToasts} />
           </>
         ) : (
           <>
