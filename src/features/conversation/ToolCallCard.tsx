@@ -1,5 +1,6 @@
 import { memo, useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
 import bash from 'react-syntax-highlighter/dist/esm/languages/prism/bash'
 import csharp from 'react-syntax-highlighter/dist/esm/languages/prism/csharp'
@@ -22,7 +23,7 @@ SyntaxHighlighter.registerLanguage('markup', markup)
 SyntaxHighlighter.registerLanguage('typescript', typescript)
 
 export function Markdown({ children }: { children: string }) {
-  return <ReactMarkdown>{children}</ReactMarkdown>
+  return <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
 }
 
 /** Regroupe l'appel et son résultat afin que leur état visuel reste cohérent dans l'historique. */
