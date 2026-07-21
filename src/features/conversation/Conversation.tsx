@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState, type ReactNode } from 'react'
+import { memo, useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type WheelEvent } from 'react'
 import type { JsonObject } from '../../../shared/types.ts'
 import { activityText, type Activity } from './activity.ts'
 import { formatTurnCost, turnUsageByMessage, type MessageUsage } from './message-usage.ts'
@@ -36,6 +36,7 @@ export function Conversation({ messages, liveText, activity, agentName, detailed
   const executionsByCallId = new Map(toolExecutions.map((execution) => [execution.id, execution]))
   const conversationRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef(true)
+  const userScrollIntentRef = useRef(false)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
 
   // Défile automatiquement vers le bas quand du nouveau contenu arrive, sauf si l'utilisateur est remonté.
@@ -52,11 +53,25 @@ export function Conversation({ messages, liveText, activity, agentName, detailed
 
   /** Détecte si l'utilisateur est en bas de la conversation pour activer ou suspendre le défilement automatique. */
   function handleConversationScroll(): void {
+    if (!userScrollIntentRef.current) return
+    userScrollIntentRef.current = false
     const el = conversationRef.current
     if (!el) return
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50
     autoScrollRef.current = nearBottom
     setShowScrollToBottom(!nearBottom)
+  }
+
+  function markUserScrollIntent(): void {
+    userScrollIntentRef.current = true
+  }
+
+  function handleConversationWheel(event: WheelEvent<HTMLDivElement>): void {
+    if (event.deltaY !== 0) markUserScrollIntent()
+  }
+
+  function handleConversationKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
+    if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key)) markUserScrollIntent()
   }
 
   /** Reprend le défilement automatique et ramène au bas de la conversation. */
@@ -67,7 +82,17 @@ export function Conversation({ messages, liveText, activity, agentName, detailed
   }
 
   return (
-    <section className="conversation" aria-live="polite" onScroll={handleConversationScroll} ref={conversationRef}>
+    <section
+      aria-live="polite"
+      className="conversation"
+      onKeyDown={handleConversationKeyDown}
+      onPointerMove={(event) => { if (event.buttons > 0) markUserScrollIntent() }}
+      onScroll={handleConversationScroll}
+      onTouchMove={markUserScrollIntent}
+      onWheel={handleConversationWheel}
+      ref={conversationRef}
+      tabIndex={0}
+    >
       {allMessages.map((message, index) => {
         const calls = detailedView ? toolCallsInMessage(message) : []
         if (!isVisibleConversationMessage(message) && calls.length === 0) return null
