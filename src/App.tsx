@@ -198,6 +198,7 @@ function App() {
       if (event.type === 'extension_ui_request') {
         if (creatingSessionRef.current && (event.method === 'notify' || (event.method === 'setStatus' && event.statusKey === 'agent'))) {
           setSelectedId(sessionId)
+          creatingSessionRef.current = false
         }
         if (event.method === 'notify' && typeof event.message === 'string') showToast('notice', event.message, sessionId)
         const agentIntent = agentIntentsRef.current.get(sessionId)
@@ -281,12 +282,18 @@ function App() {
     try {
       const session = await createSession(workspacePath)
       await refreshSessions()
+      // ponytail: le session_created SSE arrive parfois avant la réponse HTTP ;
+      // la session est déjà enregistrée côté manager, on verrouille la sélection
+      // seulement après que refreshSessions a mis la liste locale à jour.
       setSelectedId(session.id)
-    } finally {
       creatingSessionRef.current = false
       setCreatingSession(false)
+    } catch (cause) {
+      creatingSessionRef.current = false
+      setCreatingSession(false)
+      showToast('error', messageOf(cause))
     }
-  }, [refreshSessions, workspacePath])
+  }, [refreshSessions, showToast, workspacePath])
 
   /** Exécute une commande de productivité dans le contexte de la session active. */
   const executeCommand = useCallback((id: CommandId): void => {
