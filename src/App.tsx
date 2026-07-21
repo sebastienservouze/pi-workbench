@@ -25,9 +25,9 @@ interface AgentIntent {
 
 const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [], stats: null }
 const conversationViewDetails = {
-  simple: { label: 'Vue simplifiée', description: 'Messages uniquement, sans appels d’outils', icon: '∅' },
-  'simple-expanded': { label: 'Vue avec appels fermés', description: 'Appels visibles, résultats repliés', icon: '▸' },
-  detailed: { label: 'Vue avec appels ouverts', description: 'Appels visibles, résultats dépliés', icon: '▾' },
+  simple: { label: 'Vue simplifiée', description: 'Messages uniquement, sans appels d’outils' },
+  'simple-expanded': { label: 'Vue avec appels fermés', description: 'Appels visibles, résultats repliés' },
+  detailed: { label: 'Vue avec appels ouverts', description: 'Appels visibles, résultats dépliés' },
 } as const
 /** Orchestre l'état de l'espace de travail, les événements Pi et les panneaux de l'interface. */
 function App() {
@@ -400,7 +400,7 @@ function App() {
                 window.localStorage.setItem('pi-workbench.conversation-view', next)
                 return next
               })} title={`${conversationViewDetail.label} — ${conversationViewDetail.description}`} type="button">
-              <span aria-hidden="true" className="chat-detail-toggle-icon">{conversationViewDetail.icon}</span>
+              <span aria-hidden="true" className="chat-detail-toggle-icon">⌘</span>
               <span className="chat-detail-toggle-copy"><strong>{conversationViewDetail.label}</strong><small>{conversationViewDetail.description}</small></span>
             </button>
             {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}

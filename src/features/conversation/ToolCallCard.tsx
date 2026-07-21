@@ -57,7 +57,7 @@ export const ToolCallCard = memo(function ToolCallCard({ args, defaultExpanded =
   const toggleExpanded = () => setExpanded((isExpanded) => !isExpanded)
 
   useEffect(() => {
-    if (defaultExpanded && canExpandResult) setExpanded(true)
+    setExpanded(defaultExpanded && canExpandResult)
   }, [canExpandResult, defaultExpanded])
 
   useEffect(() => {
