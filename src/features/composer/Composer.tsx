@@ -1,10 +1,10 @@
 import * as Select from '@radix-ui/react-select'
-import { useState, type ClipboardEvent as ReactClipboardEvent, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type ClipboardEvent as ReactClipboardEvent, type FormEvent, type RefObject } from 'react'
 import type { JsonObject, SessionSnapshot, SessionSummary } from '../../../shared/types.ts'
 import { maxComposerImages, prepareComposerImage, type ComposerImage } from './composer-images.ts'
 
 /** Fournit la saisie utilisateur et les commandes de session tout en reflétant l'état Pi courant. */
-export function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, agentLoading, showAgentSelector, onAgentChange, onCommand, commands, running, onSend, onAbort, onError }: {
+export function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, agentLoading, showAgentSelector, onAgentChange, onCommand, commands, running, onSend, onAbort, onError, requestedSelect, onSelectOpened, submitRequest = 0 }: {
   session: SessionSummary
   snapshot: SessionSnapshot
   agentBusy: boolean
@@ -19,11 +19,19 @@ export function Composer({ session, snapshot, agentBusy, agentOptions, selectedA
   onSend: (message: string, images: JsonObject[], behavior: 'steer' | 'followUp') => Promise<void>
   onAbort: () => Promise<JsonObject>
   onError: (cause: unknown) => void
+  requestedSelect?: 'agent' | 'model' | 'thinking' | null
+  onSelectOpened?: () => void
+  submitRequest?: number
 }) {
   const [message, setMessage] = useState('')
   const [images, setImages] = useState<ComposerImage[]>([])
   const [preparingImages, setPreparingImages] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [openSelect, setOpenSelect] = useState<'agent' | 'model' | 'thinking' | null>(null)
+  const formRef = useRef<HTMLFormElement>(null)
+  const agentTriggerRef = useRef<HTMLButtonElement>(null)
+  const modelTriggerRef = useRef<HTMLButtonElement>(null)
+  const thinkingTriggerRef = useRef<HTMLButtonElement>(null)
   const [slashOpen, setSlashOpen] = useState(false)
   const [slashFilter, setSlashFilter] = useState('')
   const [slashIndex, setSlashIndex] = useState(-1)
@@ -34,6 +42,18 @@ export function Composer({ session, snapshot, agentBusy, agentOptions, selectedA
   const modelInput = selectedModel?.input ?? model?.input
   const supportsImages = Array.isArray(modelInput) && modelInput.includes('image')
   const thinking = typeof snapshot.state?.thinkingLevel === 'string' ? snapshot.state.thinkingLevel : 'off'
+
+  useEffect(() => {
+    if (submitRequest > 0) formRef.current?.requestSubmit()
+  }, [submitRequest])
+
+  useEffect(() => {
+    if (!requestedSelect) return
+    setOpenSelect(requestedSelect)
+    const trigger = requestedSelect === 'agent' ? agentTriggerRef.current : requestedSelect === 'model' ? modelTriggerRef.current : thinkingTriggerRef.current
+    trigger?.focus()
+    onSelectOpened?.()
+  }, [onSelectOpened, requestedSelect])
 
   /** Commandes disponibles filtrées par le texte après le slash. */
   const filteredCommands = commands.filter((command) =>
@@ -109,7 +129,7 @@ export function Composer({ session, snapshot, agentBusy, agentOptions, selectedA
     : ''
 
   return (
-    <form className="composer" onSubmit={(event) => void submit(event)}>
+    <form className="composer" onSubmit={(event) => void submit(event)} ref={formRef}>
       {images.length > 0 && <div aria-label="Images à envoyer" className="composer-images">
         {images.map((image, index) => <div className="composer-image" key={image.id}>
           <img alt={`Image ${index + 1} à envoyer`} src={`data:${image.mimeType};base64,${image.data}`} />
@@ -164,13 +184,18 @@ export function Composer({ session, snapshot, agentBusy, agentOptions, selectedA
               ariaLabel="Agent"
               disabled={agentLoading || agentBusy || agentOptions.length === 0}
               onValueChange={onAgentChange}
+              onOpenChange={(open) => setOpenSelect(open ? 'agent' : null)}
+              open={openSelect === 'agent'}
               options={agentOptions.map((agent) => ({ label: capitalizeLabel(agent), value: agent }))}
               placeholder={agentLoading || agentBusy ? 'Chargement…' : 'Choisir un agent'}
               tone="agent"
+              triggerRef={agentTriggerRef}
               value={selectedAgent}
             />}
             <ComposerSelect
               ariaLabel="Modèle"
+              onOpenChange={(open) => setOpenSelect(open ? 'model' : null)}
+              open={openSelect === 'model'}
               onValueChange={(value) => {
                 const selected = snapshot.models.find((item) => `${item.provider}/${item.id}` === value)
                 if (selected) void onCommand({ type: 'set_model', provider: selected.provider, modelId: selected.id }).catch(onError)
@@ -178,13 +203,17 @@ export function Composer({ session, snapshot, agentBusy, agentOptions, selectedA
               options={snapshot.models.map((item) => ({ label: String(item.name ?? item.id), value: `${item.provider}/${item.id}` }))}
               placeholder="Choisir un modèle"
               tone="model"
+              triggerRef={modelTriggerRef}
               value={currentModel}
             />
             <ComposerSelect
               ariaLabel="Niveau de réflexion"
+              onOpenChange={(open) => setOpenSelect(open ? 'thinking' : null)}
+              open={openSelect === 'thinking'}
               onValueChange={(value) => void onCommand({ type: 'set_thinking_level', level: value }).catch(onError)}
               options={['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'].map((level) => ({ label: capitalizeLabel(level), value: level }))}
               tone="thinking"
+              triggerRef={thinkingTriggerRef}
               value={thinking}
             />
 
@@ -212,7 +241,7 @@ export function Composer({ session, snapshot, agentBusy, agentOptions, selectedA
   )
 }
 
-function ComposerSelect({ ariaLabel, disabled, onValueChange, options, placeholder, tone, value }: {
+function ComposerSelect({ ariaLabel, disabled, onOpenChange, onValueChange, open, options, placeholder, tone, triggerRef, value }: {
   ariaLabel: string
   disabled?: boolean
   onValueChange: (value: string) => void
@@ -220,10 +249,13 @@ function ComposerSelect({ ariaLabel, disabled, onValueChange, options, placehold
   placeholder?: string
   tone: 'agent' | 'behavior' | 'command' | 'model' | 'thinking'
   value: string
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  triggerRef?: RefObject<HTMLButtonElement | null>
 }) {
   return (
-    <Select.Root disabled={disabled} onValueChange={onValueChange} value={value}>
-      <Select.Trigger aria-label={ariaLabel} className={`composer-select ${tone}`}>
+    <Select.Root disabled={disabled} onOpenChange={onOpenChange} open={open} onValueChange={onValueChange} value={value}>
+      <Select.Trigger aria-label={ariaLabel} className={`composer-select ${tone}`} ref={triggerRef}>
         <ComposerSelectIcon tone={tone} />
         <Select.Value placeholder={placeholder} />
       </Select.Trigger>

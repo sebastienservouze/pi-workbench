@@ -13,6 +13,10 @@ import { RightSidebar } from './features/git/RightSidebar.tsx'
 import { DirectoryPicker } from './features/workspace/DirectoryPicker.tsx'
 import { recentWorkspaces } from './features/workspace/recent-workspaces.ts'
 import { WorkspaceSidebar } from './features/workspace/WorkspaceSidebar.tsx'
+import { CommandPalette, type PaletteCommand } from './features/commands/CommandPalette.tsx'
+import { commandDefinitions, defaultShortcuts, lastAssistantText, shortcutFromEvent, type CommandId } from './features/commands/command-registry.ts'
+import { SettingsPanel } from './features/settings/SettingsPanel.tsx'
+import './features/commands/commands.css'
 
 interface AgentIntent {
   value?: string
@@ -41,6 +45,11 @@ function App() {
   const [activeRightWidget, setActiveRightWidget] = useState<'git' | null>(() => window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git')
   const [gitSidebarWidth, setGitSidebarWidth] = useState(() => readGitSidebarWidth(window.localStorage.getItem('pi-workbench.git-sidebar-width')))
   const [theme, setTheme] = useState(() => window.localStorage.getItem('pi-workbench.theme') ?? 'light')
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [requestedSelect, setRequestedSelect] = useState<'agent' | 'model' | 'thinking' | null>(null)
+  const [submitRequest, setSubmitRequest] = useState(0)
+  const [shortcuts, setShortcuts] = useState(() => readShortcuts())
   const selectedIdRef = useRef(selectedId)
   const refreshVersionRef = useRef(0)
   const gitRefreshVersionRef = useRef(0)
@@ -250,6 +259,43 @@ function App() {
   const selectedSession = sessions.find((session) => session.id === selectedId)
   const questionnaire = dialog && dialog.sessionId === selectedId && isAskUserQuestionDialog(dialog.request) ? dialog : null
 
+  /** Exécute une commande de productivité dans le contexte de la session active. */
+  const executeCommand = useCallback((id: CommandId): void => {
+    if (id === 'open-palette') { setCommandPaletteOpen(true); return }
+    if (id === 'open-settings') { setSettingsOpen(true); return }
+    if (id === 'new-session') { void createSession(workspacePath).then(async (session) => { await refreshSessions(); setSelectedId(session.id) }).catch((cause) => showToast('error', messageOf(cause))); return }
+    if (id === 'send') { setSubmitRequest((current) => current + 1); return }
+    if (id === 'abort' && selectedId) { void sendPiCommand(selectedId, { type: 'abort' }).catch((cause) => showToast('error', messageOf(cause))); return }
+    if (id === 'toggle-git') { setActiveRightWidget((current) => current === null ? 'git' : null); return }
+    if (id === 'open-agent' || id === 'open-model' || id === 'open-thinking') { setRequestedSelect(id === 'open-agent' ? 'agent' : id === 'open-model' ? 'model' : 'thinking'); return }
+    if (id === 'copy-last-response') {
+      const text = lastAssistantText(snapshot.messages)
+      if (!text) { showToast('notice', 'Aucune réponse assistant à copier.'); return }
+      void navigator.clipboard.writeText(text).then(() => showToast('notice', 'Dernière réponse copiée.')).catch((cause) => showToast('error', messageOf(cause)))
+    }
+  }, [refreshSessions, selectedId, showToast, snapshot.messages, workspacePath])
+
+  const paletteCommands: PaletteCommand[] = useMemo(() => commandDefinitions.map((definition) => ({
+    ...definition,
+    shortcut: shortcuts[definition.id],
+    disabled: (['send', 'abort', 'open-thinking', 'open-model', 'open-agent', 'copy-last-response'] as CommandId[]).includes(definition.id) && !selectedSession || (definition.id === 'abort' && selectedSession?.status !== 'running'),
+    onExecute: () => executeCommand(definition.id),
+  })), [executeCommand, selectedSession, shortcuts])
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.defaultPrevented) return
+      const shortcut = shortcutFromEvent(event)
+      const command = (Object.entries(shortcuts) as [CommandId, string | undefined][]).find(([, value]) => value === shortcut)?.[0]
+      if (!command) return
+      if (event.key === 'Escape' && (commandPaletteOpen || settingsOpen || dialog || document.querySelector('.composer-select-content,[data-radix-select-content],.slash-commands'))) return
+      event.preventDefault()
+      executeCommand(command)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [commandPaletteOpen, dialog, executeCommand, settingsOpen, shortcuts])
+
   const [vsCodeAvailable, setVsCodeAvailable] = useState<boolean | null>(null)
   useEffect(() => {
     let cancelled = false
@@ -307,6 +353,7 @@ function App() {
         onError={(cause) => showToast('error', messageOf(cause))}
         theme={theme}
         onToggleTheme={toggleTheme}
+        onOpenSettings={() => setSettingsOpen(true)}
       />
 
       <main className="workspace">
@@ -345,6 +392,9 @@ function App() {
               }}
               onAbort={() => sendPiCommand(selectedSession.id, { type: 'abort' })}
               onError={(cause) => showToast('error', messageOf(cause))}
+              requestedSelect={requestedSelect}
+              onSelectOpened={() => setRequestedSelect(null)}
+              submitRequest={submitRequest}
             />
           </>
         ) : (
@@ -404,11 +454,20 @@ function App() {
         }}
       />}
       {dialog && !questionnaire && <ExtensionDialog dialog={dialog} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
+      {commandPaletteOpen && <CommandPalette commands={paletteCommands} onClose={() => setCommandPaletteOpen(false)} />}
+      {settingsOpen && <SettingsPanel definitions={commandDefinitions} shortcuts={shortcuts} onChange={(id, shortcut) => { const next = { ...shortcuts, [id]: shortcut }; setShortcuts(next); window.localStorage.setItem('pi-workbench.shortcuts', JSON.stringify(next)) }} onReset={() => { setShortcuts(defaultShortcuts); window.localStorage.setItem('pi-workbench.shortcuts', JSON.stringify(defaultShortcuts)) }} onClose={() => setSettingsOpen(false)} />}
     </div>
   )
 }
 
 /** Lit une éventuelle ancienne liste invalide sans empêcher l'ouverture de l'application. */
+function readShortcuts(): Partial<Record<CommandId, string>> {
+  try {
+    const value: unknown = JSON.parse(window.localStorage.getItem('pi-workbench.shortcuts') ?? 'null')
+    return isObject(value) ? { ...defaultShortcuts, ...Object.fromEntries(Object.entries(value).filter(([key, shortcut]) => commandDefinitions.some((definition) => definition.id === key) && typeof shortcut === 'string')) as Partial<Record<CommandId, string>> } : defaultShortcuts
+  } catch { return defaultShortcuts }
+}
+
 function readRecentWorkspaces(): string[] {
   try {
     const value: unknown = JSON.parse(window.localStorage.getItem('pi-workbench.recent-workspace-paths') ?? '[]')
