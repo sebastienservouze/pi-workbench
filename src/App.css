@@ -237,6 +237,27 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .rail-tab small { position: absolute; top: 5px; right: 4px; display: grid; place-items: center; min-width: 14px; height: 14px; border-radius: 9px; padding: 0 3px; background: var(--teal-soft); color: #18584f; font: 8px ui-sans-serif, system-ui, sans-serif; }
 .rail-tab[aria-expanded='true'] small { background: var(--surface); box-shadow: 0 1px 3px rgb(29 41 36 / 12%); }
 .conversation { position: relative; min-width: 0; min-height: 0; overflow-y: auto; padding: 42px max(28px, calc((100% - 900px) / 2)) 30px; scrollbar-gutter: stable; }
+.scroll-to-bottom {
+  position: sticky;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-soft);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+.scroll-to-bottom.visible { opacity: 1; pointer-events: auto; }
+.scroll-to-bottom:hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.scroll-to-bottom:focus-visible { outline: 0; border-color: var(--teal); box-shadow: 0 0 0 3px rgb(35 119 109 / 14%); }
 .message { margin: 0 0 26px; }
 .message.user { width: fit-content; max-width: 78%; margin-left: auto; padding: 13px 16px; border-radius: 14px 14px 4px; background: var(--accent); color: white; box-shadow: var(--shadow-soft); }
 .message.assistant { max-width: 760px; padding: 0 2px; }

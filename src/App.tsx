@@ -908,14 +908,35 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, o
     return result ? [[result.toolCallId, result] as const] : []
   }))
   const executionsByCallId = new Map(toolExecutions.map((execution) => [execution.id, execution]))
-  const endRef = useRef<HTMLDivElement>(null)
+  const conversationRef = useRef<HTMLDivElement>(null)
+  const autoScrollRef = useRef(true)
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false)
+
+  // Défile automatiquement vers le bas quand du nouveau contenu arrive, sauf si l'utilisateur est remonté.
   useEffect(() => {
+    if (!autoScrollRef.current) return
     const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
-    endRef.current?.scrollIntoView({ behavior })
+    conversationRef.current?.scrollTo({ top: conversationRef.current.scrollHeight, behavior })
   }, [visibleMessages.length, liveText, activity, toolExecutions])
 
+  // Détecte si l'utilisateur est en bas de la conversation pour activer ou suspendre le défilement automatique.
+  function handleConversationScroll(): void {
+    const el = conversationRef.current
+    if (!el) return
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50
+    autoScrollRef.current = nearBottom
+    setShowScrollToBottom(!nearBottom)
+  }
+
+  // Reprend le défilement automatique et ramène au bas de la conversation.
+  function resumeAutoScroll(): void {
+    autoScrollRef.current = true
+    setShowScrollToBottom(false)
+    conversationRef.current?.scrollTo({ top: conversationRef.current.scrollHeight, behavior: 'smooth' })
+  }
+
   return (
-    <section className="conversation" aria-live="polite">
+    <section className="conversation" aria-live="polite" onScroll={handleConversationScroll} ref={conversationRef}>
       <button aria-label={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} aria-pressed={detailedView} className={`chat-detail-toggle${detailedView ? ' active' : ''}`} onClick={onDetailedViewChange} title={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} type="button">
         <span aria-hidden="true">⌘</span>
       </button>
@@ -934,7 +955,16 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, o
       {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {activity && activity.kind !== 'writing' && <ActivityIndicator activity={activity} agentName={agentName} />}
       {visibleMessages.length === 0 && !liveText && !activity && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
-      <div ref={endRef} />
+      <button
+        aria-label="Reprendre le défilement automatique"
+        className={`scroll-to-bottom${showScrollToBottom ? ' visible' : ''}`}
+        onClick={resumeAutoScroll}
+        type="button"
+      >
+        <svg aria-hidden="true" viewBox="0 0 16 16" width="16" height="16">
+          <path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        </svg>
+      </button>
     </section>
   )
 }
