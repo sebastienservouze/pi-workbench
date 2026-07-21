@@ -937,9 +937,11 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, o
 
   return (
     <section className="conversation" aria-live="polite" onScroll={handleConversationScroll} ref={conversationRef}>
-      <button aria-label={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} aria-pressed={detailedView} className={`chat-detail-toggle${detailedView ? ' active' : ''}`} onClick={onDetailedViewChange} title={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} type="button">
-        <span aria-hidden="true">⌘</span>
-      </button>
+      <div className="chat-detail-bar">
+        <button aria-label={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} aria-pressed={detailedView} className={`chat-detail-toggle${detailedView ? ' active' : ''}`} onClick={onDetailedViewChange} title={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} type="button">
+          <span aria-hidden="true">⌘</span>
+        </button>
+      </div>
       {messages.map((message, index) => {
         const calls = detailedView ? toolCallsInMessage(message) : []
         if (!isVisibleConversationMessage(message) && calls.length === 0) return null
