@@ -1,3 +1,19 @@
+```text
+██████╗ ██╗      ██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗██████╗ ███████╗███╗   ██╗
+██╔══██╗██║      ██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝██╔══██╗██╔════╝████╗  ██║
+██████╔╝██║█████╗██║ █╗ ██║██║   ██║██████╔╝█████╔╝ ██████╔╝█████╗  ██╔██╗ ██║
+██╔═══╝ ██║╚════╝██║███╗██║██║   ██║██╔══██╗██╔═██╗ ██╔══██╗██╔══╝  ██║╚██╗██║
+██║     ██║      ╚███╔███╔╝╚██████╔╝██║  ██║██║  ██╗██████╔╝███████╗██║ ╚████║
+╚═╝     ╚═╝       ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═══╝
+                                                                              
+ ██████╗██╗  ██╗                                                              
+██╔════╝██║  ██║                                                              
+██║     ███████║                                                              
+██║     ██╔══██║                                                              
+╚██████╗██║  ██║                                                              
+ ╚═════╝╚═╝  ╚═╝                                                              
+```
+
 # Pi Workbench
 
 Pi Workbench est une interface web locale pour utiliser plusieurs sessions [Pi](https://github.com/earendil-works/pi) dans le même espace de travail. Elle conserve les sessions Pi indépendamment de l’interface : redémarrer le frontend ou le backend n’interrompt pas une session en cours.
