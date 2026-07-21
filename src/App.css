@@ -70,7 +70,8 @@ button:disabled, select:disabled { cursor: not-allowed; }
 
 .code-symbol { font: 700 15px/1 ui-monospace, monospace; letter-spacing: -2px; }
 
-.sidebar-actions { display: flex; gap: 4px; padding: 6px 0; }
+.workspace-group { display: flex; flex-direction: column; gap: 4px; }
+.sidebar-actions { display: flex; gap: 4px; padding: 2px 0 0; }
 .sidebar-action {
   display: flex;
   align-items: center;

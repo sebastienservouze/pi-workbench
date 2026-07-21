@@ -405,35 +405,37 @@ function App() {
           <span className="brand-mark">π</span>
           <div><strong>Pi Workbench</strong><small>Local workspace</small></div>
         </div>
-        <button className="workspace-path" onClick={() => setDirectoryPickerOpen(true)} title={workspacePath} type="button">
-          <span>Dossier courant</span><strong>{workspacePath}</strong>
-        </button>
-        <div className="sidebar-actions">
-          <button
-            className="sidebar-action"
-            onClick={() => void openExplorer(workspacePath).catch((cause) => showToast('error', messageOf(cause)))}
-            title="Ouvrir le dossier dans l'Explorateur"
-            type="button"
-          >
-            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h4l2 2h7A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z" /><path d="M3 9h18" /></svg>
-            <span>Explorateur</span>
+        <div className="workspace-group">
+          <button className="workspace-path" onClick={() => setDirectoryPickerOpen(true)} title={workspacePath} type="button">
+            <span>Dossier courant</span><strong>{workspacePath}</strong>
           </button>
-          <button
-            className="sidebar-action"
-            disabled={vsCodeAvailable !== true}
-            onClick={() => {
-              void openVsCode(workspacePath)
-                .catch((cause) => {
-                  setVsCodeAvailable(false)
-                  showToast('error', messageOf(cause))
-                })
-            }}
-            title={vsCodeAvailable === null ? 'Vérification de VS Code…' : vsCodeAvailable ? 'Ouvrir le dossier dans VS Code' : 'VS Code est indisponible. Tapez code dans WSL, puis rechargez la page.'}
-            type="button"
-          >
-            <span aria-hidden="true" className="code-symbol">{'<>'}</span>
-            <span>VS Code</span>
-          </button>
+          <div className="sidebar-actions">
+            <button
+              className="sidebar-action"
+              onClick={() => void openExplorer(workspacePath).catch((cause) => showToast('error', messageOf(cause)))}
+              title="Ouvrir le dossier dans l'Explorateur"
+              type="button"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h4l2 2h7A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z" /><path d="M3 9h18" /></svg>
+              <span>Explorateur</span>
+            </button>
+            <button
+              className="sidebar-action"
+              disabled={vsCodeAvailable !== true}
+              onClick={() => {
+                void openVsCode(workspacePath)
+                  .catch((cause) => {
+                    setVsCodeAvailable(false)
+                    showToast('error', messageOf(cause))
+                  })
+              }}
+              title={vsCodeAvailable === null ? 'Vérification de VS Code…' : vsCodeAvailable ? 'Ouvrir le dossier dans VS Code' : 'VS Code est indisponible. Tapez code dans WSL, puis rechargez la page.'}
+              type="button"
+            >
+              <span aria-hidden="true" className="code-symbol">{'<>'}</span>
+              <span>VS Code</span>
+            </button>
+          </div>
         </div>
         <NewSessionButton
           onCreate={async () => {
