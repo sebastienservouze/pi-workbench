@@ -68,11 +68,26 @@ button:disabled, select:disabled { cursor: not-allowed; }
 }
 .brand-mark.large { width: 64px; height: 64px; margin: auto; border-radius: 18px; font-size: 38px; }
 
-.composer-workspace-actions, .open-vscode-tooltip { display: flex; gap: 5px; }
-.composer-workspace-actions { padding-right: 5px; border-right: 1px solid var(--line); }
-.open-explorer svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
 .code-symbol { font: 700 15px/1 ui-monospace, monospace; letter-spacing: -2px; }
-.open-vscode:disabled { opacity: .45; }
+
+.sidebar-actions { display: flex; gap: 4px; padding: 6px 0; }
+.sidebar-action {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease;
+}
+.sidebar-action:hover, .sidebar-action:focus-visible { border-color: var(--line-strong); background: rgb(255 255 255 / 66%); }
+.sidebar-action:disabled { opacity: .45; cursor: default; }
+.sidebar-action svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
 
 .workspace-path {
   display: grid;
