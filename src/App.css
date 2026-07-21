@@ -502,8 +502,8 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .icon-button.danger { border-color: #e4beb7; background: var(--danger-soft); color: var(--danger); }
 .icon-button.danger svg { width: 13px; }
 
-.message.system { margin: 12px 0; padding: 8px 14px; border-radius: 8px; background: #f1fbf8; color: #24645b; font-size: 13px; line-height: 1.45; text-align: center; }
-.message.system.error { background: #fff7f5; color: var(--danger); }
+.message.system { margin: 4px 0; padding: 4px 0; color: var(--subtle); font-size: 11.5px; line-height: 1.5; text-align: center; }
+.message.system.error { margin: 6px 0; padding: 6px 12px; border-radius: 6px; background: #fff7f5; color: var(--danger); font-size: 12px; }
 
 .modal-backdrop { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 20px; background: rgb(22 34 28 / 35%); backdrop-filter: blur(4px); }
 .modal { width: min(560px, 100%); max-height: 80vh; overflow: auto; border: 1px solid rgb(255 255 255 / 80%); border-radius: 14px; padding: 24px; background: var(--surface); box-shadow: 0 30px 90px rgb(17 29 23 / 24%); }

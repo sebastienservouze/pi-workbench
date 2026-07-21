@@ -139,7 +139,7 @@ function App() {
   const [agentOptions, setAgentOptions] = useState<Record<string, string[]>>({})
   const [agentBusy, setAgentBusy] = useState<Record<string, boolean>>({})
   const [dialog, setDialog] = useState<UiDialog | null>(null)
-  const [systemMessages, setSystemMessages] = useState<JsonObject[]>([])
+  const [systemMessages, setSystemMessages] = useState<Record<string, JsonObject[]>>({})
   const [gitSnapshot, setGitSnapshot] = useState<GitSnapshot | null>(null)
   const [activeRightWidget, setActiveRightWidget] = useState<'git' | null>(() => window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git')
   const [gitSidebarWidth, setGitSidebarWidth] = useState(() => readGitSidebarWidth(window.localStorage.getItem('pi-workbench.git-sidebar-width')))
@@ -150,7 +150,11 @@ function App() {
   selectedIdRef.current = selectedId
 
   const showToast = useCallback((kind: 'notice' | 'error', message: string) => {
-    setSystemMessages((current) => [...current, { role: 'system', content: message, kind, timestamp: Date.now() }])
+    const sid = selectedIdRef.current || '__global__'
+    setSystemMessages((current) => ({
+      ...current,
+      [sid]: [...(current[sid] ?? []), { role: 'system', content: message, kind, timestamp: Date.now() }],
+    }))
   }, [])
 
   const updateGitSidebarWidth = useCallback((width: number) => {
@@ -427,7 +431,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} systemMessages={systemMessages} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} systemMessages={systemMessages[selectedSession.id] ?? []} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <button aria-label={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} aria-pressed={detailedView} className={`chat-detail-toggle${detailedView ? ' active' : ''}`} onClick={() => setDetailedView((current) => {
                 const next = !current
                 window.localStorage.setItem('pi-workbench.detailed-view', String(next))
