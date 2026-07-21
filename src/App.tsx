@@ -884,10 +884,6 @@ function DirectoryPicker({ initialPath, recentPaths, onClose, onError, onSelect 
     <div className="modal-backdrop" role="presentation">
       <section aria-labelledby="directory-picker-title" aria-modal="true" className="modal directory-picker" role="dialog">
         <h2 id="directory-picker-title">Choisir un dossier</h2>
-        {recentPaths.length > 0 && <section aria-label="Workspaces récents" className="recent-workspaces">
-          <strong>Workspaces récents</strong>
-          <div>{recentPaths.map((recentPath) => <button key={recentPath} onClick={() => selectDirectory(recentPath)} type="button">{recentPath}</button>)}</div>
-        </section>}
         <label className="directory-path-label" htmlFor="directory-path">Chemin du dossier</label>
         <input
           aria-activedescendant={activeSuggestion >= 0 ? `directory-suggestion-${activeSuggestion}` : undefined}
@@ -915,7 +911,11 @@ function DirectoryPicker({ initialPath, recentPaths, onClose, onError, onSelect 
             role="option"
           >{suggestion}</div>)}
         </div>}
-        <div className="modal-actions"><button onClick={onClose} type="button">Annuler</button></div>
+        {recentPaths.length > 0 && <section aria-label="Workspaces récents" className="recent-workspaces">
+          <strong>Workspaces récents</strong>
+          <div>{recentPaths.map((recentPath) => <button key={recentPath} onClick={() => selectDirectory(recentPath)} type="button">{recentPath}</button>)}</div>
+        </section>}
+        <div className="modal-actions"><button onClick={onClose} type="button">Annuler</button><button onClick={() => selectDirectory(path)} type="button">Ouvrir</button></div>
       </section>
     </div>
   )
