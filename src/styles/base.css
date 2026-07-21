@@ -24,6 +24,32 @@
   --shadow-soft: 0 5px 18px rgb(29 41 36 / 7%);
 }
 
+[data-theme="dark"] {
+  --canvas: #171c1a;
+  --surface: #1e2422;
+  --surface-raised: #252b29;
+  --sidebar: #1a201e;
+  --ink: #dde3e0;
+  --muted: #94a099;
+  --subtle: #707c76;
+  --line: #2e3733;
+  --line-strong: #3b4540;
+  --accent: #4fb9ab;
+  --accent-hover: #66c9bc;
+  --accent-soft: #162b27;
+  --teal: #4fb9ab;
+  --teal-soft: #162b27;
+  --violet: #9d91d4;
+  --violet-soft: #221f3a;
+  --success: #59ba7c;
+  --warning: #d6aa45;
+  --warning-strong: #ea8740;
+  --danger: #e26e63;
+  --danger-soft: #321a16;
+  --shadow: 0 8px 32px rgb(0 0 0 / 40%);
+  --shadow-soft: 0 3px 12px rgb(0 0 0 / 30%);
+}
+
 * { box-sizing: border-box; }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
@@ -41,3 +67,96 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .app-shell.git-sidebar-collapsed { grid-template-columns: 296px minmax(0, 1fr) 48px; }
 
 .workspace { position: relative; display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: var(--surface-raised); }
+
+/* ── Dark mode overrides for hardcoded colors ── */
+
+[data-theme="dark"] {
+  /* ── sidebar / workspace ── */
+  .brand-mark { border-color: #536e61; box-shadow: 0 3px 0 #3d5248; }
+  .theme-toggle:hover { background: rgb(255 255 255 / 8%); }
+  .sidebar-action:hover,
+  .sidebar-action:focus-visible,
+  .workspace-path:hover,
+  .workspace-path:focus-visible { background: rgb(255 255 255 / 6%); }
+  .session-item:hover { background: rgb(255 255 255 / 5%); }
+  .session-item.selected { border-color: rgb(255 255 255 / 10%); }
+  .new-session { box-shadow: 0 4px 0 #1a3f38, 0 8px 14px rgb(79 185 171 / 12%); }
+  .new-session:hover { box-shadow: 0 3px 0 #14312b, 0 6px 12px rgb(79 185 171 / 14%); }
+  .recent-workspaces button:hover,
+  .recent-workspaces button:focus-visible,
+  .directory-suggestions [role='option']:hover,
+  .directory-suggestions [role='option'].active { color: var(--teal); }
+
+  /* ── composer ── */
+  .composer:focus-within { border-color: #4d5c55; box-shadow: 0 0 0 3px rgb(79 185 171 / 12%), var(--shadow); }
+  .composer-image { background: #2a322f; }
+  .composer textarea::placeholder { color: #7a8c83; }
+  .composer-footer { background: #1e2422; }
+  .composer-select:hover,
+  .icon-button:hover { border-color: #4d5c55; }
+  .composer-toggle:hover { border-color: #4d5c55; }
+  .composer-toggle.active { border-color: #3a6d64; color: #5fc4b6; }
+  .composer-select.command .composer-select-icon { color: #5a9bb5; }
+  .composer-select.behavior .composer-select-icon { color: #9d8cc4; }
+  .composer-select-content { box-shadow: 0 15px 32px rgb(0 0 0 / 50%); }
+  .composer-select-content.model { border-color: #4a4170; }
+  .composer-select-content.thinking { border-color: #6b562e; }
+  .composer-select-content.agent { border-color: #3a6d64; }
+  .composer-select-option[data-highlighted] { background: #2a322f; }
+  .composer-select-option[data-state='checked'] { color: #5fc4b6; }
+  .icon-button.send { box-shadow: 0 2px 0 #1a3f38; }
+  .icon-button.danger { border-color: #5c3d37; }
+
+  /* ── conversation ── */
+  .chat-detail-toggle.active { border-color: #3a6d64; color: #5fc4b6; }
+  .slash-command-item:hover,
+  .slash-command-item.selected { color: #5fc4b6; }
+  .content pre { background: #1e2422; }
+  .content :not(pre) > code { background: #252b29; }
+  .user .content pre { background: #151c19; }
+  .tool-call { border-color: #3a4a43; background: #1a2421; color: #b0c9c0; }
+  .tool-call.error { border-color: #5c3d37; color: #f09087; }
+  .tool-call-heading:not(:disabled):hover { background: rgb(79 185 171 / 8%); }
+  .tool-call-tooltip[data-tooltip]::after { background: #0e1e1a; }
+  .tool-call-content { border-top-color: rgb(176 201 192 / 14%); }
+  .tool-call pre { background: rgb(0 0 0 / 14%); }
+  .tool-edit-diff { background: rgb(0 0 0 / 14%); }
+  .tool-edit-operation + .tool-edit-operation { border-top-color: rgb(176 201 192 / 14%); }
+  .tool-edit-line.removed { background: #2d1c19; color: #f09087; }
+  .tool-edit-line.added { background: #182c22; color: #4dba6a; }
+  .tool-call-markdown :not(pre) > code { background: rgb(176 201 192 / 12%); }
+  .spinner { border-color: #3a544c; }
+  .message.system.error { background: #2d1c19; }
+
+  /* ── dialogs ── */
+  .ask-user-question-heading { background: #1a201e; }
+  .ask-user-question-tabs button:hover { background: #2a322f; }
+  .ask-user-question-tabs button.active { border-color: #3a6d64; color: #5fc4b6; }
+  .ask-user-question-tabs button.answered:not(.active) { color: #5fc4b6; }
+  .ask-user-question-tabs b { background: #1e382b; color: #4dba6a; }
+  .ask-user-question-actions { background: #1a201e; }
+  .ask-user-question textarea,
+  .modal textarea { background: var(--surface); }
+  .ask-user-question-backdrop { background: rgb(0 0 0 / 40%); }
+  .modal-backdrop { background: rgb(0 0 0 / 55%); }
+
+  /* ── git sidebar ── */
+  .git-refresh:hover,
+  .git-back:hover { background: #2a322f; }
+  .git-file-item:hover { background: #252b29; }
+  .git-diff-line > span,
+  .git-diff-line > i { color: #7a8c83; }
+  .git-diff-line.added { background: #182c22; color: #4dba6a; }
+  .git-diff-line.added > span,
+  .git-diff-line.added > i { color: #4dba6a; }
+  .git-diff-line.removed { background: #2d1c19; color: #f09087; }
+  .git-diff-line.removed > span,
+  .git-diff-line.removed > i { color: #d08075; }
+  .git-diff-line.hunk { background: #1f2a28; color: #6ab3a3; }
+  .git-commits h2 small { color: #5fc4b6; }
+  .git-commits summary:hover { background: #252b29; }
+  .git-revert:hover:not(:disabled) { background: #2d1c19; }
+  .git-actions button:hover { background: var(--accent-hover); }
+  .rail-tab:hover:not(:disabled) { background: #2a322f; }
+  .rail-tab small { color: #5fc4b6; }
+}

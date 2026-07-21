@@ -40,6 +40,7 @@ function App() {
   const [gitSnapshot, setGitSnapshot] = useState<GitSnapshot | null>(null)
   const [activeRightWidget, setActiveRightWidget] = useState<'git' | null>(() => window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git')
   const [gitSidebarWidth, setGitSidebarWidth] = useState(() => readGitSidebarWidth(window.localStorage.getItem('pi-workbench.git-sidebar-width')))
+  const [theme, setTheme] = useState(() => window.localStorage.getItem('pi-workbench.theme') ?? 'light')
   const selectedIdRef = useRef(selectedId)
   const refreshVersionRef = useRef(0)
   const gitRefreshVersionRef = useRef(0)
@@ -59,6 +60,19 @@ function App() {
     window.localStorage.setItem('pi-workbench.git-sidebar-width', String(nextWidth))
     setGitSidebarWidth(nextWidth)
   }, [])
+
+  /** Bascule le thème clair / sombre et persiste le choix dans le stockage local. */
+  const toggleTheme = useCallback(() => {
+    setTheme((current) => {
+      const next = current === 'dark' ? 'light' : 'dark'
+      window.localStorage.setItem('pi-workbench.theme', next)
+      return next
+    })
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+  }, [theme])
 
   /** Recharge les sessions et leurs demandes UI en ignorant les réponses obsolètes. */
   const refreshSessions = useCallback(async (cwd = workspacePath) => {
@@ -291,6 +305,8 @@ function App() {
         }}
         onSelectSession={setSelectedId}
         onError={(cause) => showToast('error', messageOf(cause))}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       <main className="workspace">

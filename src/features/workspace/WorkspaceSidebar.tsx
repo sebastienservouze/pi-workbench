@@ -6,21 +6,26 @@ interface WorkspaceSidebarProps {
   sessions: SessionSummary[]
   selectedId: string
   workspacePath: string
+  theme: string
   onChooseWorkspace: () => void
   onCreate: () => Promise<void>
   onOpenSession: (session: RecentSession) => Promise<void>
   onSelectSession: (sessionId: string) => void
+  onToggleTheme: () => void
   onError: (cause: unknown) => void
 }
 
 /** Affiche le workspace courant et ouvre ou sélectionne ses sessions Pi récentes. */
-export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspacePath, onChooseWorkspace, onCreate, onOpenSession, onSelectSession, onError }: WorkspaceSidebarProps) {
+export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspacePath, theme, onChooseWorkspace, onCreate, onOpenSession, onSelectSession, onToggleTheme, onError }: WorkspaceSidebarProps) {
   const [openingSessionPath, setOpeningSessionPath] = useState('')
 
   return <aside className="sidebar">
     <div className="brand">
       <span className="brand-mark">π</span>
       <div><strong>Pi Workbench</strong><small>Local workspace</small></div>
+      <button aria-label={theme === 'dark' ? 'Passer au thème clair' : 'Passer au thème sombre'} className="theme-toggle" onClick={onToggleTheme} title={theme === 'dark' ? 'Thème clair' : 'Thème sombre'} type="button">
+        {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+      </button>
     </div>
     <div className="workspace-group">
       <button className="workspace-path" onClick={onChooseWorkspace} title={workspacePath} type="button">
@@ -72,4 +77,21 @@ function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>
   }
 
   return <button className="new-session" disabled={busy} onClick={() => void create()} type="button">{busy ? 'Démarrage…' : '＋ Nouvelle session'}</button>
+}
+
+function MoonIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" height="16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="16">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  )
+}
+
+function SunIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" height="16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width="16">
+      <circle cx="12" cy="12" r="5" />
+      <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+    </svg>
+  )
 }

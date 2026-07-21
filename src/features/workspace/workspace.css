@@ -10,6 +10,23 @@
 }
 
 .brand { display: flex; align-items: center; gap: 11px; padding: 2px 7px; }
+.brand > div { flex: 1; min-width: 0; }
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+.theme-toggle:hover { border-color: var(--line-strong); background: rgb(255 255 255 / 54%); color: var(--ink); }
+.theme-toggle:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 .brand strong, .brand small { display: block; }
 .brand strong { font-size: 14px; letter-spacing: -.02em; }
 .brand small { margin-top: 2px; color: var(--muted); font-size: 11px; }
