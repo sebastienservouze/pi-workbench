@@ -53,13 +53,19 @@ export function Conversation({ messages, liveText, activity, agentName, detailed
 
   /** Détecte si l'utilisateur est en bas de la conversation pour activer ou suspendre le défilement automatique. */
   function handleConversationScroll(): void {
-    if (!userScrollIntentRef.current) return
-    userScrollIntentRef.current = false
     const el = conversationRef.current
     if (!el) return
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50
-    autoScrollRef.current = nearBottom
-    setShowScrollToBottom(!nearBottom)
+    if (nearBottom) {
+      userScrollIntentRef.current = false
+      autoScrollRef.current = true
+      setShowScrollToBottom(false)
+      return
+    }
+    if (!userScrollIntentRef.current) return
+    userScrollIntentRef.current = false
+    autoScrollRef.current = false
+    setShowScrollToBottom(true)
   }
 
   function markUserScrollIntent(): void {
@@ -76,6 +82,7 @@ export function Conversation({ messages, liveText, activity, agentName, detailed
 
   /** Reprend le défilement automatique et ramène au bas de la conversation. */
   function resumeAutoScroll(): void {
+    userScrollIntentRef.current = false
     autoScrollRef.current = true
     setShowScrollToBottom(false)
     conversationRef.current?.scrollTo({ top: conversationRef.current.scrollHeight, behavior: 'smooth' })
