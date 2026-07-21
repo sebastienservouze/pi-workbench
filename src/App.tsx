@@ -62,7 +62,7 @@ function App() {
   const showToast = useCallback((kind: Toast['kind'], message: string) => {
     const toast = { id: crypto.randomUUID(), kind, message, sessionId: selectedIdRef.current }
     setToasts((current) => [...current, toast])
-    window.setTimeout(() => setToasts((current) => current.filter((item) => item.id !== toast.id)), 5000)
+    if (kind !== 'error') window.setTimeout(() => setToasts((current) => current.filter((item) => item.id !== toast.id)), 3000)
   }, [])
 
   /** Retire un toast après sa fermeture explicite ou automatique. */
