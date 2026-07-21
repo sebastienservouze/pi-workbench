@@ -442,7 +442,11 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={detailedView} onDetailedViewChange={() => setDetailedView((current) => {
+                const next = !current
+                window.localStorage.setItem('pi-workbench.detailed-view', String(next))
+                return next
+              })} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
             <Composer
               session={selectedSession}
@@ -460,12 +464,6 @@ function App() {
               agentLoading={snapshotSessionId !== selectedSession.id}
               showAgentSelector={snapshotSessionId !== selectedSession.id || snapshot.commands.some((command) => command.name === 'agent')}
               running={selectedSession.status === 'running'}
-              detailedView={detailedView}
-              onDetailedViewChange={() => setDetailedView((current) => {
-                const next = !current
-                window.localStorage.setItem('pi-workbench.detailed-view', String(next))
-                return next
-              })}
               onSend={async (message, images, behavior) => {
                 const command: JsonObject = { type: 'prompt', message, images }
                 if (selectedSession.status === 'running') command.streamingBehavior = behavior
@@ -890,12 +888,13 @@ function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>
 }
 
 // Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi.
-function Conversation({ messages, liveText, activity, agentName, detailedView, repositoryRoot, toolExecutions, workspacePath }: {
+function Conversation({ messages, liveText, activity, agentName, detailedView, onDetailedViewChange, repositoryRoot, toolExecutions, workspacePath }: {
   messages: JsonObject[]
   liveText: string
   activity: Activity | null
   agentName?: string
   detailedView: boolean
+  onDetailedViewChange: () => void
   repositoryRoot?: string | null
   toolExecutions: ToolExecution[]
   workspacePath: string
@@ -917,6 +916,9 @@ function Conversation({ messages, liveText, activity, agentName, detailedView, r
 
   return (
     <section className="conversation" aria-live="polite">
+      <button aria-label={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} aria-pressed={detailedView} className={`chat-detail-toggle${detailedView ? ' active' : ''}`} onClick={onDetailedViewChange} title={detailedView ? 'Vue simplifiée' : 'Vue détaillée'} type="button">
+        <span aria-hidden="true">⌘</span>
+      </button>
       {messages.map((message, index) => {
         const calls = detailedView ? toolCallsInMessage(message) : []
         if (!isVisibleConversationMessage(message) && calls.length === 0) return null
@@ -1089,7 +1091,7 @@ function Markdown({ children }: { children: string }) {
 }
 
 // Fournit la saisie utilisateur et les commandes de session tout en reflétant l'état Pi courant.
-function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, agentLoading, showAgentSelector, onAgentChange, onCommand, commands, running, detailedView, onDetailedViewChange, onSend, onAbort, onError }: {
+function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, agentLoading, showAgentSelector, onAgentChange, onCommand, commands, running, onSend, onAbort, onError }: {
   session: SessionSummary
   snapshot: SessionSnapshot
   agentBusy: boolean
@@ -1101,8 +1103,6 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, a
   onCommand: (command: JsonObject) => Promise<JsonObject>
   commands: JsonObject[]
   running: boolean
-  detailedView: boolean
-  onDetailedViewChange: () => void
   onSend: (message: string, images: JsonObject[], behavior: 'steer' | 'followUp') => Promise<void>
   onAbort: () => Promise<JsonObject>
   onError: (cause: unknown) => void
@@ -1111,6 +1111,9 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, a
   const [images, setImages] = useState<ComposerImage[]>([])
   const [preparingImages, setPreparingImages] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [slashOpen, setSlashOpen] = useState(false)
+  const [slashFilter, setSlashFilter] = useState('')
+  const [slashIndex, setSlashIndex] = useState(-1)
   const [behavior, setBehavior] = useState<'steer' | 'followUp'>('steer')
   const model = isObject(snapshot.state?.model) ? snapshot.state.model : null
   const currentModel = model && typeof model.id === 'string' && typeof model.provider === 'string' ? `${model.provider}/${model.id}` : ''
@@ -1118,6 +1121,18 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, a
   const modelInput = selectedModel?.input ?? model?.input
   const supportsImages = Array.isArray(modelInput) && modelInput.includes('image')
   const thinking = typeof snapshot.state?.thinkingLevel === 'string' ? snapshot.state.thinkingLevel : 'off'
+
+  // Commandes disponibles filtrées par le texte après le slash.
+  const filteredCommands = commands.filter((command) =>
+    slashOpen && String(command.name).toLowerCase().includes(slashFilter.toLowerCase()),
+  )
+
+  // Insère la commande slash sélectionnée dans le textarea et referme le popover.
+  function selectSlashCommand(name: string): void {
+    setMessage(`/${name} `)
+    setSlashOpen(false)
+    setSlashIndex(-1)
+  }
 
   // Envoie texte et images dans la même commande RPC, puis restaure le brouillon en cas d'échec.
   async function submit(event: FormEvent): Promise<void> {
@@ -1188,7 +1203,45 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, a
           <button aria-label={`Retirer l'image ${index + 1}`} disabled={submitting} onClick={() => setImages((current) => current.filter(({ id }) => id !== image.id))} type="button">×</button>
         </div>)}
       </div>}
-      <textarea aria-label="Message" disabled={submitting} onPaste={(event) => void handlePaste(event)} value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => {
+      {slashOpen && filteredCommands.length > 0 && (
+        <div className="slash-commands" role="listbox">
+          {filteredCommands.map((command, index) => (
+            <div
+              aria-selected={index === slashIndex}
+              className={`slash-command-item${index === slashIndex ? ' selected' : ''}`}
+              key={String(command.name)}
+              onClick={() => selectSlashCommand(String(command.name))}
+              onMouseDown={(event) => event.preventDefault()}
+              role="option"
+            >
+              <span className="slash-command-name">/{String(command.name)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <textarea aria-label="Message" disabled={submitting} onPaste={(event) => void handlePaste(event)} value={message} onChange={(event) => {
+        const next = event.target.value
+        setMessage(next)
+        if (next.startsWith('/') && commands.length > 0) {
+          setSlashOpen(true)
+          setSlashFilter(next.slice(1))
+          setSlashIndex(-1)
+        } else {
+          setSlashOpen(false)
+        }
+      }} onKeyDown={(event) => {
+        if (slashOpen && filteredCommands.length > 0) {
+          if (event.key === 'Escape') { event.preventDefault(); setSlashOpen(false); return }
+          if (event.key === 'ArrowDown') { event.preventDefault(); setSlashIndex((index) => Math.min(index + 1, filteredCommands.length - 1)); return }
+          if (event.key === 'ArrowUp') { event.preventDefault(); setSlashIndex((index) => Math.max(index - 1, 0)); return }
+          if (event.key === 'Enter' || event.key === 'Tab') {
+            event.preventDefault()
+            const target = slashIndex >= 0 ? filteredCommands[slashIndex] : filteredCommands[0]
+            if (target) selectSlashCommand(String(target.name))
+            return
+          }
+          return
+        }
         if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit() }
       }} placeholder="Demandez quelque chose à Pi…" rows={3} />
       <div className="composer-footer">
@@ -1221,17 +1274,7 @@ function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, a
               tone="thinking"
               value={thinking}
             />
-            {commands.length > 0 && <ComposerSelect
-              ariaLabel="Insérer une commande Pi"
-              onValueChange={(value) => setMessage(`/${value} `)}
-              options={commands.map((command) => ({ label: String(command.name), value: String(command.name) }))}
-              placeholder="Commandes"
-              tone="command"
-              value=""
-            />}
-            <button aria-pressed={detailedView} className={`composer-toggle${detailedView ? ' active' : ''}`} onClick={onDetailedViewChange} type="button">
-              <span aria-hidden="true">⌘</span> {detailedView ? 'Vue détaillée' : 'Vue simplifiée'}
-            </button>
+
             {running && <ComposerSelect
               ariaLabel="Comportement du prochain message"
               onValueChange={(value) => setBehavior(value as 'steer' | 'followUp')}
