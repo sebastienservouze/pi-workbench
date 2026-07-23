@@ -60,7 +60,7 @@
   color: var(--ink);
 }
 .chat-detail-toggle:focus-visible { outline: 0; box-shadow: 0 0 0 3px rgb(35 119 109 / 14%); }
-.chat-detail-toggle.detailed { border-color: #c9c0e7; background: var(--violet-soft); color: #4f3f89; }
+.chat-detail-toggle.detailed:not(:hover):not(:focus-visible) { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 .chat-detail-toggle.detailed:hover,
 .chat-detail-toggle.detailed:focus-visible { border-color: var(--violet); }
 .chat-detail-toggle-icon { flex: 0 0 14px; text-align: center; }
