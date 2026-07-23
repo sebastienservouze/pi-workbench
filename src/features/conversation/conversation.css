@@ -166,7 +166,7 @@
 .tool-call-markdown :not(pre) > code { padding: 1px 3px; border-radius: 3px; background: rgb(33 68 61 / 10%); font: 11px ui-monospace, monospace; }
 .tool-call-syntax { font: 11px/1.5 ui-monospace, monospace !important; }
 .pi-activity { display: flex; align-items: flex-start; gap: 9px; color: var(--teal); font: 12px/1.55 ui-monospace, monospace; white-space: nowrap; }
-.composer-activity { width: min(900px, calc(100% - 48px)); margin: 0 auto 8px; }
+.conversation-activity { margin: 0 2px 18px; }
 .activity-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; animation: activity-pulse 1.8s ease-in-out infinite; }
 .spinner { width: 13px; height: 13px; border: 2px solid #b4d3cc; border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite; }
 .empty-conversation, .welcome { align-self: center; margin: auto; color: var(--muted); text-align: center; }

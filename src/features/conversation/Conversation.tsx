@@ -13,7 +13,9 @@ export interface ToolExecution {
 }
 
 /** Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi. */
-export function Conversation({ messages, liveText, liveThinking, detailedView, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath }: {
+export function Conversation({ activity, agentName, messages, liveText, liveThinking, detailedView, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath }: {
+  activity: Activity | null
+  agentName?: string
   messages: JsonObject[]
   liveText: string
   liveThinking: string
@@ -43,7 +45,7 @@ export function Conversation({ messages, liveText, liveThinking, detailedView, r
     if (!autoScrollRef.current) return
     const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
     conversationRef.current?.scrollTo({ top: conversationRef.current.scrollHeight, behavior })
-  }, [visibleMessages.length, liveText, liveThinking, toolExecutions])
+  }, [activity, visibleMessages.length, liveText, liveThinking, toolExecutions])
 
   useEffect(() => {
     if (scrollToBottomRequest > 0) resumeAutoScroll()
@@ -114,6 +116,7 @@ export function Conversation({ messages, liveText, liveThinking, detailedView, r
       {liveThinking && <ReasoningBlock>{liveThinking}</ReasoningBlock>}
       {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {visibleMessages.length === 0 && !liveText && !liveThinking && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
+      {activity && <div className="conversation-activity"><ActivityIndicator activity={activity} agentName={agentName} /></div>}
       <button
         aria-label="Reprendre le défilement automatique"
         className={`scroll-to-bottom${showScrollToBottom ? ' visible' : ''}`}
@@ -145,7 +148,7 @@ function TurnUsage({ usage }: { usage: MessageUsage }) {
   </dl>
 }
 
-/** Affiche l'état de travail courant de Pi à proximité du composer. */
+/** Affiche l'état de travail courant de Pi dans le fil de conversation. */
 export function ActivityIndicator({ activity, agentName }: { activity: Activity; agentName?: string }) {
   return <div className="pi-activity" role="status"><span aria-hidden="true" className="spinner" /><span className="activity-text">{activityText(activity, agentName)}</span></div>
 }

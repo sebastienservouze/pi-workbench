@@ -5,7 +5,7 @@ import type { GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnaps
 import { Composer } from './features/composer/Composer.tsx'
 import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
 import { activityForPiEvent, waitingActivity, type Activity } from './features/conversation/activity.ts'
-import { ActivityIndicator, Conversation, type ToolExecution } from './features/conversation/Conversation.tsx'
+import { Conversation, type ToolExecution } from './features/conversation/Conversation.tsx'
 import { toolCallInUpdate, type ToolResult } from './features/conversation/tool-calls.ts'
 import { AskUserQuestionDialog, ExtensionDialog } from './features/dialogs/Dialogs.tsx'
 import { isAgentSelector, isAskUserQuestionDialog, isBlockingDialog, type UiDialog } from './features/dialogs/dialog-protocol.ts'
@@ -401,7 +401,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Cliquer pour changer de vue.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
                 const next = current === 'simple' ? 'detailed' : 'simple'
                 window.localStorage.setItem('pi-workbench.conversation-view', next)
@@ -413,7 +413,6 @@ function App() {
             {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
             <div className="composer-area">
               <ToastStack onDismiss={dismissToast} toasts={visibleToasts} />
-              {activity && <div className="composer-activity"><ActivityIndicator activity={activity} agentName={selectedSession.activeAgent} /></div>}
               <Composer
               session={selectedSession}
               snapshot={snapshot}
