@@ -213,17 +213,19 @@ function App() {
         }
         if (event.method === 'notify' && typeof event.message === 'string') showToast('notice', event.message, sessionId)
         const agentIntent = agentIntentsRef.current.get(sessionId)
-        if (agentIntent && isAgentSelector(event)) {
+        if (isAgentSelector(event)) {
           const options = event.options.filter((option): option is string => typeof option === 'string')
-          setAgentOptions((current) => ({ ...current, [sessionId]: options }))
-          agentIntentsRef.current.delete(sessionId)
+          if (agentIntent) {
+            setAgentOptions((current) => ({ ...current, [sessionId]: options }))
+            agentIntentsRef.current.delete(sessionId)
+          }
 
-          const selectedAgent = agentIntent.value && options.includes(agentIntent.value) ? agentIntent.value : undefined
+          const selectedAgent = agentIntent?.value && options.includes(agentIntent.value) ? agentIntent.value : undefined
           const response = selectedAgent ? { value: selectedAgent } : { cancelled: true }
           void sendPiCommand(sessionId, { type: 'extension_ui_response', id: event.id, ...response })
             .then(() => refreshSnapshot(sessionId))
             .catch((cause) => showToast('error', messageOf(cause)))
-          if (agentIntent.value && !selectedAgent) showToast('error', 'L’agent sélectionné n’est plus disponible.')
+          if (agentIntent?.value && !selectedAgent) showToast('error', 'L’agent sélectionné n’est plus disponible.')
           return
         }
         if (isBlockingDialog(event)) setDialog({ sessionId, request: event })
