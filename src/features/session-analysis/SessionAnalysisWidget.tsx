@@ -100,21 +100,17 @@ function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnal
   const chartScrollRef = useRef<HTMLDivElement>(null)
   const height = 178
   const padding = { top: 14, right: 16, bottom: 30, left: 12 }
-  const width = Math.max(248, padding.left + padding.right + turns.length * 30)
+  const width = Math.max(248, padding.left + padding.right + (turns.length - 1) * 30)
   const plotWidth = width - padding.left - padding.right
   const plotHeight = height - padding.top - padding.bottom
-  const slotWidth = plotWidth / turns.length
-  const barWidth = Math.min(18, slotWidth * 0.6)
   const maxCost = Math.max(...turns.map((turn) => turn.cost))
-  const bars = turns.map((turn, index) => {
-    const barHeight = maxCost > 0 ? plotHeight * turn.cost / maxCost : 0
-    return {
-      barHeight,
-      turn,
-      x: padding.left + slotWidth * (index + 0.5),
-      y: padding.top + plotHeight - barHeight,
-    }
-  })
+  const points = turns.map((turn, index) => ({
+    turn,
+    x: turns.length === 1 ? padding.left + plotWidth / 2 : padding.left + index * plotWidth / (turns.length - 1),
+    y: padding.top + plotHeight * (1 - (maxCost > 0 ? turn.cost / maxCost : 0)),
+  }))
+  const linePoints = points.map(({ x, y }) => `${x},${y}`).join(' ')
+  const areaPoints = `${padding.left},${padding.top + plotHeight} ${linePoints} ${width - padding.right},${padding.top + plotHeight}`
   const yTicks = (maxCost > 0 ? [0, 0.5, 1] : [1]).map((ratio) => ({
     label: formatTurnCost(maxCost * (1 - ratio)),
     y: padding.top + plotHeight * ratio,
@@ -131,7 +127,9 @@ function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnal
     <div className="turn-cost-chart-scroll" ref={chartScrollRef}>
       <svg aria-label="Coût de chaque tour assistant, dans l’ordre chronologique" className="turn-cost-chart" role="group" style={{ width }} viewBox={`0 0 ${width} ${height}`}>
       {yTicks.map((tick) => <line className="chart-grid" key={tick.y} x1={padding.left} x2={width - padding.right} y1={tick.y} y2={tick.y} />)}
-      {bars.map(({ barHeight, turn, x, y }) => {
+      {points.length > 1 && <polygon className="chart-area" points={areaPoints} />}
+      {points.length > 1 && <polyline className="chart-line" points={linePoints} />}
+      {points.map(({ turn, x, y }) => {
         const tooltipWidth = 124
         const tooltipX = Math.min(width - padding.right - tooltipWidth, Math.max(padding.left, x - tooltipWidth / 2))
         const tooltipY = y < padding.top + 48 ? y + 13 : y - 47
@@ -148,8 +146,8 @@ function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnal
           role="button"
           tabIndex={0}
         >
-          <rect className="chart-bar-hit" height={plotHeight} width={slotWidth} x={x - slotWidth / 2} y={padding.top} />
-          <rect className="chart-bar" height={barHeight} rx="2" width={barWidth} x={x - barWidth / 2} y={y} />
+          <circle className="chart-point-hit" cx={x} cy={y} r="11" />
+          <circle className="chart-point-dot" cx={x} cy={y} r="3.5" />
           <text className="chart-x-label" x={x} y={height - 9}>{turn.number}</text>
           <g aria-hidden="true" className="chart-tooltip" transform={`translate(${tooltipX} ${tooltipY})`}>
             <rect height="38" rx="6" width={tooltipWidth} />

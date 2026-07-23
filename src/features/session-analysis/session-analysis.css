@@ -29,15 +29,17 @@
 .chart-y-axis { position: relative; flex: 0 0 52px; height: 181px; }
 .chart-y-axis span { position: absolute; right: 8px; color: var(--muted); font: 8px ui-monospace, monospace; transform: translateY(-50%); white-space: nowrap; }
 .chart-grid { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.chart-area { fill: var(--teal-soft); }
+.chart-line { fill: none; stroke: currentcolor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .chart-x-label, .chart-axis-title { fill: var(--muted); font: 8px ui-monospace, monospace; }
 .chart-x-label, .chart-axis-title { text-anchor: middle; }
 .chart-axis-title { fill: var(--subtle); font-size: 7px; }
 .chart-point { cursor: pointer; }
-.chart-bar-hit { fill: transparent; stroke: transparent; stroke-width: 2; }
-.chart-bar { fill: currentcolor; opacity: .78; transition: opacity 160ms ease-out; }
-.chart-point:hover .chart-bar, .chart-point:focus-visible .chart-bar { opacity: 1; }
+.chart-point-hit { fill: transparent; stroke: transparent; stroke-width: 2; }
+.chart-point-dot { fill: var(--surface); stroke: currentcolor; stroke-width: 2; transition: r 160ms ease-out, fill 160ms ease-out; vector-effect: non-scaling-stroke; }
+.chart-point:hover .chart-point-dot, .chart-point:focus-visible .chart-point-dot { r: 5px; fill: currentcolor; }
 .chart-point:focus { outline: none; }
-.chart-point:focus-visible .chart-bar-hit { stroke: currentcolor; }
+.chart-point:focus-visible .chart-point-hit { stroke: currentcolor; }
 .chart-tooltip { opacity: 0; pointer-events: none; transition: opacity 160ms ease-out; }
 .chart-point:hover .chart-tooltip, .chart-point:focus-visible .chart-tooltip { opacity: 1; }
 .chart-tooltip rect { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1; vector-effect: non-scaling-stroke; }
@@ -72,4 +74,4 @@
 .analysis-empty { margin: 5px 6px 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
 .conversation-target { border-radius: 9px; animation: conversation-target-fade 1.8s ease-out; }
 @keyframes conversation-target-fade { from { background: var(--teal-soft); box-shadow: 0 0 0 5px var(--teal-soft); } to { background: transparent; box-shadow: 0 0 0 0 transparent; } }
-@media (prefers-reduced-motion: reduce) { .chart-bar, .chart-tooltip { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .chart-point-dot, .chart-tooltip { transition: none; } }
