@@ -40,7 +40,6 @@ function App() {
   const [snapshotSessionId, setSnapshotSessionId] = useState('')
   const [liveText, setLiveText] = useState('')
   const [liveThinking, setLiveThinking] = useState('')
-  const [reasoningTurn, setReasoningTurn] = useState(0)
   const [activity, setActivity] = useState<Activity | null>(null)
   const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([])
   const [conversationView, setConversationView] = useState<'detailed' | 'simple'>(() => {
@@ -251,7 +250,6 @@ function App() {
       if (event.type === 'message_start') {
         setLiveText('')
         setLiveThinking('')
-        setReasoningTurn((current) => current + 1)
       }
       if (event.type === 'message_update' && isObject(event.assistantMessageEvent)) {
         const update = event.assistantMessageEvent
@@ -403,7 +401,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} reasoningTurn={reasoningTurn} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Cliquer pour changer de vue.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
                 const next = current === 'simple' ? 'detailed' : 'simple'
                 window.localStorage.setItem('pi-workbench.conversation-view', next)

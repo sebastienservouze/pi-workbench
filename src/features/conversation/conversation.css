@@ -114,14 +114,10 @@
 .slash-command-desc { margin-left: 8px; color: var(--muted); font-size: 11px; }
 
 .content { overflow-wrap: anywhere; font: 14px/1.7 ui-sans-serif, system-ui, sans-serif; }
-.content > :first-child, .content details > :first-child { margin-top: 0; }
-.content > :last-child, .content details > :last-child { margin-bottom: 0; }
+.content > :first-child, .reasoning > :first-child { margin-top: 0; }
+.content > :last-child, .reasoning > :last-child { margin-bottom: 0; }
 .content p { margin: 0 0 13px; }
-.reasoning { margin: 0 0 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--muted); }
-.reasoning summary { padding: 8px 10px; color: var(--ink); font-size: 12px; font-weight: 650; cursor: pointer; }
-.reasoning[open] summary { border-bottom: 1px solid var(--line); }
-.reasoning summary:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
-.reasoning-content { padding: 10px 12px 0; font-size: 12px; line-height: 1.6; }
+.reasoning { margin: 0 0 13px; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .content h1, .content h2, .content h3 { line-height: 1.25; letter-spacing: -.025em; text-wrap: balance; }
 .content pre { overflow-x: auto; padding: 13px 14px; border: 1px solid var(--line); border-radius: 9px; background: #f0f3f1; font: 12px/1.6 ui-monospace, monospace; white-space: pre-wrap; }
 .content :not(pre) > code { padding: 2px 5px; border-radius: 4px; background: #edf1ef; color: var(--ink); font: 12px ui-monospace, monospace; }

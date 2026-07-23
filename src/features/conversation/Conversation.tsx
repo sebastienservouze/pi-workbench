@@ -13,11 +13,10 @@ export interface ToolExecution {
 }
 
 /** Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi. */
-export function Conversation({ messages, liveText, liveThinking, reasoningTurn, detailedView, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath }: {
+export function Conversation({ messages, liveText, liveThinking, detailedView, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath }: {
   messages: JsonObject[]
   liveText: string
   liveThinking: string
-  reasoningTurn: number
   detailedView: boolean
   repositoryRoot?: string | null
   scrollToBottomRequest: number
@@ -26,7 +25,6 @@ export function Conversation({ messages, liveText, liveThinking, reasoningTurn, 
 }) {
   const allMessages = messages
   const visibleMessages = allMessages.filter(isVisibleConversationMessage)
-  const latestHistoricReasoning = lastReasoningKey(allMessages)
   const usagesByMessage = turnUsageByMessage(allMessages)
   const toolCalls = allMessages.flatMap(toolCallsInMessage)
   const toolCallIds = new Set(toolCalls.map((call) => call.id))
@@ -39,33 +37,6 @@ export function Conversation({ messages, liveText, liveThinking, reasoningTurn, 
   const autoScrollRef = useRef(true)
   const userScrollIntentRef = useRef(false)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
-  const [expandedReasoning, setExpandedReasoning] = useState<string | null | undefined>(undefined)
-  const activeReasoningTurnRef = useRef(reasoningTurn)
-  const hasLiveThinkingRef = useRef(false)
-  const initializedReasoningRef = useRef(false)
-
-  useEffect(() => {
-    if (activeReasoningTurnRef.current !== reasoningTurn) {
-      activeReasoningTurnRef.current = reasoningTurn
-      hasLiveThinkingRef.current = false
-      setExpandedReasoning(null)
-      return
-    }
-    if (liveThinking) {
-      if (!hasLiveThinkingRef.current) setExpandedReasoning('live')
-      hasLiveThinkingRef.current = true
-      return
-    }
-    if (hasLiveThinkingRef.current) {
-      hasLiveThinkingRef.current = false
-      setExpandedReasoning(latestHistoricReasoning)
-      return
-    }
-    if (!initializedReasoningRef.current && latestHistoricReasoning) {
-      initializedReasoningRef.current = true
-      setExpandedReasoning(latestHistoricReasoning)
-    }
-  }, [latestHistoricReasoning, liveThinking, reasoningTurn])
 
   // Défile automatiquement vers le bas quand du nouveau contenu arrive, sauf si l'utilisateur est remonté.
   useEffect(() => {
@@ -132,7 +103,7 @@ export function Conversation({ messages, liveText, liveThinking, reasoningTurn, 
         const calls = detailedView ? toolCallsInMessage(message) : []
         if (!isVisibleConversationMessage(message) && calls.length === 0) return null
         return <div key={`${String(message.timestamp ?? '')}-${index}`}>
-          {isVisibleConversationMessage(message) && <MessageCard expandedReasoning={expandedReasoning} message={message} messageIndex={index} onReasoningToggle={setExpandedReasoning} usage={usagesByMessage.get(index)} />}
+          {isVisibleConversationMessage(message) && <MessageCard message={message} usage={usagesByMessage.get(index)} />}
           {calls.map((call) => {
             const result = resultsByCallId.get(call.id) ?? executionsByCallId.get(call.id)?.result
             return <ToolCallCard args={call.args} hasResult={result !== undefined} id={call.id} key={call.id} name={call.name} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} workspacePath={workspacePath} />
@@ -140,7 +111,7 @@ export function Conversation({ messages, liveText, liveThinking, reasoningTurn, 
         </div>
       })}
       {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard args={execution.args} hasResult={execution.result !== undefined} id={execution.id} key={execution.id} name={execution.name} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} workspacePath={workspacePath} />)}
-      {liveThinking && <ReasoningBlock expandedReasoning={expandedReasoning} onToggle={setExpandedReasoning} reasoningKey="live">{liveThinking}</ReasoningBlock>}
+      {liveThinking && <ReasoningBlock>{liveThinking}</ReasoningBlock>}
       {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {visibleMessages.length === 0 && !liveText && !liveThinking && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
       <button
@@ -157,11 +128,11 @@ export function Conversation({ messages, liveText, liveThinking, reasoningTurn, 
   )
 }
 
-const MessageCard = memo(function MessageCard({ expandedReasoning, message, messageIndex, onReasoningToggle, usage }: { expandedReasoning: string | null | undefined; message: JsonObject; messageIndex: number; onReasoningToggle: (key: string | null) => void; usage?: MessageUsage }) {
+const MessageCard = memo(function MessageCard({ message, usage }: { message: JsonObject; usage?: MessageUsage }) {
   const role = String(message.role)
   const timestamp = typeof message.timestamp === 'number' ? new Date(message.timestamp) : null
   const time = timestamp && !Number.isNaN(timestamp.getTime()) ? timestamp : null
-  return <article className={`message ${role}`}><div className="content">{renderContent(message.content ?? message.output, messageIndex, expandedReasoning, onReasoningToggle)}</div>{usage && <TurnUsage usage={usage} />}{role === 'user' && time && <time className="message-time" dateTime={time.toISOString()}>{time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time>}</article>
+  return <article className={`message ${role}`}><div className="content">{renderContent(message.content ?? message.output)}</div>{usage && <TurnUsage usage={usage} />}{role === 'user' && time && <time className="message-time" dateTime={time.toISOString()}>{time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time>}</article>
 })
 
 /** Affiche les compteurs facturés par Pi pour une réponse assistant terminée. */
@@ -193,42 +164,22 @@ function hasVisibleContent(content: unknown): boolean {
   ))
 }
 
-/** Rend les contenus assistant dans leur ordre, dont les raisonnements repliables. */
-function renderContent(content: unknown, messageIndex: number, expandedReasoning: string | null | undefined, onReasoningToggle: (key: string | null) => void): ReactNode {
+/** Rend les contenus assistant dans leur ordre, dont les réflexions visibles. */
+function renderContent(content: unknown): ReactNode {
   if (typeof content === 'string') return <Markdown>{content}</Markdown>
   if (!Array.isArray(content)) return null
   return <>{content.map((part, contentIndex) => {
     if (isImageContent(part)) return <img alt={`Image jointe ${contentIndex + 1}`} className="message-image" key={`image-${contentIndex}`} src={`data:${part.mimeType};base64,${part.data}`} />
     if (!isObject(part)) return null
-    if (part.type === 'thinking' && typeof part.thinking === 'string' && part.thinking.trim()) return <ReasoningBlock expandedReasoning={expandedReasoning} key={`reasoning-${contentIndex}`} onToggle={onReasoningToggle} reasoningKey={reasoningKey(messageIndex, contentIndex)}>{part.thinking}</ReasoningBlock>
+    if (part.type === 'thinking' && typeof part.thinking === 'string' && part.thinking.trim()) return <ReasoningBlock key={`reasoning-${contentIndex}`}>{part.thinking}</ReasoningBlock>
     if (part.type === 'text' && typeof part.text === 'string') return <Markdown key={`text-${contentIndex}`}>{part.text}</Markdown>
     return null
   })}</>
 }
 
-/** Présente un raisonnement consultable sans alourdir le fil de discussion. */
-function ReasoningBlock({ children, expandedReasoning, onToggle, reasoningKey }: { children: string; expandedReasoning: string | null | undefined; onToggle: (key: string | null) => void; reasoningKey: string }) {
-  return <details className="reasoning" onToggle={(event) => onToggle(event.currentTarget.open ? reasoningKey : null)} open={expandedReasoning === reasoningKey}>
-    <summary>Raisonnement</summary>
-    <div className="reasoning-content"><Markdown>{children}</Markdown></div>
-  </details>
-}
-
-/** Retrouve le dernier raisonnement historique pour l'ouvrir à l'arrivée dans une session. */
-function lastReasoningKey(messages: JsonObject[]): string | null {
-  for (let messageIndex = messages.length - 1; messageIndex >= 0; messageIndex -= 1) {
-    const content = messages[messageIndex].content ?? messages[messageIndex].output
-    if (!Array.isArray(content)) continue
-    for (let contentIndex = content.length - 1; contentIndex >= 0; contentIndex -= 1) {
-      const part = content[contentIndex]
-      if (isObject(part) && part.type === 'thinking' && typeof part.thinking === 'string' && part.thinking.trim()) return reasoningKey(messageIndex, contentIndex)
-    }
-  }
-  return null
-}
-
-function reasoningKey(messageIndex: number, contentIndex: number): string {
-  return `${messageIndex}-${contentIndex}`
+/** Présente une réflexion directement dans le fil avec une hiérarchie discrète. */
+function ReasoningBlock({ children }: { children: string }) {
+  return <div className="reasoning"><Markdown>{children}</Markdown></div>
 }
 
 function isImageContent(value: unknown): value is JsonObject & { data: string; mimeType: string } {
