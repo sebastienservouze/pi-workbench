@@ -86,6 +86,34 @@ test('compte uniquement les erreurs explicites et déduplique la télémétrie l
   assert.equal(analysis.toolCalls.find((call) => call.id === 'call_live')?.durationMs, 500)
 })
 
+test('cumule les volumes et durées par type d’outil', () => {
+  const messages = [
+    { role: 'user', content: 'Lis les fichiers.' },
+    {
+      role: 'assistant',
+      content: [
+        { type: 'toolCall', id: 'read_1', name: 'read', arguments: { path: 'a' } },
+        { type: 'toolCall', id: 'read_2', name: 'read', arguments: { path: 'b' } },
+      ],
+      usage: usage(10, 5, 20, 0, 0.001),
+    },
+    { role: 'toolResult', toolCallId: 'read_1', toolName: 'read', content: [{ type: 'text', text: 'abc' }], isError: false },
+    { role: 'toolResult', toolCallId: 'read_2', toolName: 'read', content: [{ type: 'text', text: 'hello' }], isError: true },
+  ]
+  const analysis = analyzeSession(messages, null, false, {
+    toolDurations: new Map([['read_1', 100], ['read_2', 250]]),
+  })
+
+  assert.deepEqual(analysis.tools, [{
+    name: 'read',
+    count: 2,
+    failed: 1,
+    outputLength: 8,
+    durationMs: 350,
+    measuredDurationCount: 2,
+  }])
+})
+
 test('rattache une exécution live orpheline à une requête navigable de secours', () => {
   const analysis = analyzeSession([], null, true, {
     toolExecutions: [{ id: 'call_live', name: 'read', args: {}, status: 'running' }],

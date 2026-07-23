@@ -46,6 +46,13 @@
 .chart-tooltip text { fill: var(--ink); font: 9px ui-monospace, monospace; }
 .chart-tooltip-cost { font-weight: 700; }
 .chart-tooltip-tools { fill: var(--muted); font-size: 8px; }
+.tool-usage-ranking { display: grid; gap: 10px; margin: 2px 0 0; padding: 0 6px; list-style: none; }
+.tool-usage-ranking li > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.tool-usage-ranking code { overflow: hidden; font-size: 10px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.tool-usage-ranking b { color: var(--teal); font: 700 9px ui-monospace, monospace; white-space: nowrap; }
+.tool-usage-ranking small { display: block; margin-top: 4px; color: var(--muted); font-size: 8px; }
+.tool-usage-bar { display: block; height: 4px; margin-top: 6px; overflow: hidden; border-radius: 2px; background: var(--line); }
+.tool-usage-bar i { display: block; height: 100%; border-radius: inherit; background: var(--teal); }
 .analysis-ranking, .analysis-tools { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .analysis-ranking button { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 48px; border: 0; border-radius: 7px; padding: 7px 6px; background: transparent; color: inherit; text-align: left; }
 .analysis-ranking button:hover { background: var(--surface-raised); }

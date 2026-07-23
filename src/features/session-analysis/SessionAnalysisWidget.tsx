@@ -1,12 +1,14 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { formatTokens, formatTurnCost } from '../conversation/message-usage.ts'
-import type { AnalyzedToolCall, AnalyzedTurn, SessionAnalysis, SessionAnalysisTarget } from './session-analysis.ts'
+import type { AnalyzedToolCall, AnalyzedTurn, SessionAnalysis, SessionAnalysisTarget, ToolSummary } from './session-analysis.ts'
 
 type ToolRanking = 'duration' | 'failure' | 'output'
+type ToolUsageRanking = 'duration' | 'output'
 
 /** Présente les mesures déterministes de la session et relie chaque anomalie à la conversation. */
 export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: SessionAnalysis; onNavigate: (target: SessionAnalysisTarget) => void }) {
   const [toolRanking, setToolRanking] = useState<ToolRanking>('output')
+  const [toolUsageRanking, setToolUsageRanking] = useState<ToolUsageRanking>('output')
   const costlyRequests = useMemo(() => [...analysis.requests]
     .filter((request) => request.modelCallCount > 0)
     .sort((a, b) => b.cost - a.cost)
@@ -15,6 +17,10 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
     .filter((call) => toolRanking === 'duration' ? call.durationMs !== undefined : toolRanking === 'failure' ? call.isError : true)
     .sort((a, b) => toolValue(b, toolRanking) - toolValue(a, toolRanking))
     .slice(0, 8), [analysis.toolCalls, toolRanking])
+  const rankedTools = useMemo(() => [...analysis.tools]
+    .filter((tool) => toolUsageRanking === 'output' || tool.measuredDurationCount > 0)
+    .sort((a, b) => toolSummaryValue(b, toolUsageRanking) - toolSummaryValue(a, toolUsageRanking)), [analysis.tools, toolUsageRanking])
+  const maxToolUsage = toolSummaryValue(rankedTools[0], toolUsageRanking)
   const failureRate = analysis.totalToolCalls > 0 ? analysis.failedToolCalls / analysis.totalToolCalls : 0
   const turnCostAvailable = analysis.turnCount > 0
 
@@ -51,18 +57,6 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
     </section>
 
     <section className="analysis-section">
-      <header><h2>Tours utilisateur coûteux</h2><span>coût</span></header>
-      {costlyRequests.length > 0 ? <ol className="analysis-ranking">
-        {costlyRequests.map((request) => <li key={request.messageIndex}>
-          <button disabled={request.messageIndex < 0} onClick={() => onNavigate({ kind: 'message', index: request.messageIndex })} type="button">
-            <span><strong>{request.title}</strong><small>{request.modelCallCount} appel{request.modelCallCount > 1 ? 's' : ''} modèle · {request.toolCalls.length} outil{request.toolCalls.length > 1 ? 's' : ''}{request.durationMs !== undefined && ` · ${formatDuration(request.durationMs)}`}</small></span>
-            <b>{formatTurnCost(request.cost)}</b>
-          </button>
-        </li>)}
-      </ol> : <EmptyState>Les coûts apparaîtront après la première réponse.</EmptyState>}
-    </section>
-
-    <section className="analysis-section">
       <header><h2>Appels consommateurs</h2><select aria-label="Classer les appels d’outils" onChange={(event) => setToolRanking(event.target.value as ToolRanking)} value={toolRanking}><option value="output">sortie</option><option value="duration">durée observée</option><option value="failure">échecs</option></select></header>
       {rankedCalls.length > 0 ? <ol className="analysis-ranking tool-ranking">
         {rankedCalls.map((call) => <ToolCallRow call={call} key={call.id} metric={toolRanking} onNavigate={onNavigate} />)}
@@ -75,6 +69,25 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
         {analysis.tools.map((tool) => <li key={tool.name}><code>{tool.name}</code><span>{tool.count}{tool.failed > 0 && <b> · {tool.failed}</b>}</span></li>)}
       </ul>
     </section>}
+
+    <section className="analysis-section">
+      <header><h2>Usage cumulé par outil</h2><select aria-label="Classer l’usage cumulé des outils" onChange={(event) => setToolUsageRanking(event.target.value as ToolUsageRanking)} value={toolUsageRanking}><option value="output">sortie cumulée</option><option value="duration">durée cumulée</option></select></header>
+      {rankedTools.length > 0 ? <ol className="tool-usage-ranking">
+        {rankedTools.map((tool) => <ToolUsageRow key={tool.name} maxValue={maxToolUsage} metric={toolUsageRanking} tool={tool} />)}
+      </ol> : <EmptyState>{toolUsageRanking === 'duration' ? 'Les durées sont mesurées pendant cette ouverture du Workbench.' : 'Aucun appel d’outil dans cette session.'}</EmptyState>}
+    </section>
+
+    <section className="analysis-section">
+      <header><h2>Tours utilisateur coûteux</h2><span>coût</span></header>
+      {costlyRequests.length > 0 ? <ol className="analysis-ranking">
+        {costlyRequests.map((request) => <li key={request.messageIndex}>
+          <button disabled={request.messageIndex < 0} onClick={() => onNavigate({ kind: 'message', index: request.messageIndex })} type="button">
+            <span><strong>{request.title}</strong><small>{request.modelCallCount} appel{request.modelCallCount > 1 ? 's' : ''} modèle · {request.toolCalls.length} outil{request.toolCalls.length > 1 ? 's' : ''}{request.durationMs !== undefined && ` · ${formatDuration(request.durationMs)}`}</small></span>
+            <b>{formatTurnCost(request.cost)}</b>
+          </button>
+        </li>)}
+      </ol> : <EmptyState>Les coûts apparaîtront après la première réponse.</EmptyState>}
+    </section>
   </div>
 }
 
@@ -148,6 +161,22 @@ function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnal
   </div>
 }
 
+/** Compare les volumes cumulés d’un type d’outil sans leur attribuer de coût monétaire. */
+function ToolUsageRow({ maxValue, metric, tool }: { maxValue: number; metric: ToolUsageRanking; tool: ToolSummary }) {
+  const value = toolSummaryValue(tool, metric)
+  const calls = `${tool.count} appel${tool.count !== 1 ? 's' : ''}`
+  const measured = metric === 'duration' && tool.measuredDurationCount < tool.count
+    ? ` · ${tool.measuredDurationCount}/${tool.count} durée${tool.measuredDurationCount !== 1 ? 's' : ''} mesurée${tool.measuredDurationCount !== 1 ? 's' : ''}`
+    : ''
+  const failures = tool.failed > 0 ? ` · ${tool.failed} échec${tool.failed > 1 ? 's' : ''}` : ''
+
+  return <li>
+    <div><code>{tool.name}</code><b>{metric === 'duration' ? formatDuration(value) : formatCharacters(value)}</b></div>
+    <span aria-hidden="true" className="tool-usage-bar"><i style={{ width: `${maxValue > 0 ? value / maxValue * 100 : 0}%` }} /></span>
+    <small>{calls}{measured}{failures}</small>
+  </li>
+}
+
 /** Rend un appel classé et conserve sa cible de navigation dans la conversation. */
 function ToolCallRow({ call, metric, onNavigate }: { call: AnalyzedToolCall; metric: ToolRanking; onNavigate: (target: SessionAnalysisTarget) => void }) {
   return <li>
@@ -164,6 +193,10 @@ function EmptyState({ children }: { children: string }) {
 
 function toolValue(call: AnalyzedToolCall, metric: ToolRanking): number {
   return metric === 'duration' ? call.durationMs ?? 0 : call.outputLength
+}
+
+function toolSummaryValue(tool: ToolSummary | undefined, metric: ToolUsageRanking): number {
+  return metric === 'duration' ? tool?.durationMs ?? 0 : tool?.outputLength ?? 0
 }
 
 function formatAnalysisTokens(value: number, available: boolean): string {
