@@ -114,7 +114,7 @@ function App() {
       setSelectedId((current) => nextSessions.some((session) => session.id === current) ? current : '')
       const pending = nextSessions.flatMap((session) =>
         session.pendingUi.map((request) => ({ sessionId: session.id, request })),
-      )[0]
+      ).find(({ request }) => !isAgentSelector(request))
       if (pending) setDialog(pending)
     } catch (cause) {
       if (version === refreshVersionRef.current) showToast('error', messageOf(cause))
