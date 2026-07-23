@@ -27,7 +27,8 @@ export function Markdown({ children }: { children: string }) {
 }
 
 /** Affiche un appel d’outil dont le résultat complet remplace l’aperçu au dépliage. */
-export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, interrupted = false, name, rawArgs, repositoryRoot, resultContent, resultError, streaming = false, workspacePath }: {
+export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = false, args, hasResult, id, interrupted = false, name, rawArgs, repositoryRoot, resultContent, resultError, streaming = false, workspacePath }: {
+  animateLiveChanges?: boolean
   args: unknown
   hasResult: boolean
   id: string
@@ -102,7 +103,9 @@ export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, in
     setExpanded((isExpanded) => !isExpanded)
   }
 
-  return <article className={`tool-call${contentError ? ' error' : ''}${interrupted ? ' interrupted' : ''}`}>
+  const hasBody = streaming || interrupted || hasResult
+
+  return <article className={`tool-call${animateLiveChanges && streaming ? ' entering' : ''}${contentError ? ' error' : ''}${interrupted ? ' interrupted' : ''}`}>
     <button aria-expanded={htmlFile ? undefined : hasResult ? expanded : undefined} className="tool-call-heading tool-call-tooltip" data-tooltip={tooltip} disabled={!hasResult} onClick={activate} type="button">
       <span aria-hidden="true">⌘</span>
       <span><strong aria-label={tooltip}>{name || 'Outil'}</strong></span>
@@ -114,11 +117,16 @@ export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, in
         {active && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
       </small>
     </button>
-    {(streaming || interrupted) && <pre aria-label={interrupted ? 'Paramètres JSON interrompus' : 'Paramètres JSON en cours'} className="tool-call-raw-args">{rawArgs || 'Paramètres en attente…'}</pre>}
-    {hasResult && (expanded && !htmlFile
-      ? <ToolCallContent call={{ name, args }} content={content} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} showEditDiff={!contentError} />
-      : <ToolCallPreview call={{ name, args }} content={preview.text} htmlFile={htmlFile} onClick={activate} remainingLineCount={preview.remainingLineCount} />
-    )}
+    <div className={`tool-call-body${hasBody ? ' visible' : ''}`}>
+      <div>
+        {(streaming || interrupted) && <pre aria-label={interrupted ? 'Paramètres JSON interrompus' : 'Paramètres JSON en cours'} className="tool-call-raw-args">{rawArgs || 'Paramètres en attente…'}</pre>}
+        {hasResult && <div className={animateLiveChanges ? 'tool-call-result entering' : 'tool-call-result'}>
+          {expanded && !htmlFile
+            ? <ToolCallContent call={{ name, args }} content={content} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} showEditDiff={!contentError} />
+            : <ToolCallPreview call={{ name, args }} content={preview.text} htmlFile={htmlFile} onClick={activate} remainingLineCount={preview.remainingLineCount} />}
+        </div>}
+      </div>
+    </div>
   </article>
 })
 

@@ -106,9 +106,9 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
           })}
         </div>
       })}
-      {liveThinking && <ReasoningBlock>{liveThinking}</ReasoningBlock>}
-      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard args={execution.args} hasResult={execution.result !== undefined} id={execution.id} interrupted={execution.status === 'interrupted'} key={execution.id} name={execution.name} rawArgs={execution.rawArgs} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} streaming={execution.status === 'generating'} workspacePath={workspacePath} />)}
-      {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
+      {liveThinking && <ReasoningBlock live>{liveThinking}</ReasoningBlock>}
+      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard animateLiveChanges args={execution.args} hasResult={execution.result !== undefined} id={execution.id} interrupted={execution.status === 'interrupted'} key={execution.id} name={execution.name} rawArgs={execution.rawArgs} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} streaming={execution.status === 'generating'} workspacePath={workspacePath} />)}
+      {liveText && <article className="message assistant streaming conversation-entry"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {visibleMessages.length === 0 && !liveText && !liveThinking && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
       {activity && <div className="conversation-activity"><ActivityIndicator activity={activity} agentName={agentName} /></div>}
       <button
@@ -144,7 +144,7 @@ function TurnUsage({ usage }: { usage: MessageUsage }) {
 
 /** Affiche l'état de travail courant de Pi dans le fil de conversation. */
 export function ActivityIndicator({ activity, agentName }: { activity: Activity; agentName?: string }) {
-  return <div className="pi-activity" role="status"><span aria-hidden="true" className="spinner" /><span className="activity-text">{activityText(activity, agentName)}</span></div>
+  return <div className="pi-activity" role="status"><span aria-hidden="true" className="spinner" /><span className="activity-text" key={activity.kind}>{activityText(activity, agentName)}</span></div>
 }
 
 function isVisibleConversationMessage(message: JsonObject): boolean {
@@ -175,8 +175,8 @@ function renderContent(content: unknown): ReactNode {
 }
 
 /** Présente une réflexion directement dans le fil avec une hiérarchie discrète. */
-function ReasoningBlock({ children }: { children: string }) {
-  return <div className="reasoning"><Markdown>{children}</Markdown></div>
+function ReasoningBlock({ children, live = false }: { children: string; live?: boolean }) {
+  return <div className={`reasoning${live ? ' conversation-entry' : ''}`}><Markdown>{children}</Markdown></div>
 }
 
 function isImageContent(value: unknown): value is JsonObject & { data: string; mimeType: string } {
