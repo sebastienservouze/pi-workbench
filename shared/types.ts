@@ -110,6 +110,18 @@ export type ManagerMessage = ManagerResponse | ManagerEvent
 
 export interface SessionStats {
   cost?: number
+  userMessages?: number
+  assistantMessages?: number
+  toolCalls?: number
+  toolResults?: number
+  totalMessages?: number
+  tokens?: {
+    input?: number
+    output?: number
+    cacheRead?: number
+    cacheWrite?: number
+    total?: number
+  }
   contextUsage?: {
     tokens?: number | null
     contextWindow?: number | null

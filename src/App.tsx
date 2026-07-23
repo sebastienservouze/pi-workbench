@@ -17,6 +17,7 @@ import { WorkspaceSidebar } from './features/workspace/WorkspaceSidebar.tsx'
 import { CommandPalette, type PaletteCommand } from './features/commands/CommandPalette.tsx'
 import { commandDefinitions, defaultShortcuts, lastAssistantText, shortcutFromEvent, type CommandId } from './features/commands/command-registry.ts'
 import { SettingsPanel } from './features/settings/SettingsPanel.tsx'
+import { analyzeSession, type SessionAnalysisTarget } from './features/session-analysis/session-analysis.ts'
 import './features/commands/commands.css'
 
 interface AgentIntent {
@@ -64,12 +65,17 @@ function App() {
   const [focusComposerRequest, setFocusComposerRequest] = useState(0)
   const [composerDraftRequest, setComposerDraftRequest] = useState<{ id: string; message: string; sessionId: string }>()
   const [scrollToBottomRequest, setScrollToBottomRequest] = useState(0)
+  const [conversationNavigation, setConversationNavigation] = useState<{ id: number; target: SessionAnalysisTarget }>()
+  const [observedToolDurations, setObservedToolDurations] = useState<ReadonlyMap<string, number>>(new Map())
+  const [observedRequestDurations, setObservedRequestDurations] = useState<ReadonlyMap<number, number>>(new Map())
   const [shortcuts, setShortcuts] = useState(() => readShortcuts())
   const selectedIdRef = useRef(selectedId)
   const creatingSessionRef = useRef(false)
   const refreshVersionRef = useRef(0)
   const gitRefreshVersionRef = useRef(0)
   const agentIntentsRef = useRef(new Map<string, AgentIntent>())
+  const toolStartedAtRef = useRef(new Map<string, number>())
+  const requestStartedAtRef = useRef<number | undefined>(undefined)
   selectedIdRef.current = selectedId
 
   const showToast = useCallback((kind: Toast['kind'], message: string, sessionId = selectedIdRef.current) => {
@@ -141,9 +147,11 @@ function App() {
       return
     }
     try {
-      setSnapshot(await getSnapshot(sessionId))
+      const nextSnapshot = await getSnapshot(sessionId)
+      setSnapshot(nextSnapshot)
       setSnapshotSessionId(sessionId)
       if (clearLiveText && sessionId === selectedIdRef.current) setLiveText('')
+      return nextSnapshot
     } catch (cause) {
       showToast('error', messageOf(cause))
     }
@@ -172,6 +180,11 @@ function App() {
     setLiveThinking('')
     setActivity(null)
     setToolExecutions([])
+    setConversationNavigation(undefined)
+    setObservedToolDurations(new Map())
+    setObservedRequestDurations(new Map())
+    toolStartedAtRef.current.clear()
+    requestStartedAtRef.current = undefined
     void refreshSnapshot(selectedId)
   }, [refreshSnapshot, selectedId])
 
@@ -233,15 +246,22 @@ function App() {
       }
 
       if (sessionId !== selectedIdRef.current) return
+      if (event.type === 'agent_start') requestStartedAtRef.current = performance.now()
       const streamedToolCall = toolCallInUpdate(event)
       if (streamedToolCall) {
         setToolExecutions((current) => applyToolCallUpdate(current, streamedToolCall, crypto.randomUUID()))
       }
       if (event.type === 'tool_execution_start' && typeof event.toolCallId === 'string' && typeof event.toolName === 'string') {
+        toolStartedAtRef.current.set(event.toolCallId, performance.now())
         startToolExecution({ id: event.toolCallId, name: event.toolName, args: event.args })
       }
       if (event.type === 'tool_execution_end' && typeof event.toolCallId === 'string' && typeof event.toolName === 'string') {
         const id = event.toolCallId
+        const startedAt = toolStartedAtRef.current.get(id)
+        if (startedAt !== undefined) {
+          setObservedToolDurations((current) => new Map(current).set(id, performance.now() - startedAt))
+          toolStartedAtRef.current.delete(id)
+        }
         const result: ToolResult = {
           toolCallId: id,
           toolName: event.toolName,
@@ -263,9 +283,17 @@ function App() {
         if (update.type === 'text_delta' && typeof update.delta === 'string') setLiveText((current) => current + update.delta)
         if (update.type === 'error') setToolExecutions(interruptToolCallGeneration)
       }
+      const settledRequestDuration = event.type === 'agent_settled' && requestStartedAtRef.current !== undefined
+        ? performance.now() - requestStartedAtRef.current
+        : undefined
+      if (event.type === 'agent_settled') requestStartedAtRef.current = undefined
       if (event.type === 'message_end' || event.type === 'agent_settled') {
         setToolExecutions(interruptToolCallGeneration)
-        void refreshSnapshot(sessionId, true).finally(() => {
+        void refreshSnapshot(sessionId, true).then((nextSnapshot) => {
+          if (!nextSnapshot || settledRequestDuration === undefined) return
+          const requestTimestamp = lastUserTimestamp(nextSnapshot.messages)
+          if (requestTimestamp !== undefined) setObservedRequestDurations((current) => new Map(current).set(requestTimestamp, settledRequestDuration))
+        }).finally(() => {
           if (sessionId === selectedIdRef.current) setLiveThinking('')
         })
         setFocusComposerRequest((current) => current + 1)
@@ -297,6 +325,13 @@ function App() {
   }
 
   const selectedSession = sessions.find((session) => session.id === selectedId)
+  const sessionAnalysis = useMemo(() => selectedSession && snapshotSessionId === selectedSession.id
+    ? analyzeSession(snapshot.messages, snapshot.stats, selectedSession.status === 'running', {
+      requestDurations: observedRequestDurations,
+      toolDurations: observedToolDurations,
+      toolExecutions,
+    })
+    : null, [observedRequestDurations, observedToolDurations, selectedSession, snapshot.messages, snapshot.stats, snapshotSessionId, toolExecutions])
   const questionnaire = dialog && dialog.sessionId === selectedId && isAskUserQuestionDialog(dialog.request) ? dialog : null
 
   /** Lance et sélectionne une session, puis lui transmet un message ou prépare un brouillon selon l’action source. */
@@ -377,6 +412,15 @@ function App() {
     return () => { cancelled = true }
   }, [])
 
+  /** Positionne la conversation sur l’élément choisi depuis l’analyse de session. */
+  const navigateToAnalysisTarget = useCallback((target: SessionAnalysisTarget): void => {
+    if (target.kind === 'tool') {
+      setConversationView('detailed')
+      window.localStorage.setItem('pi-workbench.conversation-view', 'detailed')
+    }
+    setConversationNavigation((current) => ({ id: (current?.id ?? 0) + 1, target }))
+  }, [])
+
   /** Actions épinglées dans le rail droit, sans panneau associé. */
   const railActions = useMemo(() => [
     {
@@ -394,9 +438,13 @@ function App() {
     },
   ], [showToast, vsCodeAvailable, workspacePath])
 
+  const rightPanelVisible = activeRightWidget === 'todo'
+    || (activeRightWidget === 'analysis' && sessionAnalysis !== null)
+    || (activeRightWidget === 'git' && gitSnapshot?.repository === true)
+
   return (
     <div
-      className={`app-shell ${activeRightWidget ? 'git-sidebar-visible' : 'git-sidebar-collapsed'}`}
+      className={`app-shell ${rightPanelVisible ? 'git-sidebar-visible' : 'git-sidebar-collapsed'}`}
       style={{ '--git-sidebar-width': `${gitSidebarWidth}px` } as CSSProperties}
     >
       <WorkspaceSidebar
@@ -417,7 +465,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} onError={(cause) => showToast('error', messageOf(cause))} onStartSession={(draft) => startAndSelectSession(() => createSession(workspacePath), undefined, draft)} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} navigationRequest={conversationNavigation} onError={(cause) => showToast('error', messageOf(cause))} onStartSession={(draft) => startAndSelectSession(() => createSession(workspacePath), undefined, draft)} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Cliquer pour changer de vue.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
                 const next = current === 'simple' ? 'detailed' : 'simple'
                 window.localStorage.setItem('pi-workbench.conversation-view', next)
@@ -486,6 +534,8 @@ function App() {
 
       <RightSidebar
         activeWidget={activeRightWidget}
+        analysis={sessionAnalysis}
+        onAnalysisNavigate={navigateToAnalysisTarget}
         onResize={updateGitSidebarWidth}
         snapshot={gitSnapshot?.repository ? gitSnapshot : null}
         width={gitSidebarWidth}
@@ -559,13 +609,21 @@ function readRecentWorkspaces(): string[] {
 
 function readActiveRightWidget(): RightWidget | null {
   const stored = window.localStorage.getItem('pi-workbench.right-sidebar-widget')
-  if (stored === 'git' || stored === 'todo') return stored
+  if (stored === 'analysis' || stored === 'git' || stored === 'todo') return stored
   if (stored === 'none') return null
   return window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git'
 }
 
 function isManagerEvent(value: unknown): value is ManagerEvent {
   return isObject(value) && value.kind === 'event' && typeof value.event === 'string' && typeof value.sessionId === 'string'
+}
+
+function lastUserTimestamp(messages: JsonObject[]): number | undefined {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index]
+    if (message?.role === 'user' && typeof message.timestamp === 'number') return message.timestamp
+  }
+  return undefined
 }
 
 function isObject(value: unknown): value is JsonObject {

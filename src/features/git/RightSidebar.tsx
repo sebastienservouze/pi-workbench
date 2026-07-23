@@ -1,9 +1,11 @@
 import { useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot } from '../../../shared/types.ts'
+import { SessionAnalysisWidget } from '../session-analysis/SessionAnalysisWidget.tsx'
+import type { SessionAnalysis, SessionAnalysisTarget } from '../session-analysis/session-analysis.ts'
 import { TodoWidget } from '../todo/TodoWidget.tsx'
 import { maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff } from './git-sidebar.ts'
 
-export type RightWidget = 'git' | 'todo'
+export type RightWidget = 'analysis' | 'git' | 'todo'
 
 export interface RailAction {
   key: string
@@ -14,8 +16,10 @@ export interface RailAction {
 }
 
 /** Coordonne les panneaux latéraux, leur rail commun et le redimensionnement. */
-export function RightSidebar({ activeWidget, onResize, snapshot, width, workspacePath, railActions, onAction, onError, onFileSelect, onRefresh, onRevert, onTodoStartSession, onWidgetSelect }: {
+export function RightSidebar({ activeWidget, analysis, onAnalysisNavigate, onResize, snapshot, width, workspacePath, railActions, onAction, onError, onFileSelect, onRefresh, onRevert, onTodoStartSession, onWidgetSelect }: {
   activeWidget: RightWidget | null
+  analysis: SessionAnalysis | null
+  onAnalysisNavigate: (target: SessionAnalysisTarget) => void
   onResize: (width: number) => void
   snapshot: GitSnapshot | null
   width: number
@@ -35,7 +39,7 @@ export function RightSidebar({ activeWidget, onResize, snapshot, width, workspac
   const [fileDiff, setFileDiff] = useState<GitFileDiff | null>(null)
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const hasChanges = snapshot?.files.length ? snapshot.files.length > 0 : false
-  const collapsed = activeWidget === null
+  const collapsed = activeWidget === null || (activeWidget === 'analysis' && !analysis) || (activeWidget === 'git' && !snapshot)
 
   /** Charge le diff demandé avant de remplacer la liste de fichiers du widget. */
   async function selectFile(path: string, commitHash?: string): Promise<void> {
@@ -126,7 +130,8 @@ export function RightSidebar({ activeWidget, onResize, snapshot, width, workspac
         role="separator"
         tabIndex={0}
       />
-      <section aria-label={activeWidget === 'todo' ? 'Tâches du workspace' : fileDiff || selectedPath ? 'Diff Git' : 'Informations Git'} className="git-panel" id={`${activeWidget}-panel`}>
+      <section aria-label={activeWidget === 'analysis' ? 'Analyse de la session' : activeWidget === 'todo' ? 'Tâches du workspace' : fileDiff || selectedPath ? 'Diff Git' : 'Informations Git'} className="git-panel" id={`${activeWidget}-panel`}>
+        {activeWidget === 'analysis' && analysis && <WidgetLayout header={<div><strong>Analyse de session</strong><span>{analysis.requests.length} requête{analysis.requests.length > 1 ? 's' : ''} analysée{analysis.requests.length > 1 ? 's' : ''}</span></div>}><SessionAnalysisWidget analysis={analysis} onNavigate={onAnalysisNavigate} /></WidgetLayout>}
         {activeWidget === 'git' && snapshot && <WidgetLayout
           footer={activeWidget === 'git' && !selectedPath && (hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>
             {hasChanges && <input aria-label="Message de commit" disabled={busy} onChange={(event) => setMessage(event.target.value)} placeholder="Message de commit" value={message} />}
@@ -159,6 +164,18 @@ export function RightSidebar({ activeWidget, onResize, snapshot, width, workspac
       </section>
     </div>}
     <div className="git-rail">
+      {analysis && <button
+        aria-controls={activeWidget === 'analysis' ? 'analysis-panel' : undefined}
+        aria-expanded={activeWidget === 'analysis'}
+        aria-label={activeWidget === 'analysis' ? 'Réduire l’analyse de session' : 'Développer l’analyse de session'}
+        className="rail-tab"
+        onClick={() => onWidgetSelect('analysis')}
+        title="Analyse de session"
+        type="button"
+      >
+        <span aria-hidden="true">∑</span>
+        {analysis.failedToolCalls > 0 && <small>{analysis.failedToolCalls}</small>}
+      </button>}
       {snapshot && <button
         aria-controls={activeWidget === 'git' ? 'git-panel' : undefined}
         aria-expanded={activeWidget === 'git'}

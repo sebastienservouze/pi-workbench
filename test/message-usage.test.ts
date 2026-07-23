@@ -13,7 +13,7 @@ test('extracts per-response cost and token counters from Pi usage', () => {
     },
   })
 
-  assert.deepEqual(usage, { cacheMiss: 12_345, cacheRead: 9_876, cost: 0.00105, output: 678 })
+  assert.deepEqual(usage, { cacheMiss: 12_345, cacheRead: 9_876, cacheWrite: 0, cost: 0.00105, output: 678 })
   assert.equal(formatTurnCost(usage?.cost ?? 0), '$0.0011')
 })
 
@@ -35,8 +35,8 @@ test('keeps usage separate for each agentic turn', () => {
   ])
 
   assert.deepEqual([...usages], [
-    [1, { cacheMiss: 100, cacheRead: 1_000, cost: 0.001, output: 10 }],
-    [4, { cacheMiss: 200, cacheRead: 2_000, cost: 0.002, output: 20 }],
+    [1, { cacheMiss: 100, cacheRead: 1_000, cacheWrite: 0, cost: 0.001, output: 10 }],
+    [4, { cacheMiss: 200, cacheRead: 2_000, cacheWrite: 0, cost: 0.002, output: 20 }],
   ])
 })
 

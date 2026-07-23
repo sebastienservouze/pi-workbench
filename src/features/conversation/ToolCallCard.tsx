@@ -48,7 +48,7 @@ export function ContextSessionButton({ onClick, onError }: { onClick: () => Prom
 }
 
 /** Affiche un appel d’outil dont le résultat complet remplace l’aperçu au dépliage. */
-export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = false, args, hasResult, id, interrupted = false, name, onError, onStartSession, rawArgs, repositoryRoot, resultContent, resultError, streaming = false, workspacePath }: {
+export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = false, args, hasResult, id, interrupted = false, name, onError, onStartSession, rawArgs, repositoryRoot, resultContent, resultError, revealRequest, streaming = false, targeted = false, workspacePath }: {
   animateLiveChanges?: boolean
   args: unknown
   hasResult: boolean
@@ -61,7 +61,9 @@ export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = fa
   repositoryRoot?: string | null
   resultContent?: unknown
   resultError?: boolean
+  revealRequest?: number
   streaming?: boolean
+  targeted?: boolean
   workspacePath: string
 }) {
   const pending = !hasResult
@@ -107,6 +109,10 @@ export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = fa
     return () => window.clearTimeout(timeout)
   }, [codeRendered, display.kind, expanded, loadingWrittenContent, writtenContentError])
 
+  useEffect(() => {
+    if (revealRequest !== undefined && hasResult && !htmlFile) setExpanded(true)
+  }, [hasResult, htmlFile, revealRequest])
+
   /** Ouvre les lectures HTML dans le navigateur et développe les autres sorties dans l'historique. */
   const activate = () => {
     if (filePath && htmlFile) {
@@ -128,7 +134,7 @@ export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = fa
 
   const hasBody = streaming || interrupted || hasResult
 
-  return <article className={`tool-call${animateLiveChanges && streaming ? ' entering' : ''}${contentError ? ' error' : ''}${interrupted ? ' interrupted' : ''}`}>
+  return <article className={`tool-call${animateLiveChanges && streaming ? ' entering' : ''}${contentError ? ' error' : ''}${interrupted ? ' interrupted' : ''}${targeted ? ' conversation-target' : ''}`} data-tool-call-id={id}>
     <button aria-expanded={htmlFile ? undefined : hasResult ? expanded : undefined} className="tool-call-heading tool-call-tooltip" data-tooltip={tooltip} disabled={!hasResult} onClick={activate} type="button">
       <span aria-hidden="true">⌘</span>
       <span><strong aria-label={tooltip}>{name || 'Outil'}</strong></span>

@@ -6,12 +6,20 @@ La sidebar droite s’affiche lorsqu’un dépôt Git est détecté ou lorsque d
 
 La sidebar est composée de deux zones côte à côte :
 
-- un **panneau** à gauche, qui affiche le widget actif (actuellement Git uniquement) ;
+- un **panneau** à gauche, qui affiche le widget actif (analyse de session, Git ou tâches) ;
 - un **rail** permanent de 48 px à droite, qui porte les icônes des widgets et des actions.
 
 Le clic sur l’icône d’un widget à panneau ouvre son panneau sans masquer le rail. Un second clic sur l’icône active referme le panneau. Le rail reste alors disponible pour rouvrir ce widget ou en choisir un autre.
 
-Le widget Git conserve son état ouvert ou fermé dans `pi-workbench.git-sidebar-collapsed`. Son bouton renseigne `aria-expanded` et, lorsque le panneau est rendu, `aria-controls`.
+Le widget actif est conservé dans `pi-workbench.right-sidebar-widget` ; l’ancienne préférence `pi-workbench.git-sidebar-collapsed` reste lue pour migration. Chaque bouton renseigne `aria-expanded` et, lorsque son panneau est rendu, `aria-controls`.
+
+### Analyse de session
+
+Le widget d’analyse est disponible lorsqu’une session est sélectionnée. Son moteur pur, `src/features/session-analysis/session-analysis.ts`, parcourt les messages en `O(n)` et reconstruit les requêtes utilisateur, leurs appels modèle et leurs appels d’outils. Il utilise `get_session_stats` comme référence pour les totaux et présente la différence avec les coûts attribuables comme coût système non attribué.
+
+Les échecs reposent exclusivement sur `isError === true`. Les volumes d’outils sont exprimés en caractères ; aucun coût monétaire ou nombre de tokens n’est inventé par outil. Les durées observées depuis les événements SSE restent en mémoire pour l’ouverture courante du Workbench et ne sont pas persistées.
+
+Un clic sur une requête coûteuse positionne la conversation sur son message utilisateur. Un clic sur un appel d’outil active au besoin la vue détaillée, développe le résultat et positionne la conversation sur la carte correspondante.
 
 ### Widgets d’action (sans panneau)
 
@@ -32,7 +40,7 @@ const railActions = useMemo(() => [
 ], [workspacePath])
 ```
 
-Si aucune action n’est passée et qu’aucun dépôt Git n’est détecté, la sidebar droite n’est pas rendue.
+Le rail reste disponible pour les tâches et les actions épinglées, même lorsqu’aucun dépôt Git n’est détecté.
 
 ### Prévisualisation Markdown
 
@@ -51,7 +59,7 @@ La structure CSS actuelle est volontairement minimale : `.git-sidebar` aligne `.
 
 ## Ajouter un widget
 
-N’ajoutez ni registre, ni système de plugins, ni gestionnaire d’état pour un seul widget. Le Git est aujourd’hui le seul widget à panneau.
+N’ajoutez ni registre, ni système de plugins, ni gestionnaire d’état pour un widget supplémentaire. Étendez l’union `RightWidget` et les rendus conditionnels existants.
 
 ### Widget à panneau
 

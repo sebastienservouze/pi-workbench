@@ -1,0 +1,46 @@
+.session-analysis { min-width: 0; padding-bottom: 18px; }
+.analysis-summary { display: grid; grid-template-columns: 1fr 1fr; margin: 0; border-bottom: 1px solid var(--line); }
+.analysis-summary > div { min-width: 0; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.analysis-summary > div:nth-child(odd) { border-right: 1px solid var(--line); }
+.analysis-summary dt { margin-bottom: 4px; color: var(--muted); font-size: 10px; }
+.analysis-summary dd { overflow: hidden; margin: 0; color: var(--ink); font: 700 15px ui-monospace, monospace; text-overflow: ellipsis; }
+.analysis-summary .danger dd { color: var(--danger); }
+.analysis-context { padding: 12px 14px 10px; }
+.analysis-context div { display: flex; justify-content: space-between; margin-bottom: 7px; font-size: 11px; }
+.analysis-context span { color: var(--muted); font-family: ui-monospace, monospace; }
+.analysis-context progress { display: block; width: 100%; height: 6px; overflow: hidden; border: 0; border-radius: 4px; background: var(--line); accent-color: var(--teal); }
+.analysis-context progress::-webkit-progress-bar { background: var(--line); }
+.analysis-context progress::-webkit-progress-value { border-radius: 4px; background: var(--teal); }
+.analysis-tokens { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 14px; margin: 0; padding: 0 14px 12px; }
+.analysis-tokens div { display: flex; justify-content: space-between; gap: 8px; min-width: 0; font-size: 10px; }
+.analysis-tokens dt { color: var(--muted); }
+.analysis-tokens dd { margin: 0; font-family: ui-monospace, monospace; }
+.analysis-note { margin: 0; border-block: 1px solid var(--line); padding: 10px 14px; background: var(--surface-raised); color: var(--muted); font-size: 10px; line-height: 1.45; }
+.analysis-note strong { color: var(--ink); }
+.analysis-section { border-top: 1px solid var(--line); padding: 14px 8px 0; }
+.analysis-section > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 6px 7px; }
+.analysis-section h2 { margin: 0; font-size: 11px; }
+.analysis-section header > span { color: var(--subtle); font-size: 9px; }
+.analysis-section select { max-width: 125px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 3px 5px; background: var(--surface); color: var(--ink); font-size: 9px; }
+.analysis-section select:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+.analysis-ranking, .analysis-tools { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.analysis-ranking button { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 48px; border: 0; border-radius: 7px; padding: 7px 6px; background: transparent; color: inherit; text-align: left; }
+.analysis-ranking button:hover { background: var(--surface-raised); }
+.analysis-ranking button:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
+.analysis-ranking button > span { min-width: 0; }
+.analysis-ranking strong, .analysis-ranking small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.analysis-ranking strong { font-size: 10px; font-weight: 650; }
+.analysis-ranking small { margin-top: 4px; color: var(--muted); font-size: 9px; }
+.analysis-ranking button > b { color: var(--teal); font: 700 10px ui-monospace, monospace; white-space: nowrap; }
+.tool-ranking strong { display: flex; align-items: center; gap: 5px; }
+.tool-ranking strong code { overflow: hidden; text-overflow: ellipsis; }
+.tool-ranking i { border-radius: 8px; padding: 2px 5px; background: var(--surface-raised); color: var(--muted); font-size: 8px; font-style: normal; font-weight: 600; }
+.tool-ranking i.error { color: var(--danger); }
+.analysis-tools li { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 29px; padding: 4px 6px; border-radius: 6px; font-size: 10px; }
+.analysis-tools li:hover { background: var(--surface-raised); }
+.analysis-tools code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.analysis-tools span { color: var(--muted); font-family: ui-monospace, monospace; white-space: nowrap; }
+.analysis-tools b { color: var(--danger); }
+.analysis-empty { margin: 5px 6px 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.conversation-target { border-radius: 9px; animation: conversation-target-fade 1.8s ease-out; }
+@keyframes conversation-target-fade { from { background: var(--teal-soft); box-shadow: 0 0 0 5px var(--teal-soft); } to { background: transparent; box-shadow: 0 0 0 0 transparent; } }

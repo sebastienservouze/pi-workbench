@@ -3,21 +3,26 @@ import type { JsonObject } from '../../../shared/types.ts'
 export interface MessageUsage {
   cacheMiss: number
   cacheRead: number
+  cacheWrite: number
   cost: number
   output: number
 }
 
-/** Extrait les compteurs définitifs associés à une réponse assistant de Pi. */
+/** Extrait les compteurs définitifs associés à une réponse ou un résultat d’outil de Pi. */
 export function messageUsage(message: JsonObject): MessageUsage | null {
   const usage = isObject(message.usage) ? message.usage : null
   const cost = usage && isObject(usage.cost) ? usage.cost : null
   if (!usage || !cost || !isNumber(usage.input) || !isNumber(usage.cacheRead) || !isNumber(usage.output) || !isNumber(cost.total)) return null
-  return { cacheMiss: usage.input, cacheRead: usage.cacheRead, cost: cost.total, output: usage.output }
+  return { cacheMiss: usage.input, cacheRead: usage.cacheRead, cacheWrite: isNumber(usage.cacheWrite) ? usage.cacheWrite : 0, cost: cost.total, output: usage.output }
 }
 
 export function formatTurnCost(value: number): string {
   const digits = value < 0.01 ? 4 : 2
   return `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value)}`
+}
+
+export function formatTokens(value: number): string {
+  return value >= 1000 ? `${Math.round(value / 1000)}k` : String(value)
 }
 
 /** Associe à chaque tour agentique les compteurs facturés de sa réponse assistant. */
