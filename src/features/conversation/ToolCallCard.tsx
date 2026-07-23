@@ -10,9 +10,9 @@ import json from 'react-syntax-highlighter/dist/esm/languages/prism/json'
 import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup'
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { getWorkspaceFile } from '../../api.ts'
+import { getWorkspaceFile, getWorkspaceFilePath } from '../../api.ts'
 import { canHighlightFile } from './file-preview.ts'
-import { editOperations, formatToolCallTooltip, formatToolData, readContentDisplay, toolCallPresentation, toolContentText, toolFilePath, type EditOperation } from './tool-calls.ts'
+import { formatToolCallTooltip, formatToolData, readContentDisplay, toolCallPresentation, toolContentText, toolFilePath, toolTextPreview, windowsFileUrl } from './tool-calls.ts'
 
 SyntaxHighlighter.registerLanguage('bash', bash)
 SyntaxHighlighter.registerLanguage('csharp', csharp)
@@ -26,10 +26,9 @@ export function Markdown({ children }: { children: string }) {
   return <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
 }
 
-/** Affiche un appel d’outil et son résultat lorsqu’il est disponible. */
-export const ToolCallCard = memo(function ToolCallCard({ args, defaultExpanded = false, hasResult, id, name, repositoryRoot, resultContent, resultError, workspacePath }: {
+/** Affiche un appel d’outil, son aperçu et son résultat complet à la demande. */
+export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, repositoryRoot, resultContent, resultError, workspacePath }: {
   args: unknown
-  defaultExpanded?: boolean
   hasResult: boolean
   id: string
   name: string
@@ -42,23 +41,34 @@ export const ToolCallCard = memo(function ToolCallCard({ args, defaultExpanded =
   const filePath = name === 'read' || name === 'write' ? toolFilePath(args) : null
   const display = filePath ? readContentDisplay({ path: filePath }) : { kind: 'text' as const }
   const htmlFile = display.kind === 'html'
-  const canExpandResult = hasResult && !htmlFile
-  const [expanded, setExpanded] = useState(() => defaultExpanded && canExpandResult)
+  const [expanded, setExpanded] = useState(false)
   const [writtenContent, setWrittenContent] = useState<string>()
   const [writtenContentError, setWrittenContentError] = useState<string>()
   const [loadingWrittenContent, setLoadingWrittenContent] = useState(false)
+  const [htmlOpenError, setHtmlOpenError] = useState<string>()
   const [codeRendered, setCodeRendered] = useState(false)
   const input = formatToolData(args)
   const output = hasResult ? toolContentText(resultContent) : ''
   const displayedOutput = output || 'Aucune sortie.'
   const presentation = toolCallPresentation({ id, name, args }, repositoryRoot)
   const tooltip = formatToolCallTooltip(presentation.headerDetail?.title ?? input, input, hasResult ? displayedOutput : undefined)
-  const codeContent = name === 'write' ? writtenContent : displayedOutput
-  const toggleExpanded = () => setExpanded((isExpanded) => !isExpanded)
+  const content = htmlOpenError ?? writtenContentError ?? (name === 'write' && writtenContent === undefined && loadingWrittenContent ? 'Chargement du fichier…' : name === 'write' ? writtenContent ?? displayedOutput : displayedOutput)
+  const contentError = resultError || Boolean(writtenContentError) || Boolean(htmlOpenError)
+  const preview = toolTextPreview(content)
+  const renderingCode = display.kind === 'code' && canHighlightFile(content) && expanded && !loadingWrittenContent && !writtenContentError && !codeRendered
 
   useEffect(() => {
-    setExpanded(defaultExpanded && canExpandResult)
-  }, [canExpandResult, defaultExpanded])
+    if (name !== 'write' || !filePath || !hasResult || resultError) return
+    let cancelled = false
+    setWrittenContent(undefined)
+    setWrittenContentError(undefined)
+    setLoadingWrittenContent(true)
+    void getWorkspaceFile(workspacePath, filePath)
+      .then((file) => { if (!cancelled) setWrittenContent(file.content) })
+      .catch((cause: unknown) => { if (!cancelled) setWrittenContentError(messageOf(cause)) })
+      .finally(() => { if (!cancelled) setLoadingWrittenContent(false) })
+    return () => { cancelled = true }
+  }, [filePath, hasResult, name, resultError, workspacePath])
 
   useEffect(() => {
     if (!expanded || display.kind !== 'code' || loadingWrittenContent || writtenContentError || codeRendered) return
@@ -66,29 +76,25 @@ export const ToolCallCard = memo(function ToolCallCard({ args, defaultExpanded =
     return () => window.clearTimeout(timeout)
   }, [codeRendered, display.kind, expanded, loadingWrittenContent, writtenContentError])
 
-  /** Ouvre un fichier HTML dans un nouvel onglet local et expand les autres types dans l'historique. */
+  /** Ouvre les lectures HTML dans le navigateur et développe les autres sorties dans l'historique. */
   const activate = () => {
     if (filePath && htmlFile) {
-      const url = htmlFileUrl(workspacePath, filePath)
-      if (url) {
-        const tab = window.open(url, '_blank')
-        if (tab) tab.opener = null
-      }
+      const tab = window.open('', '_blank')
+      if (tab) tab.opener = null
+      setHtmlOpenError(undefined)
+      void getWorkspaceFilePath(workspacePath, filePath)
+        .then(({ path }) => {
+          if (tab) tab.location.href = windowsFileUrl(path)
+        })
+        .catch((cause: unknown) => {
+          tab?.close()
+          setHtmlOpenError(messageOf(cause))
+        })
       return
     }
-    if (filePath && display.kind === 'code' && name === 'write' && writtenContent === undefined) {
-      setExpanded(true)
-      setLoadingWrittenContent(true)
-      setWrittenContentError(undefined)
-      void getWorkspaceFile(workspacePath, filePath).then((file) => setWrittenContent(file.content)).catch((cause: unknown) => setWrittenContentError(messageOf(cause))).finally(() => setLoadingWrittenContent(false))
-      return
-    }
-    toggleExpanded()
+    setExpanded((isExpanded) => !isExpanded)
   }
 
-  const content = writtenContentError ?? codeContent ?? displayedOutput
-  const contentError = resultError || Boolean(writtenContentError)
-  const renderingCode = display.kind === 'code' && canHighlightFile(content) && expanded && !loadingWrittenContent && !writtenContentError && !codeRendered
   return <article className={`tool-call${contentError ? ' error' : ''}`}>
     <button aria-expanded={htmlFile ? undefined : hasResult ? expanded : undefined} className="tool-call-heading tool-call-tooltip" data-tooltip={tooltip} disabled={!hasResult} onClick={activate} type="button">
       <span aria-hidden="true">⌘</span>
@@ -101,16 +107,24 @@ export const ToolCallCard = memo(function ToolCallCard({ args, defaultExpanded =
         {pending && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
       </small>
     </button>
-    {hasResult && !htmlFile && expanded && <ToolCallContent call={{ name, args }} content={content} error={contentError} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} />}
+    {hasResult && <ToolCallPreview content={preview.text} htmlFile={htmlFile} onClick={activate} remainingLineCount={preview.remainingLineCount} />}
+    {hasResult && !htmlFile && expanded && <ToolCallContent call={{ name, args }} content={content} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} />}
   </article>
 })
 
-/** Affiche la sortie complète lorsque son appel a été développé et referme le bloc à son clic. */
-function ToolCallContent({ call, content, error, onCollapse, renderingCode }: { call: { name: string; args: unknown }; content: string; error?: boolean; onCollapse: () => void; renderingCode: boolean }) {
-  if (renderingCode) return <section className="tool-call-content tool-call-loading" role="status" onClick={onCollapse}><span aria-hidden="true" className="spinner" />Colorisation du fichier…</section>
+/** Affiche l'aperçu brut d'une sortie sans masquer son extension éventuelle. */
+function ToolCallPreview({ content, htmlFile, onClick, remainingLineCount }: { content: string; htmlFile: boolean; onClick: () => void; remainingLineCount: number }) {
+  const remainingLabel = `Cliquer pour voir ${remainingLineCount} ${remainingLineCount === 1 ? 'ligne' : 'lignes'} de plus`
+  return <button className="tool-call-preview" onClick={onClick} type="button">
+    <pre>{content}</pre>
+    {remainingLineCount > 0 && <span>{remainingLabel}</span>}
+    {htmlFile && <span>Cliquer pour ouvrir dans le navigateur</span>}
+  </button>
+}
 
-  const edits = call.name === 'edit' && !error ? editOperations(call.args) : null
-  if (edits) return <section className="tool-call-content" onClick={onCollapse}><ToolEditDiff edits={edits} /></section>
+/** Affiche la sortie complète dans son format adapté et la referme à son clic. */
+function ToolCallContent({ call, content, onCollapse, renderingCode }: { call: { name: string; args: unknown }; content: string; onCollapse: () => void; renderingCode: boolean }) {
+  if (renderingCode) return <section className="tool-call-content tool-call-loading" role="status" onClick={onCollapse}><span aria-hidden="true" className="spinner" />Colorisation du fichier…</section>
 
   const display = call.name === 'read' || call.name === 'write' ? readContentDisplay(call.args) : { kind: 'text' as const }
   if (display.kind === 'markdown') return <section className="tool-call-content tool-call-markdown" onClick={onCollapse}><Markdown>{content}</Markdown></section>
@@ -119,28 +133,7 @@ function ToolCallContent({ call, content, error, onCollapse, renderingCode }: { 
   return <section className="tool-call-content" onClick={onCollapse}><pre>{content}</pre></section>
 }
 
-/** Affiche chaque remplacement exact sous la forme compacte d'un diff unifié. */
-function ToolEditDiff({ edits }: { edits: EditOperation[] }) {
-  return <section className="tool-call-content tool-edit-diff">
-    {edits.map((edit, index) => <div aria-label={`Édition ${index + 1}`} className="tool-edit-operation" key={index}>
-      {diffLines(edit.oldText).map((line, lineIndex) => <div className="tool-edit-line removed" key={`removed-${lineIndex}`}><span aria-hidden="true">−</span><code>{line}</code></div>)}
-      {diffLines(edit.newText).map((line, lineIndex) => <div className="tool-edit-line added" key={`added-${lineIndex}`}><span aria-hidden="true">+</span><code>{line}</code></div>)}
-    </div>)}
-  </section>
-}
-
-function diffLines(text: string): string[] {
-  return text === '' ? [] : text.split('\n')
-}
-
 
 function messageOf(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause)
-}
-
-/** Construit l'URL file:// d'un document HTML dans le workspace pour l'ouvrir dans un nouvel onglet. */
-function htmlFileUrl(workspacePath: string, path: string): string | null {
-  const root = new URL(workspacePath.endsWith('/') ? workspacePath : `${workspacePath}/`, 'file:///')
-  const target = new URL(path, root)
-  return target.pathname.startsWith(root.pathname) ? target.href : null
 }

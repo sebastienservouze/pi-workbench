@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { editOperations, formatToolCallTooltip, formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolFilePath, toolResultInMessage, truncateToolText } from '../src/features/conversation/tool-calls.ts'
+import { formatToolCallTooltip, formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolFilePath, toolResultInMessage, toolTextPreview, truncateToolText, windowsFileUrl } from '../src/features/conversation/tool-calls.ts'
 
 test('extracts tool calls and their resolved result from Pi messages', () => {
   const calls = toolCallsInMessage({
@@ -61,21 +61,20 @@ test('truncates text only after 140 characters', () => {
   assert.deepEqual(truncateToolText(`${limit}b`), { text: `${limit}…`, truncated: true })
 })
 
-test('validates edit operations before rendering their diff', () => {
-  assert.deepEqual(editOperations({
-    path: 'src/App.tsx',
-    edits: [
-      { oldText: 'before', newText: 'after' },
-      { oldText: '', newText: 'added' },
-      { oldText: 'removed', newText: '' },
-    ],
-  }), [
-    { oldText: 'before', newText: 'after' },
-    { oldText: '', newText: 'added' },
-    { oldText: 'removed', newText: '' },
-  ])
-  assert.equal(editOperations({ edits: [] }), null)
-  assert.equal(editOperations({ edits: [{ oldText: 'before' }] }), null)
+test('previews four lines and reports the remaining output', () => {
+  assert.deepEqual(toolTextPreview('one\ntwo\nthree\nfour\nfive\nsix'), {
+    text: 'one\ntwo\nthree\nfour…',
+    remainingLineCount: 2,
+  })
+  assert.deepEqual(toolTextPreview('one\ntwo\nthree\nfour\n'), {
+    text: 'one\ntwo\nthree\nfour\n',
+    remainingLineCount: 0,
+  })
+})
+
+test('builds browser file URLs from Windows and WSL share paths', () => {
+  assert.equal(windowsFileUrl('C:\\Users\\Ada Lovelace\\index.html'), 'file:///C:/Users/Ada%20Lovelace/index.html')
+  assert.equal(windowsFileUrl('\\\\wsl.localhost\\Ubuntu\\home\\ada\\index.html'), 'file://wsl.localhost/Ubuntu/home/ada/index.html')
 })
 
 test('detects Markdown, HTML and supported code formats read from the repository', () => {

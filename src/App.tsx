@@ -26,8 +26,7 @@ interface AgentIntent {
 const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [], stats: null }
 const conversationViewDetails = {
   simple: { label: 'Vue simplifiée', description: 'Messages uniquement, sans appels d’outils' },
-  'simple-expanded': { label: 'Vue avec appels ouverts', description: 'Appels visibles, résultats dépliés' },
-  detailed: { label: 'Vue avec appels fermés', description: 'Appels visibles, résultats repliés' },
+  detailed: { label: 'Vue détaillée', description: 'Appels visibles avec aperçu extensible' },
 } as const
 /** Orchestre l'état de l'espace de travail, les événements Pi et les panneaux de l'interface. */
 function App() {
@@ -42,9 +41,9 @@ function App() {
   const [liveText, setLiveText] = useState('')
   const [activity, setActivity] = useState<Activity | null>(null)
   const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([])
-  const [conversationView, setConversationView] = useState<'detailed' | 'simple' | 'simple-expanded'>(() => {
+  const [conversationView, setConversationView] = useState<'detailed' | 'simple'>(() => {
     const stored = window.localStorage.getItem('pi-workbench.conversation-view')
-    if (stored === 'detailed' || stored === 'simple-expanded') return stored
+    if (stored === 'detailed' || stored === 'simple-expanded') return 'detailed'
     return window.localStorage.getItem('pi-workbench.detailed-view') === 'true' ? 'detailed' : 'simple'
   })
   const conversationViewDetail = conversationViewDetails[conversationView]
@@ -394,9 +393,9 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={conversationView !== 'simple'} expandToolCalls={conversationView === 'simple-expanded'} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={conversationView === 'detailed'} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Cliquer pour changer de vue.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
-                const next = current === 'simple' ? 'simple-expanded' : current === 'simple-expanded' ? 'detailed' : 'simple'
+                const next = current === 'simple' ? 'detailed' : 'simple'
                 window.localStorage.setItem('pi-workbench.conversation-view', next)
                 return next
               })} title={`${conversationViewDetail.label} — ${conversationViewDetail.description}`} type="button">

@@ -23,11 +23,6 @@ export interface ReadContentDisplay {
   language?: string
 }
 
-export interface EditOperation {
-  oldText: string
-  newText: string
-}
-
 export function toolCallsInMessage(message: JsonObject): ToolCall[] {
   if (message.role !== 'assistant' || !Array.isArray(message.content)) return []
 
@@ -77,19 +72,22 @@ export function truncateToolText(text: string, maxLength = 140): { text: string;
   return { text: `${text.slice(0, maxLength)}…`, truncated: true }
 }
 
-export function toolCallPresentation(call: ToolCall, repositoryRoot?: string | null): ToolCallPresentation {
-  return toolCallPresentations[call.name]?.(call.args, repositoryRoot) ?? {}
+/** Limite une sortie à ses premières lignes en réservant une indication pour son contenu restant. */
+export function toolTextPreview(text: string, maxLines = 4): { text: string; remainingLineCount: number } {
+  const lines = text.endsWith('\n') ? text.slice(0, -1).split('\n') : text.split('\n')
+  const remainingLineCount = Math.max(0, lines.length - maxLines)
+  if (remainingLineCount === 0) return { text, remainingLineCount }
+  return { text: `${lines.slice(0, maxLines).join('\n')}…`, remainingLineCount }
 }
 
-/** Valide les remplacements exacts fournis par l'outil edit avant leur rendu en diff. */
-export function editOperations(args: unknown): EditOperation[] | null {
-  if (!isObject(args) || !Array.isArray(args.edits) || args.edits.length === 0) return null
+/** Construit une URL file:// compatible avec les chemins Windows et les partages WSL. */
+export function windowsFileUrl(path: string): string {
+  const normalizedPath = path.replaceAll('\\', '/')
+  return normalizedPath.startsWith('//') ? `file:${encodeURI(normalizedPath)}` : `file:///${encodeURI(normalizedPath)}`
+}
 
-  const operations = args.edits.map((edit) => {
-    if (!isObject(edit) || typeof edit.oldText !== 'string' || typeof edit.newText !== 'string') return null
-    return { oldText: edit.oldText, newText: edit.newText }
-  })
-  return operations.every((operation): operation is EditOperation => operation !== null) ? operations : null
+export function toolCallPresentation(call: ToolCall, repositoryRoot?: string | null): ToolCallPresentation {
+  return toolCallPresentations[call.name]?.(call.args, repositoryRoot) ?? {}
 }
 
 /** Retourne le chemin cible des outils qui manipulent directement un fichier. */

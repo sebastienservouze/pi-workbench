@@ -43,6 +43,10 @@ export async function getWorkspaceFile(cwd: string, path: string): Promise<Works
   return request<WorkspaceFile>(`/api/files?cwd=${encodeURIComponent(cwd)}&path=${encodeURIComponent(path)}`)
 }
 
+export async function getWorkspaceFilePath(cwd: string, path: string): Promise<{ path: string }> {
+  return request<{ path: string }>(`/api/files/path?cwd=${encodeURIComponent(cwd)}&path=${encodeURIComponent(path)}`)
+}
+
 export async function commitAndPush(cwd: string, message: string): Promise<GitActionResult> {
   return request<GitActionResult>('/api/git/action', {
     method: 'POST',

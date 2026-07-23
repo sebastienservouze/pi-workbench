@@ -8,7 +8,7 @@ import { ManagerClient } from './manager-client.ts'
 import { listRecentPiSessions, loadPiSession } from './pi-session-store.ts'
 import { commitAndPush, getGitFileDiff, getGitSnapshot, revertGitCommit } from './git.ts'
 import { readWorkspaceFile, WorkspaceFileError } from './workspace-file.ts'
-import { isVsCodeAvailable, openExplorer, openVsCode } from './vscode.ts'
+import { isVsCodeAvailable, openExplorer, openVsCode, windowsWorkspacePath } from './vscode.ts'
 import type { DirectoryListing, JsonObject, ManagerEvent, SessionSnapshot } from '../shared/types.ts'
 
 const host = '127.0.0.1'
@@ -108,12 +108,13 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
     return
   }
 
-  if (method === 'GET' && url.pathname === '/api/files') {
+  if (method === 'GET' && (url.pathname === '/api/files' || url.pathname === '/api/files/path')) {
     const cwd = await resolveWorkingDirectory(url.searchParams.get('cwd') ?? '~/.pi')
     const path = url.searchParams.get('path')
     if (!path) throw new HttpError(400, 'File path is required')
     try {
-      sendJson(response, 200, await readWorkspaceFile(cwd, path))
+      const file = await readWorkspaceFile(cwd, path)
+      sendJson(response, 200, url.pathname === '/api/files' ? file : { path: await windowsWorkspacePath(file.path) })
     } catch (error) {
       if (error instanceof WorkspaceFileError) throw new HttpError(error.status, error.message)
       throw error
