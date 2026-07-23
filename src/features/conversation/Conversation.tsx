@@ -3,10 +3,11 @@ import type { JsonObject } from '../../../shared/types.ts'
 import { activityText, type Activity } from './activity.ts'
 import { formatTurnCost, turnUsageByMessage, type MessageUsage } from './message-usage.ts'
 import { toolCallsInMessage, toolResultInMessage, type ToolExecution } from './tool-calls.ts'
-import { Markdown, ToolCallCard } from './ToolCallCard.tsx'
+import { outputContextDraft } from './context-session.ts'
+import { ContextSessionButton, Markdown, ToolCallCard } from './ToolCallCard.tsx'
 
 /** Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi. */
-export function Conversation({ activity, agentName, messages, liveText, liveThinking, detailedView, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath }: {
+export function Conversation({ activity, agentName, messages, liveText, liveThinking, detailedView, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath, onError, onStartSession }: {
   activity: Activity | null
   agentName?: string
   messages: JsonObject[]
@@ -17,6 +18,8 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
   scrollToBottomRequest: number
   toolExecutions: ToolExecution[]
   workspacePath: string
+  onError: (cause: unknown) => void
+  onStartSession: (draft: string) => Promise<void>
 }) {
   const allMessages = messages
   const visibleMessages = allMessages.filter(isVisibleConversationMessage)
@@ -98,16 +101,16 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
         const calls = detailedView ? toolCallsInMessage(message) : []
         if (!isVisibleConversationMessage(message) && calls.length === 0) return null
         return <div key={`${String(message.timestamp ?? '')}-${index}`}>
-          {isVisibleConversationMessage(message) && <MessageCard message={message} usage={usagesByMessage.get(index)} />}
+          {isVisibleConversationMessage(message) && <MessageCard message={message} onStartSession={onStartSession} usage={usagesByMessage.get(index)} />}
           {calls.map((call) => {
             const execution = executionsByCallId.get(call.id)
             const result = resultsByCallId.get(call.id) ?? execution?.result
-            return <ToolCallCard args={call.args} hasResult={result !== undefined} id={call.id} interrupted={execution?.status === 'interrupted'} key={call.id} name={call.name} rawArgs={execution?.rawArgs} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} streaming={execution?.status === 'generating'} workspacePath={workspacePath} />
+            return <ToolCallCard args={call.args} hasResult={result !== undefined} id={call.id} interrupted={execution?.status === 'interrupted'} key={call.id} name={call.name} onError={onError} onStartSession={onStartSession} rawArgs={execution?.rawArgs} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} streaming={execution?.status === 'generating'} workspacePath={workspacePath} />
           })}
         </div>
       })}
       {liveThinking && <ReasoningBlock live>{liveThinking}</ReasoningBlock>}
-      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard animateLiveChanges args={execution.args} hasResult={execution.result !== undefined} id={execution.id} interrupted={execution.status === 'interrupted'} key={execution.id} name={execution.name} rawArgs={execution.rawArgs} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} streaming={execution.status === 'generating'} workspacePath={workspacePath} />)}
+      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard animateLiveChanges args={execution.args} hasResult={execution.result !== undefined} id={execution.id} interrupted={execution.status === 'interrupted'} key={execution.id} name={execution.name} onError={onError} onStartSession={onStartSession} rawArgs={execution.rawArgs} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} streaming={execution.status === 'generating'} workspacePath={workspacePath} />)}
       {liveText && <article className="message assistant streaming conversation-entry"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {visibleMessages.length === 0 && !liveText && !liveThinking && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
       {activity && <div className="conversation-activity"><ActivityIndicator activity={activity} agentName={agentName} /></div>}
@@ -125,11 +128,17 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
   )
 }
 
-const MessageCard = memo(function MessageCard({ message, usage }: { message: JsonObject; usage?: MessageUsage }) {
+const MessageCard = memo(function MessageCard({ message, onStartSession, usage }: { message: JsonObject; onStartSession: (draft: string) => Promise<void>; usage?: MessageUsage }) {
   const role = String(message.role)
   const timestamp = typeof message.timestamp === 'number' ? new Date(message.timestamp) : null
   const time = timestamp && !Number.isNaN(timestamp.getTime()) ? timestamp : null
-  return <article className={`message ${role}`}><div className="content">{renderContent(message.content ?? message.output)}</div>{usage && <TurnUsage usage={usage} />}{role === 'user' && time && <time className="message-time" dateTime={time.toISOString()}>{time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time>}</article>
+  const output = role === 'assistant' ? visibleText(message.content ?? message.output) : ''
+  return <article className={`message ${role}`}>
+    <div className="content">{renderContent(message.content ?? message.output)}</div>
+    {output && <ContextSessionButton onClick={() => onStartSession(outputContextDraft(output))} />}
+    {usage && <TurnUsage usage={usage} />}
+    {role === 'user' && time && <time className="message-time" dateTime={time.toISOString()}>{time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time>}
+  </article>
 })
 
 /** Affiche les compteurs facturés par Pi pour une réponse assistant terminée. */
@@ -159,6 +168,12 @@ function hasVisibleContent(content: unknown): boolean {
     || (part.type === 'thinking' && typeof part.thinking === 'string' && part.thinking.trim().length > 0)
     || isImageContent(part)
   ))
+}
+
+function visibleText(content: unknown): string {
+  if (typeof content === 'string') return content
+  if (!Array.isArray(content)) return ''
+  return content.flatMap((part) => isObject(part) && part.type === 'text' && typeof part.text === 'string' ? [part.text] : []).join('')
 }
 
 /** Rend les contenus assistant dans leur ordre, dont les réflexions visibles. */

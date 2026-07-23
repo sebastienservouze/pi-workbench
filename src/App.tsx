@@ -62,6 +62,7 @@ function App() {
   const [requestedSelect, setRequestedSelect] = useState<'agent' | 'model' | 'thinking' | null>(null)
   const [submitRequest, setSubmitRequest] = useState(0)
   const [focusComposerRequest, setFocusComposerRequest] = useState(0)
+  const [composerDraftRequest, setComposerDraftRequest] = useState<{ id: string; message: string; sessionId: string }>()
   const [scrollToBottomRequest, setScrollToBottomRequest] = useState(0)
   const [shortcuts, setShortcuts] = useState(() => readShortcuts())
   const selectedIdRef = useRef(selectedId)
@@ -298,8 +299,8 @@ function App() {
   const selectedSession = sessions.find((session) => session.id === selectedId)
   const questionnaire = dialog && dialog.sessionId === selectedId && isAskUserQuestionDialog(dialog.request) ? dialog : null
 
-  /** Lance et sélectionne une session, puis lui transmet éventuellement son premier message. */
-  const startAndSelectSession = useCallback(async (start: () => Promise<SessionSummary>, initialMessage?: string): Promise<void> => {
+  /** Lance et sélectionne une session, puis lui transmet un message ou prépare un brouillon selon l’action source. */
+  const startAndSelectSession = useCallback(async (start: () => Promise<SessionSummary>, initialMessage?: string, draftMessage?: string): Promise<void> => {
     creatingSessionRef.current = true
     setCreatingSession(true)
     setSelectedId('')
@@ -307,6 +308,7 @@ function App() {
       const session = await start()
       await refreshSessions()
       setSelectedId(session.id)
+      if (draftMessage) setComposerDraftRequest({ id: crypto.randomUUID(), message: draftMessage, sessionId: session.id })
       if (initialMessage) {
         await sendPiCommand(session.id, { type: 'prompt', message: initialMessage })
         await refreshSessions()
@@ -320,6 +322,10 @@ function App() {
       showToast('error', messageOf(cause))
     }
   }, [refreshSessions, showToast])
+
+  const markComposerDraftApplied = useCallback((id: string) => {
+    setComposerDraftRequest((current) => current?.id === id ? undefined : current)
+  }, [])
 
   /** Exécute une commande de productivité dans le contexte de la session active. */
   const executeCommand = useCallback((id: CommandId): void => {
@@ -411,7 +417,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} onError={(cause) => showToast('error', messageOf(cause))} onStartSession={(draft) => startAndSelectSession(() => createSession(workspacePath), undefined, draft)} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Cliquer pour changer de vue.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
                 const next = current === 'simple' ? 'detailed' : 'simple'
                 window.localStorage.setItem('pi-workbench.conversation-view', next)
@@ -438,6 +444,8 @@ function App() {
               commands={snapshot.commands}
               agentLoading={snapshotSessionId !== selectedSession.id}
               focusRequest={focusComposerRequest}
+              draftRequest={composerDraftRequest?.sessionId === selectedSession.id ? composerDraftRequest : undefined}
+              onDraftApplied={markComposerDraftApplied}
               showAgentSelector={snapshotSessionId !== selectedSession.id || snapshot.commands.some((command) => command.name === 'agent')}
               running={selectedSession.status === 'running'}
               onSend={async (message, images, behavior) => {

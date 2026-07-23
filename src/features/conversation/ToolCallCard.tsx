@@ -11,6 +11,7 @@ import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup'
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { getWorkspaceFile, getWorkspaceFilePath } from '../../api.ts'
+import { fileContextDraft } from './context-session.ts'
 import { canHighlightFile } from './file-preview.ts'
 import { formatToolCallTooltip, formatToolData, readContentDisplay, toolCallPresentation, toolContentText, toolDataLength, toolEditChanges, toolFilePath, toolTextPreview, windowsFileUrl } from './tool-calls.ts'
 
@@ -26,14 +27,36 @@ export function Markdown({ children }: { children: string }) {
   return <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
 }
 
+/** Ouvre une session avec un brouillon contextuel sans envoyer celui-ci immédiatement. */
+export function ContextSessionButton({ onClick, onError }: { onClick: () => Promise<void>; onError?: (cause: unknown) => void }) {
+  const [busy, setBusy] = useState(false)
+
+  async function activate(): Promise<void> {
+    setBusy(true)
+    try {
+      await onClick()
+    } catch (cause) {
+      onError?.(cause)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return <button aria-label="Continuer dans une nouvelle session" className="context-session-button" disabled={busy} onClick={() => void activate()} title="Continuer dans une nouvelle session" type="button">
+    <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" /></svg>
+  </button>
+}
+
 /** Affiche un appel d’outil dont le résultat complet remplace l’aperçu au dépliage. */
-export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = false, args, hasResult, id, interrupted = false, name, rawArgs, repositoryRoot, resultContent, resultError, streaming = false, workspacePath }: {
+export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = false, args, hasResult, id, interrupted = false, name, onError, onStartSession, rawArgs, repositoryRoot, resultContent, resultError, streaming = false, workspacePath }: {
   animateLiveChanges?: boolean
   args: unknown
   hasResult: boolean
   id: string
   interrupted?: boolean
   name: string
+  onError: (cause: unknown) => void
+  onStartSession: (draft: string) => Promise<void>
   rawArgs?: string
   repositoryRoot?: string | null
   resultContent?: unknown
@@ -117,6 +140,10 @@ export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = fa
         {active && <span aria-label={streaming ? 'Paramètres en cours de génération' : 'Outil en cours'} className="spinner tool-call-spinner" role="status" />}
       </small>
     </button>
+    {filePath && (name === 'read' || name === 'write') && hasResult && <ContextSessionButton onClick={async () => {
+      const { absolutePath } = await getWorkspaceFilePath(workspacePath, filePath)
+      await onStartSession(fileContextDraft(absolutePath))
+    }} onError={onError} />}
     <div className={`tool-call-body${hasBody ? ' visible' : ''}`}>
       <div>
         {(streaming || interrupted) && <pre aria-label={interrupted ? 'Paramètres JSON interrompus' : 'Paramètres JSON en cours'} className="tool-call-raw-args">{rawArgs || 'Paramètres en attente…'}</pre>}

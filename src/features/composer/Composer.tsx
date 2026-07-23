@@ -4,7 +4,7 @@ import type { JsonObject, SessionSnapshot, SessionSummary } from '../../../share
 import { maxComposerImages, prepareComposerImage, type ComposerImage } from './composer-images.ts'
 
 /** Fournit la saisie utilisateur et les commandes de session tout en reflétant l'état Pi courant. */
-export function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, agentLoading, showAgentSelector, onAgentChange, onCommand, commands, running, onSend, onAbort, onError, requestedSelect, onSelectOpened, submitRequest = 0, focusRequest }: {
+export function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, agentLoading, showAgentSelector, onAgentChange, onCommand, commands, running, onSend, onAbort, onError, requestedSelect, onSelectOpened, submitRequest = 0, focusRequest, draftRequest, onDraftApplied }: {
   session: SessionSummary
   snapshot: SessionSnapshot
   agentBusy: boolean
@@ -23,6 +23,8 @@ export function Composer({ session, snapshot, agentBusy, agentOptions, selectedA
   onSelectOpened?: () => void
   submitRequest?: number
   focusRequest?: number
+  draftRequest?: { id: string; message: string }
+  onDraftApplied?: (id: string) => void
 }) {
   const [message, setMessage] = useState('')
   const [images, setImages] = useState<ComposerImage[]>([])
@@ -61,6 +63,13 @@ export function Composer({ session, snapshot, agentBusy, agentOptions, selectedA
     trigger?.focus()
     onSelectOpened?.()
   }, [onSelectOpened, requestedSelect])
+
+  useEffect(() => {
+    if (!draftRequest) return
+    setMessage(draftRequest.message)
+    textareaRef.current?.focus()
+    onDraftApplied?.(draftRequest.id)
+  }, [draftRequest, onDraftApplied])
 
   /** Commandes disponibles filtrées par le texte après le slash. */
   const filteredCommands = commands.filter((command) =>

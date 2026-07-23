@@ -115,7 +115,7 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
     if (!path) throw new HttpError(400, 'File path is required')
     try {
       const file = await readWorkspaceFile(cwd, path)
-      sendJson(response, 200, url.pathname === '/api/files' ? file : { path: await windowsWorkspacePath(file.path) })
+      sendJson(response, 200, url.pathname === '/api/files' ? file : { absolutePath: file.path, path: await windowsWorkspacePath(file.path) })
     } catch (error) {
       if (error instanceof WorkspaceFileError) throw new HttpError(error.status, error.message)
       throw error
