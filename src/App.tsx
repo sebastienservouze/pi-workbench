@@ -5,7 +5,7 @@ import type { GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnaps
 import { Composer } from './features/composer/Composer.tsx'
 import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
 import { activityForPiEvent, waitingActivity, type Activity } from './features/conversation/activity.ts'
-import { Conversation, type ToolExecution } from './features/conversation/Conversation.tsx'
+import { ActivityIndicator, Conversation, type ToolExecution } from './features/conversation/Conversation.tsx'
 import { toolCallInUpdate, type ToolResult } from './features/conversation/tool-calls.ts'
 import { AskUserQuestionDialog, ExtensionDialog } from './features/dialogs/Dialogs.tsx'
 import { isAgentSelector, isAskUserQuestionDialog, isBlockingDialog, type UiDialog } from './features/dialogs/dialog-protocol.ts'
@@ -39,6 +39,8 @@ function App() {
   const [snapshot, setSnapshot] = useState<SessionSnapshot>(emptySnapshot)
   const [snapshotSessionId, setSnapshotSessionId] = useState('')
   const [liveText, setLiveText] = useState('')
+  const [liveThinking, setLiveThinking] = useState('')
+  const [reasoningTurn, setReasoningTurn] = useState(0)
   const [activity, setActivity] = useState<Activity | null>(null)
   const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([])
   const [conversationView, setConversationView] = useState<'detailed' | 'simple'>(() => {
@@ -167,6 +169,7 @@ function App() {
     setSnapshot(emptySnapshot)
     setSnapshotSessionId('')
     setLiveText('')
+    setLiveThinking('')
     setActivity(null)
     setToolExecutions([])
     void refreshSnapshot(selectedId)
@@ -245,13 +248,20 @@ function App() {
         void refreshSnapshot(sessionId)
       }
       setActivity((current) => activityForPiEvent(current, event))
-      if (event.type === 'message_start') setLiveText('')
+      if (event.type === 'message_start') {
+        setLiveText('')
+        setLiveThinking('')
+        setReasoningTurn((current) => current + 1)
+      }
       if (event.type === 'message_update' && isObject(event.assistantMessageEvent)) {
         const update = event.assistantMessageEvent
+        if (update.type === 'thinking_delta' && typeof update.delta === 'string') setLiveThinking((current) => current + update.delta)
         if (update.type === 'text_delta' && typeof update.delta === 'string') setLiveText((current) => current + update.delta)
       }
       if (event.type === 'message_end' || event.type === 'agent_settled') {
-        void refreshSnapshot(sessionId, true)
+        void refreshSnapshot(sessionId, true).finally(() => {
+          if (sessionId === selectedIdRef.current) setLiveThinking('')
+        })
         setFocusComposerRequest((current) => current + 1)
       }
 
@@ -393,7 +403,7 @@ function App() {
       <main className="workspace">
         {selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={conversationView === 'detailed'} liveText={liveText} messages={snapshot.messages} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} reasoningTurn={reasoningTurn} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Cliquer pour changer de vue.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
                 const next = current === 'simple' ? 'detailed' : 'simple'
                 window.localStorage.setItem('pi-workbench.conversation-view', next)
@@ -405,6 +415,7 @@ function App() {
             {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
             <div className="composer-area">
               <ToastStack onDismiss={dismissToast} toasts={visibleToasts} />
+              {activity && <div className="composer-activity"><ActivityIndicator activity={activity} agentName={selectedSession.activeAgent} /></div>}
               <Composer
               session={selectedSession}
               snapshot={snapshot}

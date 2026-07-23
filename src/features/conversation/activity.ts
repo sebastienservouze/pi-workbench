@@ -3,28 +3,13 @@ import type { JsonObject } from '../../../shared/types.ts'
 export interface Activity {
   kind: 'working' | 'thinking' | 'tool' | 'writing' | 'waiting'
   thinking?: string
-  toolName?: string
-}
-
-const toolActivityText: Record<string, string> = {
-  ask_user_question: 'vous pose une question',
-  find: 'repère les fichiers pertinents',
-  grep: 'cherche dans le code',
-  read: 'lit un fichier',
-  write: 'écrit un fichier',
-  edit: 'modifie un fichier',
-  bash: 'exécute une commande',
-  web_search: 'recherche sur le web',
-  fetch_content: 'consulte du contenu',
 }
 
 /** Convertit les événements Pi en un état d'activité stable pour l'indicateur de conversation. */
 export function activityForPiEvent(current: Activity | null, event: JsonObject): Activity | null {
   if (event.type === 'agent_start' || event.type === 'message_start') return { kind: 'working' }
   if (event.type === 'agent_settled') return null
-  if (event.type === 'tool_execution_start') {
-    return { kind: 'tool', toolName: typeof event.toolName === 'string' ? event.toolName : 'outil' }
-  }
+  if (event.type === 'tool_execution_start') return { kind: 'tool' }
   if (event.type === 'tool_execution_end') return { kind: 'working' }
   if (event.type !== 'message_update' || !isObject(event.assistantMessageEvent)) return current
 
@@ -45,18 +30,11 @@ export function waitingActivity(): Activity {
 /** Produit un libellé localisé et lisible à partir de l'état d'activité courant. */
 export function activityText(activity: Activity, agentName: string | undefined): string {
   const agent = displayAgentName(agentName)
-  if (activity.kind === 'thinking') return activity.thinking ? `${agent} réfléchit — ${lastLine(activity.thinking).replaceAll('**', '')}` : `${agent} réfléchit…`
-  if (activity.kind === 'tool') {
-    const toolName = activity.toolName ?? 'un outil'
-    return `${agent} ${toolActivityText[toolName] ?? `utilise ${toolName}`}`
-  }
+  if (activity.kind === 'thinking') return `${agent} réfléchit…`
+  if (activity.kind === 'tool') return `${agent} utilise un outil…`
   if (activity.kind === 'writing') return `${agent} écrit…`
   if (activity.kind === 'waiting') return `${agent} attend votre intervention`
   return `${agent} travaille…`
-}
-
-function lastLine(text: string): string {
-  return text.trimEnd().split(/\r?\n/).at(-1) ?? ''
 }
 
 function displayAgentName(agentName: string | undefined): string {
