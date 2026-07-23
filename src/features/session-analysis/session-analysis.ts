@@ -47,6 +47,8 @@ export interface SessionAnalysis {
   unattributedCost: number
   averageTurnCost: number
   medianTurnCost: number
+  turnCount: number
+  averageToolCallsPerTurn: number
   totalToolCalls: number
   failedToolCalls: number
   contextPercent?: number
@@ -159,6 +161,7 @@ export function analyzeSession(messages: JsonObject[], stats: SessionStats | nul
   const parsedUsage = requests.reduce((total, request) => addUsage(total, request.usage), emptyUsage())
   const statsTokens = statsUsage(stats)
   const tokens = statsTokens ?? parsedUsage
+  const totalToolCalls = Math.max(stats?.toolCalls ?? 0, toolCalls.length)
 
   return {
     requests,
@@ -171,7 +174,9 @@ export function analyzeSession(messages: JsonObject[], stats: SessionStats | nul
     unattributedCost: statsCost !== undefined && attributionAvailable ? Math.max(0, totalCost - attributedCost) : 0,
     averageTurnCost: turnCosts.length ? turnCosts.reduce((total, cost) => total + cost, 0) / turnCosts.length : 0,
     medianTurnCost: quantile(turnCosts, 0.5),
-    totalToolCalls: Math.max(stats?.toolCalls ?? 0, toolCalls.length),
+    turnCount: turnCosts.length,
+    averageToolCallsPerTurn: turnCosts.length ? totalToolCalls / turnCosts.length : 0,
+    totalToolCalls,
     failedToolCalls: toolCalls.filter((call) => call.isError).length,
     contextPercent: finiteNumber(stats?.contextUsage?.percent),
     tokens,

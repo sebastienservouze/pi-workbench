@@ -16,12 +16,14 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
     .sort((a, b) => toolValue(b, toolRanking) - toolValue(a, toolRanking))
     .slice(0, 8), [analysis.toolCalls, toolRanking])
   const failureRate = analysis.totalToolCalls > 0 ? analysis.failedToolCalls / analysis.totalToolCalls : 0
-  const turnCostAvailable = analysis.requests.some((request) => request.modelCallCount > 0)
+  const turnCostAvailable = analysis.turnCount > 0
 
   return <div className="session-analysis">
     <dl className="analysis-summary">
       <Metric label="Coût total" value={analysis.costAvailable ? formatTurnCost(analysis.totalCost) : '—'} />
       <Metric label="Coût moyen" value={turnCostAvailable ? formatTurnCost(analysis.averageTurnCost) : '—'} />
+      <Metric label="Tours" value={String(analysis.turnCount)} />
+      <Metric label="Outils / tour" value={turnCostAvailable ? formatAverage(analysis.averageToolCallsPerTurn) : '—'} />
       <Metric label="Appels outils" value={String(analysis.totalToolCalls)} />
       <Metric label="Échecs" value={`${analysis.failedToolCalls} · ${formatPercent(failureRate)}`} danger={analysis.failedToolCalls > 0} />
     </dl>
@@ -106,4 +108,8 @@ function formatDuration(value: number): string {
 
 function formatPercent(value: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'percent', maximumFractionDigits: 1 }).format(value)
+}
+
+function formatAverage(value: number): string {
+  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(value)
 }
