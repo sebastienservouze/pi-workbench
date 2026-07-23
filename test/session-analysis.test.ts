@@ -10,7 +10,7 @@ const usage = (input: number, output: number, cacheRead: number, cacheWrite: num
   cost: { total: cost },
 })
 
-test('reconstruit les requêtes multi-appels et exclut le tour actif des moyennes', () => {
+test('reconstruit les requêtes multi-appels et calcule les statistiques par réponse assistant', () => {
   const messages = [
     { role: 'user', timestamp: 100, content: 'Analyse le dépôt.' },
     {
@@ -36,8 +36,8 @@ test('reconstruit les requêtes multi-appels et exclut le tour actif des moyenne
     { cost: 0.03, modelCallCount: 1, complete: false },
   ])
   assert.equal(analysis.requests[0]?.durationMs, 1_250)
-  assert.equal(analysis.averageRequestCost, 0.03)
-  assert.equal(analysis.medianRequestCost, 0.03)
+  assert.equal(analysis.averageTurnCost, 0.02)
+  assert.equal(analysis.medianTurnCost, 0.02)
   assert.ok(Math.abs(analysis.unattributedCost - 0.01) < Number.EPSILON)
   assert.deepEqual(analysis.tokens, { cacheMiss: 600, cacheRead: 6_000, cacheWrite: 90, cost: 0.07, output: 60 })
   assert.equal(analysis.costAvailable, true)

@@ -1,5 +1,5 @@
 import type { JsonObject, SessionStats } from '../../../shared/types.ts'
-import { messageUsage, type MessageUsage } from '../conversation/message-usage.ts'
+import { messageUsage, turnUsageByMessage, type MessageUsage } from '../conversation/message-usage.ts'
 import { toolCallsInMessage, toolContentText, toolDataLength, toolResultInMessage, type ToolExecution } from '../conversation/tool-calls.ts'
 
 export type SessionAnalysisTarget = { kind: 'message'; index: number } | { kind: 'tool'; id: string }
@@ -45,9 +45,8 @@ export interface SessionAnalysis {
   attributedCost: number
   attributionAvailable: boolean
   unattributedCost: number
-  averageRequestCost: number
-  medianRequestCost: number
-  maxRequestCost: number
+  averageTurnCost: number
+  medianTurnCost: number
   totalToolCalls: number
   failedToolCalls: number
   contextPercent?: number
@@ -156,7 +155,7 @@ export function analyzeSession(messages: JsonObject[], stats: SessionStats | nul
   const statsCost = finiteNumber(stats?.cost)
   const attributionAvailable = requests.some((request) => request.modelCallCount > 0)
   const totalCost = statsCost ?? attributedCost
-  const completedCosts = requests.filter((request) => request.complete && request.modelCallCount > 0).map((request) => request.cost).sort((a, b) => a - b)
+  const turnCosts = [...turnUsageByMessage(messages).values()].map((usage) => usage.cost).sort((a, b) => a - b)
   const parsedUsage = requests.reduce((total, request) => addUsage(total, request.usage), emptyUsage())
   const statsTokens = statsUsage(stats)
   const tokens = statsTokens ?? parsedUsage
@@ -170,9 +169,8 @@ export function analyzeSession(messages: JsonObject[], stats: SessionStats | nul
     attributedCost,
     attributionAvailable,
     unattributedCost: statsCost !== undefined && attributionAvailable ? Math.max(0, totalCost - attributedCost) : 0,
-    averageRequestCost: completedCosts.length ? completedCosts.reduce((total, cost) => total + cost, 0) / completedCosts.length : 0,
-    medianRequestCost: quantile(completedCosts, 0.5),
-    maxRequestCost: completedCosts.at(-1) ?? 0,
+    averageTurnCost: turnCosts.length ? turnCosts.reduce((total, cost) => total + cost, 0) / turnCosts.length : 0,
+    medianTurnCost: quantile(turnCosts, 0.5),
     totalToolCalls: Math.max(stats?.toolCalls ?? 0, toolCalls.length),
     failedToolCalls: toolCalls.filter((call) => call.isError).length,
     contextPercent: finiteNumber(stats?.contextUsage?.percent),

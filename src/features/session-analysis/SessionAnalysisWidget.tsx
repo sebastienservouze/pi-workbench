@@ -16,12 +16,12 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
     .sort((a, b) => toolValue(b, toolRanking) - toolValue(a, toolRanking))
     .slice(0, 8), [analysis.toolCalls, toolRanking])
   const failureRate = analysis.totalToolCalls > 0 ? analysis.failedToolCalls / analysis.totalToolCalls : 0
-  const completedRequestCostAvailable = analysis.requests.some((request) => request.complete && request.modelCallCount > 0)
+  const turnCostAvailable = analysis.requests.some((request) => request.modelCallCount > 0)
 
   return <div className="session-analysis">
     <dl className="analysis-summary">
       <Metric label="Coût total" value={analysis.costAvailable ? formatTurnCost(analysis.totalCost) : '—'} />
-      <Metric label="Coût moyen" value={completedRequestCostAvailable ? formatTurnCost(analysis.averageRequestCost) : '—'} />
+      <Metric label="Coût moyen" value={turnCostAvailable ? formatTurnCost(analysis.averageTurnCost) : '—'} />
       <Metric label="Appels outils" value={String(analysis.totalToolCalls)} />
       <Metric label="Échecs" value={`${analysis.failedToolCalls} · ${formatPercent(failureRate)}`} danger={analysis.failedToolCalls > 0} />
     </dl>
@@ -36,7 +36,7 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
       <div><dt>Cache read</dt><dd>{formatAnalysisTokens(analysis.tokens.cacheRead, analysis.tokensAvailable)}</dd></div>
       <div><dt>Cache write</dt><dd>{formatAnalysisTokens(analysis.tokens.cacheWrite, analysis.tokensAvailable)}</dd></div>
       <div><dt>Output</dt><dd>{formatAnalysisTokens(analysis.tokens.output, analysis.tokensAvailable)}</dd></div>
-      <div><dt>Médiane</dt><dd>{completedRequestCostAvailable ? formatTurnCost(analysis.medianRequestCost) : '—'}</dd></div>
+      <div><dt>Médiane</dt><dd>{turnCostAvailable ? formatTurnCost(analysis.medianTurnCost) : '—'}</dd></div>
     </dl>
 
     {analysis.unattributedCost > 0.000001 && <p className="analysis-note"><strong>{formatTurnCost(analysis.unattributedCost)}</strong> non attribué aux requêtes visibles.</p>}
