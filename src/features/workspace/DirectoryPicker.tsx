@@ -79,6 +79,7 @@ export function DirectoryPicker({ initialPath, recentPaths, onClose, onError, on
         <label className="directory-path-label" htmlFor="directory-path">Chemin du dossier</label>
         <input
           aria-activedescendant={activeSuggestion >= 0 ? `directory-suggestion-${activeSuggestion}` : undefined}
+          autoComplete="off"
           autoFocus
           aria-autocomplete="list"
           aria-controls={suggestions.length > 0 ? 'directory-suggestions' : undefined}
