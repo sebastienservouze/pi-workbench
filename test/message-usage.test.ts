@@ -17,19 +17,26 @@ test('extracts per-response cost and token counters from Pi usage', () => {
   assert.equal(formatTurnCost(usage?.cost ?? 0), '$0.0011')
 })
 
-test('aggregates every assistant response in a user turn', () => {
+test('keeps usage separate for each agentic turn', () => {
   const usages = turnUsageByMessage([
     { role: 'user', content: 'Inspecte le dépôt.' },
-    { role: 'assistant', content: [{ type: 'toolCall', id: 'call_1', name: 'read' }], usage: { input: 100, output: 10, cacheRead: 1_000, cost: { total: 0.001 } } },
+    {
+      role: 'assistant',
+      content: [
+        { type: 'thinking', thinking: 'Je cherche les fichiers.' },
+        { type: 'toolCall', id: 'call_1', name: 'read' },
+        { type: 'toolCall', id: 'call_2', name: 'grep' },
+      ],
+      usage: { input: 100, output: 10, cacheRead: 1_000, cost: { total: 0.001 } },
+    },
     { role: 'toolResult', toolCallId: 'call_1' },
+    { role: 'toolResult', toolCallId: 'call_2' },
     { role: 'assistant', content: [{ type: 'text', text: 'C’est fait.' }], usage: { input: 200, output: 20, cacheRead: 2_000, cost: { total: 0.002 } } },
-    { role: 'user', content: 'Autre tour.' },
-    { role: 'assistant', content: [{ type: 'text', text: 'Réponse.' }], usage: { input: 400, output: 40, cacheRead: 4_000, cost: { total: 0.004 } } },
   ])
 
   assert.deepEqual([...usages], [
-    [3, { cacheMiss: 300, cacheRead: 3_000, cost: 0.003, output: 30 }],
-    [5, { cacheMiss: 400, cacheRead: 4_000, cost: 0.004, output: 40 }],
+    [1, { cacheMiss: 100, cacheRead: 1_000, cost: 0.001, output: 10 }],
+    [4, { cacheMiss: 200, cacheRead: 2_000, cost: 0.002, output: 20 }],
   ])
 })
 

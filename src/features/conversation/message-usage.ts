@@ -20,41 +20,12 @@ export function formatTurnCost(value: number): string {
   return `$${new Intl.NumberFormat('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value)}`
 }
 
-/** Additionne les réponses assistant d'un tour et les associe à sa dernière réponse. */
+/** Associe à chaque tour agentique les compteurs facturés de sa réponse assistant. */
 export function turnUsageByMessage(messages: JsonObject[]): Map<number, MessageUsage> {
-  const usages = new Map<number, MessageUsage>()
-  let complete = true
-  let lastAssistantIndex: number | null = null
-  let total: MessageUsage | null = null
-
-  for (const [index, message] of messages.entries()) {
-    if (message.role === 'user') {
-      addTurnUsage(usages, lastAssistantIndex, total, complete)
-      complete = true
-      lastAssistantIndex = null
-      total = null
-    } else if (message.role === 'assistant') {
-      lastAssistantIndex = index
-      const usage = messageUsage(message)
-      if (!usage) complete = false
-      else total = total ? addUsage(total, usage) : usage
-    }
-  }
-  addTurnUsage(usages, lastAssistantIndex, total, complete)
-  return usages
-}
-
-function addTurnUsage(usages: Map<number, MessageUsage>, index: number | null, usage: MessageUsage | null, complete: boolean): void {
-  if (complete && index !== null && usage) usages.set(index, usage)
-}
-
-function addUsage(left: MessageUsage, right: MessageUsage): MessageUsage {
-  return {
-    cacheMiss: left.cacheMiss + right.cacheMiss,
-    cacheRead: left.cacheRead + right.cacheRead,
-    cost: left.cost + right.cost,
-    output: left.output + right.output,
-  }
+  return new Map(messages.flatMap((message, index) => {
+    const usage = message.role === 'assistant' ? messageUsage(message) : null
+    return usage ? [[index, usage] as const] : []
+  }))
 }
 
 function isObject(value: unknown): value is JsonObject {
