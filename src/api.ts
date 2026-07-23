@@ -1,4 +1,4 @@
-import type { DirectoryListing, GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, QuotaSnapshot, RecentSession, SessionSnapshot, SessionSummary, TodoItem, VsCodeStatus, WorkspaceFile } from '../shared/types.ts'
+import type { DirectoryListing, GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, QuotaSnapshot, RecentSession, SessionSnapshot, SessionSummary, TerminalCommandResult, TodoItem, VsCodeStatus, WorkspaceFile } from '../shared/types.ts'
 
 export async function listSessions(): Promise<SessionSummary[]> {
   return request<SessionSummary[]>('/api/sessions')
@@ -55,6 +55,13 @@ export async function updateTodos(cwd: string, todos: TodoItem[]): Promise<TodoI
   return request<TodoItem[]>('/api/todos', {
     method: 'PUT',
     body: JSON.stringify({ cwd, todos }),
+  })
+}
+
+export async function executeTerminalCommand(cwd: string, command: string): Promise<TerminalCommandResult> {
+  return request<TerminalCommandResult>('/api/terminal', {
+    method: 'POST',
+    body: JSON.stringify({ command, cwd }),
   })
 }
 

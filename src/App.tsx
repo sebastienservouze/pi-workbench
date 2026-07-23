@@ -475,7 +475,7 @@ function App() {
     },
   ], [showToast, vsCodeAvailable, workspacePath])
 
-  const rightPanelVisible = activeRightWidget === 'todo' || activeRightWidget === 'quotas'
+  const rightPanelVisible = activeRightWidget === 'terminal' || activeRightWidget === 'todo' || activeRightWidget === 'quotas'
     || (activeRightWidget === 'analysis' && sessionAnalysis !== null)
     || (activeRightWidget === 'git' && gitSnapshot?.repository === true)
 
@@ -649,7 +649,7 @@ function readRecentWorkspaces(): string[] {
 
 function readActiveRightWidget(): RightWidget | null {
   const stored = window.localStorage.getItem('pi-workbench.right-sidebar-widget')
-  if (stored === 'analysis' || stored === 'git' || stored === 'quotas' || stored === 'todo') return stored
+  if (stored === 'analysis' || stored === 'git' || stored === 'quotas' || stored === 'terminal' || stored === 'todo') return stored
   if (stored === 'none') return null
   return window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git'
 }

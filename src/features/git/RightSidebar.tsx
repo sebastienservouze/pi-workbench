@@ -4,10 +4,11 @@ import { QuotaWidget } from '../quotas/QuotaWidget.tsx'
 import { railQuota, type QuotaProvider } from '../quotas/quota-display.ts'
 import { SessionAnalysisWidget } from '../session-analysis/SessionAnalysisWidget.tsx'
 import type { SessionAnalysis, SessionAnalysisTarget } from '../session-analysis/session-analysis.ts'
+import { TerminalWidget } from '../terminal/TerminalWidget.tsx'
 import { TodoWidget } from '../todo/TodoWidget.tsx'
 import { maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff } from './git-sidebar.ts'
 
-export type RightWidget = 'analysis' | 'git' | 'quotas' | 'todo'
+export type RightWidget = 'analysis' | 'git' | 'quotas' | 'terminal' | 'todo'
 
 export interface RailAction {
   key: string
@@ -136,7 +137,7 @@ export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onA
         role="separator"
         tabIndex={0}
       />
-      <section aria-label={activeWidget === 'analysis' ? 'Analyse de la session' : activeWidget === 'todo' ? 'Tâches du workspace' : activeWidget === 'quotas' ? 'Quotas des fournisseurs' : fileDiff || selectedPath ? 'Diff Git' : 'Informations Git'} className="git-panel" id={`${activeWidget}-panel`}>
+      <section aria-label={activeWidget === 'analysis' ? 'Analyse de la session' : activeWidget === 'todo' ? 'Tâches du workspace' : activeWidget === 'terminal' ? 'Terminal du workspace' : activeWidget === 'quotas' ? 'Quotas des fournisseurs' : fileDiff || selectedPath ? 'Diff Git' : 'Informations Git'} className="git-panel" id={`${activeWidget}-panel`}>
         {activeWidget === 'analysis' && analysis && <WidgetLayout header={<div><strong>Analyse de session</strong><span>{analysis.requests.length} requête{analysis.requests.length > 1 ? 's' : ''} analysée{analysis.requests.length > 1 ? 's' : ''}</span></div>}><SessionAnalysisWidget analysis={analysis} onNavigate={onAnalysisNavigate} /></WidgetLayout>}
         {activeWidget === 'git' && snapshot && <WidgetLayout
           footer={activeWidget === 'git' && !selectedPath && (hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>
@@ -167,6 +168,7 @@ export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onA
           </>}
         </WidgetLayout>}
         {activeWidget === 'quotas' && <QuotaWidget onRefresh={onQuotaRefresh} quotas={quotas} />}
+        {activeWidget === 'terminal' && <TerminalWidget workspacePath={workspacePath} />}
         {activeWidget === 'todo' && <TodoWidget onOpenCountChange={setTodoOpenCount} onStartSession={onTodoStartSession} workspacePath={workspacePath} />}
       </section>
     </div>}
@@ -206,6 +208,17 @@ export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onA
       >
         <span aria-hidden="true" className="quota-rail-value">{quotaSummary?.value ?? '%'}</span>
         {quotaSummary?.stale && <small>!</small>}
+      </button>
+      <button
+        aria-controls={activeWidget === 'terminal' ? 'terminal-panel' : undefined}
+        aria-expanded={activeWidget === 'terminal'}
+        aria-label={activeWidget === 'terminal' ? 'Réduire le terminal' : 'Développer le terminal'}
+        className="rail-tab"
+        onClick={() => onWidgetSelect('terminal')}
+        title="Terminal"
+        type="button"
+      >
+        <span aria-hidden="true">›_</span>
       </button>
       <button
         aria-controls={activeWidget === 'todo' ? 'todo-panel' : undefined}

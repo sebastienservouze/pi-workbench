@@ -9,6 +9,7 @@ import { listRecentPiSessions, loadPiSession } from './pi-session-store.ts'
 import { commitAndPush, getGitFileDiff, getGitSnapshot, revertGitCommit } from './git.ts'
 import { readWorkspaceFile, WorkspaceFileError } from './workspace-file.ts'
 import { loadWorkspaceTodos, parseTodoItems, saveWorkspaceTodos } from './todo-store.ts'
+import { runTerminalCommand } from './terminal.ts'
 import { isVsCodeAvailable, openExplorer, openVsCode, windowsWorkspacePath } from './vscode.ts'
 import { QuotaCache } from './quota-cache.ts'
 import type { DirectoryListing, JsonObject, ManagerEvent, QuotaSnapshot, SessionSnapshot } from '../shared/types.ts'
@@ -163,6 +164,14 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
     }
     await saveWorkspaceTodos(cwd, todos)
     sendJson(response, 200, todos)
+    return
+  }
+
+  if (method === 'POST' && url.pathname === '/api/terminal') {
+    const body = await readJsonBody(request)
+    if (typeof body.cwd !== 'string') throw new HttpError(400, 'Working directory is required')
+    if (typeof body.command !== 'string' || !body.command.trim() || body.command.length > 10_000) throw new HttpError(400, 'A valid command is required')
+    sendJson(response, 200, await runTerminalCommand(await resolveWorkingDirectory(body.cwd), body.command.trim()))
     return
   }
 

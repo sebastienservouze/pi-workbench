@@ -81,6 +81,14 @@ export interface TodoItem {
   completed: boolean
 }
 
+export interface TerminalCommandResult {
+  command: string
+  stdout: string
+  stderr: string
+  exitCode: number | null
+  timedOut: boolean
+}
+
 export interface ManagerRequest {
   id: string
   action: 'list' | 'create' | 'open' | 'command'

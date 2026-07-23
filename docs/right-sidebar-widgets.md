@@ -52,6 +52,12 @@ const railActions = useMemo(() => [
 
 Le rail reste disponible pour les tâches et les actions épinglées, même lorsqu’aucun dépôt Git n’est détecté.
 
+### Terminal
+
+Le widget Terminal exécute une commande isolée dans le workspace courant et conserve ses sorties dans le panneau tant qu’il reste monté. Chaque commande démarre depuis le cwd du workspace : l’état du shell, notamment `cd` et les variables exportées, n’est pas conservé. Le backend borne une commande à 10 minutes et sa sortie à 1 Mo.
+
+Cette console légère repose sur l’API HTTP locale `/api/terminal`. Elle ne fournit volontairement ni pseudo-terminal, ni saisie interactive, ni programme plein écran.
+
 ### Prévisualisation Markdown
 
 Les fichiers `.md` et `.markdown` ouverts par les outils `read` ou `write` sont rendus directement dans l’historique de la conversation (expansion inline du tool call). Les fichiers `.html` sont ouverts dans un nouvel onglet local. Aucun widget ni panneau n’est nécessaire pour ces formats.

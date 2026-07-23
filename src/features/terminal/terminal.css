@@ -1,0 +1,26 @@
+.terminal-header > div { min-width: 0; }
+.terminal-header > div span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.terminal-header button { border: 0; padding: 4px; background: transparent; color: var(--muted); font-size: 11px; }
+.terminal-header button:hover { color: var(--ink); }
+.terminal-output { padding: 10px; background: color-mix(in srgb, var(--ink) 4%, var(--surface)); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px; }
+.terminal-result + .terminal-result { margin-top: 14px; }
+.terminal-result > div, .terminal-running { display: flex; align-items: baseline; gap: 7px; color: var(--ink); }
+.terminal-result > div span, .terminal-running > span { color: var(--teal); font-weight: 700; }
+.terminal-result pre { margin: 6px 0 0; color: var(--ink); font: inherit; line-height: 1.5; overflow-wrap: anywhere; white-space: pre-wrap; }
+.terminal-result .terminal-stderr, .terminal-result small, .terminal-error { color: var(--danger); }
+.terminal-result small { display: block; margin-top: 6px; }
+.terminal-running { flex-wrap: wrap; }
+.terminal-running small { color: var(--muted); }
+.terminal-empty { display: grid; place-items: center; gap: 6px; margin: auto; padding: 28px 12px; color: var(--muted); font-family: system-ui, sans-serif; line-height: 1.5; text-align: center; }
+.terminal-empty strong { color: var(--ink); font-size: 13px; }
+.terminal-empty span { max-width: 30ch; }
+.terminal-empty code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.terminal-error { margin: 10px 0 0; }
+.terminal-form { display: grid; grid-template-columns: auto minmax(0, 1fr) 34px; align-items: center; gap: 7px; padding: 10px; }
+.terminal-form > span { color: var(--teal); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-weight: 700; }
+.terminal-form input { min-width: 0; border: 1px solid var(--line-strong); border-radius: 7px; padding: 8px 9px; background: var(--surface); color: var(--ink); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; outline: 0; }
+.terminal-form input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 13%, transparent); }
+.terminal-form input::placeholder { color: var(--muted); }
+.terminal-form button { height: 34px; border: 1px solid var(--teal); border-radius: 7px; background: var(--teal); color: white; font-size: 17px; }
+.terminal-form button:hover:not(:disabled) { background: var(--accent-hover); }
+.terminal-form button:disabled { opacity: .5; }
