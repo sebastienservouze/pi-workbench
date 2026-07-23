@@ -75,6 +75,12 @@ export interface WorkspaceFile {
   content: string
 }
 
+export interface TodoItem {
+  id: string
+  text: string
+  completed: boolean
+}
+
 export interface ManagerRequest {
   id: string
   action: 'list' | 'create' | 'open' | 'command'

@@ -10,7 +10,7 @@ import { applyToolCallUpdate, interruptToolCallGeneration, toolCallInUpdate, typ
 import { AskUserQuestionDialog, ExtensionDialog } from './features/dialogs/Dialogs.tsx'
 import { isAgentSelector, isAskUserQuestionDialog, isBlockingDialog, type UiDialog } from './features/dialogs/dialog-protocol.ts'
 import { clampGitSidebarWidth, readGitSidebarWidth } from './features/git/git-sidebar.ts'
-import { RightSidebar } from './features/git/RightSidebar.tsx'
+import { RightSidebar, type RightWidget } from './features/git/RightSidebar.tsx'
 import { DirectoryPicker } from './features/workspace/DirectoryPicker.tsx'
 import { recentWorkspaces } from './features/workspace/recent-workspaces.ts'
 import { WorkspaceSidebar } from './features/workspace/WorkspaceSidebar.tsx'
@@ -53,7 +53,7 @@ function App() {
   const [dialog, setDialog] = useState<UiDialog | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [gitSnapshot, setGitSnapshot] = useState<GitSnapshot | null>(null)
-  const [activeRightWidget, setActiveRightWidget] = useState<'git' | null>(() => window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git')
+  const [activeRightWidget, setActiveRightWidget] = useState<RightWidget | null>(readActiveRightWidget)
   const [gitSidebarWidth, setGitSidebarWidth] = useState(() => readGitSidebarWidth(window.localStorage.getItem('pi-workbench.git-sidebar-width')))
   const [theme, setTheme] = useState(() => window.localStorage.getItem('pi-workbench.theme') ?? 'light')
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
@@ -323,7 +323,7 @@ function App() {
     if (id === 'new-session') { void startAndSelectSession(() => createSession(workspacePath)).catch((cause) => showToast('error', messageOf(cause))); return }
     if (id === 'send') { setSubmitRequest((current) => current + 1); return }
     if (id === 'abort' && selectedId) { void sendPiCommand(selectedId, { type: 'abort' }).catch((cause) => showToast('error', messageOf(cause))); return }
-    if (id === 'toggle-git') { setActiveRightWidget((current) => current === null ? 'git' : null); return }
+    if (id === 'toggle-git') { setActiveRightWidget((current) => current === 'git' ? null : 'git'); return }
     if (id === 'open-agent' || id === 'open-model' || id === 'open-thinking') { setRequestedSelect(id === 'open-agent' ? 'agent' : id === 'open-model' ? 'model' : 'thinking'); return }
     if (id === 'copy-last-response') {
       const text = lastAssistantText(snapshot.messages)
@@ -383,11 +383,9 @@ function App() {
     },
   ], [showToast, vsCodeAvailable, workspacePath])
 
-  const rightSidebarVisible = Boolean(gitSnapshot?.repository) || railActions.length > 0
-
   return (
     <div
-      className={`app-shell${rightSidebarVisible ? activeRightWidget ? ' git-sidebar-visible' : ' git-sidebar-collapsed' : ''}`}
+      className={`app-shell ${activeRightWidget ? 'git-sidebar-visible' : 'git-sidebar-collapsed'}`}
       style={{ '--git-sidebar-width': `${gitSidebarWidth}px` } as CSSProperties}
     >
       <WorkspaceSidebar
@@ -473,11 +471,12 @@ function App() {
         )}
       </main>
 
-      {rightSidebarVisible && <RightSidebar
+      <RightSidebar
         activeWidget={activeRightWidget}
         onResize={updateGitSidebarWidth}
         snapshot={gitSnapshot?.repository ? gitSnapshot : null}
         width={gitSidebarWidth}
+        workspacePath={workspacePath}
         railActions={railActions}
         onAction={async (message) => {
           const result = await commitAndPush(workspacePath, message)
@@ -495,12 +494,12 @@ function App() {
           showToast('notice', `Commit ${hash.slice(0, 7)} revert.`)
           return result
         }}
-        onWidgetSelect={() => setActiveRightWidget((current) => {
-          const next = current === null ? 'git' : null
-          window.localStorage.setItem('pi-workbench.git-sidebar-collapsed', String(next === null))
+        onWidgetSelect={(widget) => setActiveRightWidget((current) => {
+          const next = current === widget ? null : widget
+          window.localStorage.setItem('pi-workbench.right-sidebar-widget', next ?? 'none')
           return next
         })}
-      />}
+      />
 
       {directoryPickerOpen && <DirectoryPicker
         initialPath={workspacePath}
@@ -542,6 +541,13 @@ function readRecentWorkspaces(): string[] {
   } catch {
     return []
   }
+}
+
+function readActiveRightWidget(): RightWidget | null {
+  const stored = window.localStorage.getItem('pi-workbench.right-sidebar-widget')
+  if (stored === 'git' || stored === 'todo') return stored
+  if (stored === 'none') return null
+  return window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git'
 }
 
 function isManagerEvent(value: unknown): value is ManagerEvent {

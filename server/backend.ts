@@ -8,6 +8,7 @@ import { ManagerClient } from './manager-client.ts'
 import { listRecentPiSessions, loadPiSession } from './pi-session-store.ts'
 import { commitAndPush, getGitFileDiff, getGitSnapshot, revertGitCommit } from './git.ts'
 import { readWorkspaceFile, WorkspaceFileError } from './workspace-file.ts'
+import { loadWorkspaceTodos, parseTodoItems, saveWorkspaceTodos } from './todo-store.ts'
 import { isVsCodeAvailable, openExplorer, openVsCode, windowsWorkspacePath } from './vscode.ts'
 import type { DirectoryListing, JsonObject, ManagerEvent, SessionSnapshot } from '../shared/types.ts'
 
@@ -119,6 +120,27 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
       if (error instanceof WorkspaceFileError) throw new HttpError(error.status, error.message)
       throw error
     }
+    return
+  }
+
+  if (method === 'GET' && url.pathname === '/api/todos') {
+    const cwd = await resolveWorkingDirectory(url.searchParams.get('cwd') ?? '~/.pi')
+    sendJson(response, 200, await loadWorkspaceTodos(cwd))
+    return
+  }
+
+  if (method === 'PUT' && url.pathname === '/api/todos') {
+    const body = await readJsonBody(request)
+    if (typeof body.cwd !== 'string') throw new HttpError(400, 'Working directory is required')
+    const cwd = await resolveWorkingDirectory(body.cwd)
+    let todos
+    try {
+      todos = parseTodoItems(body.todos)
+    } catch (error) {
+      throw new HttpError(400, errorMessage(error))
+    }
+    await saveWorkspaceTodos(cwd, todos)
+    sendJson(response, 200, todos)
     return
   }
 

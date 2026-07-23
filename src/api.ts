@@ -1,4 +1,4 @@
-import type { DirectoryListing, GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, RecentSession, SessionSnapshot, SessionSummary, VsCodeStatus, WorkspaceFile } from '../shared/types.ts'
+import type { DirectoryListing, GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, RecentSession, SessionSnapshot, SessionSummary, TodoItem, VsCodeStatus, WorkspaceFile } from '../shared/types.ts'
 
 export async function listSessions(): Promise<SessionSummary[]> {
   return request<SessionSummary[]>('/api/sessions')
@@ -45,6 +45,17 @@ export async function getWorkspaceFile(cwd: string, path: string): Promise<Works
 
 export async function getWorkspaceFilePath(cwd: string, path: string): Promise<{ path: string }> {
   return request<{ path: string }>(`/api/files/path?cwd=${encodeURIComponent(cwd)}&path=${encodeURIComponent(path)}`)
+}
+
+export async function getTodos(cwd: string): Promise<TodoItem[]> {
+  return request<TodoItem[]>(`/api/todos?cwd=${encodeURIComponent(cwd)}`)
+}
+
+export async function updateTodos(cwd: string, todos: TodoItem[]): Promise<TodoItem[]> {
+  return request<TodoItem[]>('/api/todos', {
+    method: 'PUT',
+    body: JSON.stringify({ cwd, todos }),
+  })
 }
 
 export async function commitAndPush(cwd: string, message: string): Promise<GitActionResult> {

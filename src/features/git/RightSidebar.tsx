@@ -1,6 +1,9 @@
 import { useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot } from '../../../shared/types.ts'
+import { TodoWidget } from '../todo/TodoWidget.tsx'
 import { maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff } from './git-sidebar.ts'
+
+export type RightWidget = 'git' | 'todo'
 
 export interface RailAction {
   key: string
@@ -10,21 +13,23 @@ export interface RailAction {
   onClick: () => void
 }
 
-/** Coordonne le panneau Git, le rail commun et le redimensionnement. */
-export function RightSidebar({ activeWidget, onResize, snapshot, width, railActions, onAction, onError, onFileSelect, onRefresh, onRevert, onWidgetSelect }: {
-  activeWidget: 'git' | null
+/** Coordonne les panneaux latéraux, leur rail commun et le redimensionnement. */
+export function RightSidebar({ activeWidget, onResize, snapshot, width, workspacePath, railActions, onAction, onError, onFileSelect, onRefresh, onRevert, onWidgetSelect }: {
+  activeWidget: RightWidget | null
   onResize: (width: number) => void
   snapshot: GitSnapshot | null
   width: number
+  workspacePath: string
   railActions: RailAction[]
   onAction: (message: string) => Promise<GitActionResult>
   onError: (cause: unknown) => void
   onFileSelect: (path: string, commitHash?: string) => Promise<GitFileDiff>
   onRefresh: () => void
   onRevert: (hash: string) => Promise<GitRevertResult>
-  onWidgetSelect: () => void
+  onWidgetSelect: (widget: RightWidget) => void
 }) {
   const [message, setMessage] = useState('')
+  const [todoOpenCount, setTodoOpenCount] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [fileDiff, setFileDiff] = useState<GitFileDiff | null>(null)
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
@@ -105,10 +110,10 @@ export function RightSidebar({ activeWidget, onResize, snapshot, width, railActi
     }
   }
 
-  return <aside className="git-sidebar" aria-label="Informations Git">
+  return <aside className="git-sidebar" aria-label="Outils du workspace">
     {!collapsed && <div className="git-widget-panel">
       <div
-        aria-controls={activeWidget === 'git' ? 'git-panel' : undefined}
+        aria-controls={activeWidget ? `${activeWidget}-panel` : undefined}
         aria-label="Redimensionner le panneau latéral"
         aria-orientation="vertical"
         aria-valuemax={maxGitSidebarWidth}
@@ -120,8 +125,8 @@ export function RightSidebar({ activeWidget, onResize, snapshot, width, railActi
         role="separator"
         tabIndex={0}
       />
-      <section aria-label={activeWidget === 'git' && fileDiff || selectedPath ? 'Diff Git' : 'Informations Git'} className="git-panel" id="git-panel">
-        {snapshot && <WidgetLayout
+      <section aria-label={activeWidget === 'todo' ? 'Tâches du workspace' : fileDiff || selectedPath ? 'Diff Git' : 'Informations Git'} className="git-panel" id={`${activeWidget}-panel`}>
+        {activeWidget === 'git' && snapshot && <WidgetLayout
           footer={activeWidget === 'git' && !selectedPath && (hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>
             {hasChanges && <input aria-label="Message de commit" disabled={busy} onChange={(event) => setMessage(event.target.value)} placeholder="Message de commit" value={message} />}
             <button disabled={busy || (hasChanges && !message.trim())} type="submit">{busy ? 'Git en cours…' : hasChanges ? 'Committer et pousser' : `Pousser ${snapshot.ahead} commit${snapshot.ahead > 1 ? 's' : ''}`}</button>
@@ -149,6 +154,7 @@ export function RightSidebar({ activeWidget, onResize, snapshot, width, railActi
             {!hasChanges && snapshot.ahead === 0 && <p className="git-empty">Aucun changement à committer.</p>}
           </>}
         </WidgetLayout>}
+        {activeWidget === 'todo' && <TodoWidget onOpenCountChange={setTodoOpenCount} workspacePath={workspacePath} />}
       </section>
     </div>}
     <div className="git-rail">
@@ -157,13 +163,25 @@ export function RightSidebar({ activeWidget, onResize, snapshot, width, railActi
         aria-expanded={activeWidget === 'git'}
         aria-label={activeWidget === 'git' ? 'Réduire le panneau Git' : 'Développer le panneau Git'}
         className="rail-tab"
-        onClick={onWidgetSelect}
+        onClick={() => onWidgetSelect('git')}
         title="Git"
         type="button"
       >
         <span aria-hidden="true">⎇</span>
         {(hasChanges || snapshot.ahead > 0) && <small>{snapshot.files.length + snapshot.ahead}</small>}
       </button>}
+      <button
+        aria-controls={activeWidget === 'todo' ? 'todo-panel' : undefined}
+        aria-expanded={activeWidget === 'todo'}
+        aria-label={activeWidget === 'todo' ? 'Réduire le panneau des tâches' : 'Développer le panneau des tâches'}
+        className="rail-tab"
+        onClick={() => onWidgetSelect('todo')}
+        title="À faire"
+        type="button"
+      >
+        <span aria-hidden="true">☑</span>
+        {todoOpenCount !== null && todoOpenCount > 0 && <small>{todoOpenCount}</small>}
+      </button>
       {railActions.map((action) => <button
         aria-label={action.label}
         className="rail-tab"
