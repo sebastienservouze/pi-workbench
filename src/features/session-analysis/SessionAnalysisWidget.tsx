@@ -102,6 +102,7 @@ const TOKEN_SERIES = [
 
 /** Compare les volumes de tokens de chaque tour avec des séries distinctes et navigables. */
 function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAnalysisTarget) => void; turns: AnalyzedTurn[] }) {
+  const [activePointIndex, setActivePointIndex] = useState<number>()
   const [chartRef, width] = useChartWidth()
   const height = 178
   const padding = { top: 14, right: 16, bottom: 30, left: 12 }
@@ -120,6 +121,8 @@ function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAn
     label: formatTokens(maxTokens * (1 - ratio)),
     y: padding.top + plotHeight * ratio,
   }))
+  const activePoint = points.find(({ turn }) => turn.messageIndex === activePointIndex)
+  const tooltipWidth = 148
 
   return <div className="token-usage-chart-block">
     <div aria-hidden="true" className="token-chart-legend">
@@ -133,32 +136,32 @@ function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAn
         <svg aria-label="Tokens par tour agent, dans l’ordre chronologique" className="token-chart" role="group" viewBox={`0 0 ${width} ${height}`}>
           {yTicks.map((tick) => <line className="chart-grid" key={tick.y} x1={padding.left} x2={width - padding.right} y1={tick.y} y2={tick.y} />)}
           {TOKEN_SERIES.map((series, seriesIndex) => <polyline className={`chart-line ${series.className}`} key={series.key} points={points.map((point) => `${point.x},${point.values[seriesIndex]?.y}`).join(' ')} />)}
-          {points.map(({ turn, values, x }) => {
-            const tooltipWidth = 148
-            const tooltipX = Math.min(width - padding.right - tooltipWidth, Math.max(padding.left, x - tooltipWidth / 2))
-            return <g
-              aria-label={`Tour ${turn.number}, ${values.map((point) => `${point.label} ${point.value} tokens`).join(', ')}`}
-              className="chart-point"
-              key={turn.messageIndex}
-              onClick={() => onNavigate({ kind: 'turn', index: turn.messageIndex })}
-              onKeyDown={(event) => {
-                if (event.key !== 'Enter' && event.key !== ' ') return
-                event.preventDefault()
-                onNavigate({ kind: 'turn', index: turn.messageIndex })
-              }}
-              role="button"
-              tabIndex={0}
-            >
-              <rect className="chart-column-hit" height={plotHeight} width="24" x={x - 12} y={padding.top} />
-              {values.map((point) => <circle className={`chart-point-dot ${point.className}`} cx={x} cy={point.y} key={point.key} r="3.5" />)}
-              <text className="chart-x-label" x={x} y={height - 9}>{turn.number}</text>
-              <g aria-hidden="true" className="chart-tooltip token-chart-tooltip" transform={`translate(${tooltipX} ${padding.top + 4})`}>
-                <rect height="52" rx="6" width={tooltipWidth} />
-                <text x="10" y="14">{values.map((point, index) => <tspan className={`token-tooltip-value ${point.className}`} dy={index === 0 ? 0 : 14} key={point.key} x="10">{point.label} · {formatTokens(point.value)}</tspan>)}</text>
-              </g>
-            </g>
-          })}
+          {points.map(({ turn, values, x }) => <g
+            aria-label={`Tour ${turn.number}, ${values.map((point) => `${point.label} ${point.value} tokens`).join(', ')}`}
+            className="chart-point"
+            key={turn.messageIndex}
+            onBlur={() => setActivePointIndex(undefined)}
+            onClick={() => onNavigate({ kind: 'turn', index: turn.messageIndex })}
+            onFocus={() => setActivePointIndex(turn.messageIndex)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return
+              event.preventDefault()
+              onNavigate({ kind: 'turn', index: turn.messageIndex })
+            }}
+            onMouseEnter={() => setActivePointIndex(turn.messageIndex)}
+            onMouseLeave={() => setActivePointIndex(undefined)}
+            role="button"
+            tabIndex={0}
+          >
+            <rect className="chart-column-hit" height={plotHeight} width="24" x={x - 12} y={padding.top} />
+            {values.map((point) => <circle className={`chart-point-dot ${point.className}`} cx={x} cy={point.y} key={point.key} r="3.5" />)}
+            <text className="chart-x-label" x={x} y={height - 9}>{turn.number}</text>
+          </g>)}
           <text className="chart-axis-title" x={padding.left + plotWidth / 2} y={height - 1}>Tour</text>
+          {activePoint && <g aria-hidden="true" className="chart-tooltip token-chart-tooltip" transform={`translate(${Math.min(width - padding.right - tooltipWidth, Math.max(padding.left, activePoint.x - tooltipWidth / 2))} ${padding.top + 4})`}>
+            <rect height="52" rx="6" width={tooltipWidth} />
+            <text x="10" y="14">{activePoint.values.map((point, index) => <tspan className={`token-tooltip-value ${point.className}`} dy={index === 0 ? 0 : 14} key={point.key} x="10">{point.label} · {formatTokens(point.value)}</tspan>)}</text>
+          </g>}
         </svg>
       </div>
     </div>
@@ -167,6 +170,7 @@ function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAn
 
 /** Trace tous les coûts dans l’ordre et conserve chaque tour comme cible de navigation accessible. */
 function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnalysisTarget) => void; turns: AnalyzedTurn[] }) {
+  const [activePointIndex, setActivePointIndex] = useState<number>()
   const [chartRef, width] = useChartWidth()
   const height = 178
   const padding = { top: 14, right: 16, bottom: 30, left: 12 }
@@ -184,6 +188,8 @@ function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnal
     label: formatTurnCost(maxCost * (1 - ratio)),
     y: padding.top + plotHeight * ratio,
   }))
+  const activePoint = points.find(({ turn }) => turn.messageIndex === activePointIndex)
+  const tooltipWidth = 124
 
   return <div className="turn-cost-chart-frame">
     <div aria-hidden="true" className="chart-y-axis">
@@ -194,33 +200,32 @@ function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnal
       {yTicks.map((tick) => <line className="chart-grid" key={tick.y} x1={padding.left} x2={width - padding.right} y1={tick.y} y2={tick.y} />)}
       {points.length > 1 && <polygon className="chart-area" points={areaPoints} />}
       {points.length > 1 && <polyline className="chart-line" points={linePoints} />}
-      {points.map(({ turn, x, y }) => {
-        const tooltipWidth = 124
-        const tooltipX = Math.min(width - padding.right - tooltipWidth, Math.max(padding.left, x - tooltipWidth / 2))
-        const tooltipY = y < padding.top + 48 ? y + 13 : y - 47
-        return <g
-          aria-label={`Tour ${turn.number}, ${formatTurnCost(turn.cost)}, ${turn.toolCallCount} outil${turn.toolCallCount !== 1 ? 's' : ''}`}
-          className="chart-point"
-          key={turn.messageIndex}
-          onClick={() => onNavigate({ kind: 'turn', index: turn.messageIndex })}
-          onKeyDown={(event) => {
-            if (event.key !== 'Enter' && event.key !== ' ') return
-            event.preventDefault()
-            onNavigate({ kind: 'turn', index: turn.messageIndex })
-          }}
-          role="button"
-          tabIndex={0}
-        >
-          <circle className="chart-point-hit" cx={x} cy={y} r="11" />
-          <circle className="chart-point-dot" cx={x} cy={y} r="3.5" />
-          <text className="chart-x-label" x={x} y={height - 9}>{turn.number}</text>
-          <g aria-hidden="true" className="chart-tooltip" transform={`translate(${tooltipX} ${tooltipY})`}>
-            <rect height="38" rx="6" width={tooltipWidth} />
-            <text x="10" y="15"><tspan className="chart-tooltip-cost">{formatTurnCost(turn.cost)}</tspan><tspan className="chart-tooltip-tools" x="10" dy="14">{turn.toolCallCount} outil{turn.toolCallCount !== 1 ? 's' : ''} appelé{turn.toolCallCount !== 1 ? 's' : ''}</tspan></text>
-          </g>
-        </g>
-      })}
+      {points.map(({ turn, x, y }) => <g
+        aria-label={`Tour ${turn.number}, ${formatTurnCost(turn.cost)}, ${turn.toolCallCount} outil${turn.toolCallCount !== 1 ? 's' : ''}`}
+        className="chart-point"
+        key={turn.messageIndex}
+        onBlur={() => setActivePointIndex(undefined)}
+        onClick={() => onNavigate({ kind: 'turn', index: turn.messageIndex })}
+        onFocus={() => setActivePointIndex(turn.messageIndex)}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return
+          event.preventDefault()
+          onNavigate({ kind: 'turn', index: turn.messageIndex })
+        }}
+        onMouseEnter={() => setActivePointIndex(turn.messageIndex)}
+        onMouseLeave={() => setActivePointIndex(undefined)}
+        role="button"
+        tabIndex={0}
+      >
+        <circle className="chart-point-hit" cx={x} cy={y} r="11" />
+        <circle className="chart-point-dot" cx={x} cy={y} r="3.5" />
+        <text className="chart-x-label" x={x} y={height - 9}>{turn.number}</text>
+      </g>)}
         <text className="chart-axis-title" x={padding.left + plotWidth / 2} y={height - 1}>Tour</text>
+        {activePoint && <g aria-hidden="true" className="chart-tooltip" transform={`translate(${Math.min(width - padding.right - tooltipWidth, Math.max(padding.left, activePoint.x - tooltipWidth / 2))} ${activePoint.y < padding.top + 48 ? activePoint.y + 13 : activePoint.y - 47})`}>
+          <rect height="38" rx="6" width={tooltipWidth} />
+          <text x="10" y="15"><tspan className="chart-tooltip-cost">{formatTurnCost(activePoint.turn.cost)}</tspan><tspan className="chart-tooltip-tools" x="10" dy="14">{activePoint.turn.toolCallCount} outil{activePoint.turn.toolCallCount !== 1 ? 's' : ''} appelé{activePoint.turn.toolCallCount !== 1 ? 's' : ''}</tspan></text>
+        </g>}
       </svg>
     </div>
   </div>
