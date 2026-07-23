@@ -1,15 +1,16 @@
 .todo-content { display: flex; flex-direction: column; }
 .todo-list { display: grid; gap: 2px; margin: 0; padding: 8px; list-style: none; }
-.todo-list li { display: grid; grid-template-columns: 22px minmax(0, 1fr) 30px; align-items: center; gap: 5px; min-height: 38px; border-radius: 7px; padding: 3px 4px; }
+.todo-list li { display: grid; grid-template-columns: 22px minmax(0, 1fr) 30px 30px; align-items: center; gap: 5px; min-height: 38px; border-radius: 7px; padding: 3px 4px; }
 .todo-list li:hover { background: color-mix(in srgb, var(--teal) 7%, transparent); }
 .todo-list input[type='checkbox'] { width: 16px; height: 16px; margin: 0; accent-color: var(--teal); }
 .todo-text { min-width: 0; border: 0; padding: 5px 2px; background: transparent; color: var(--ink); font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; text-align: left; }
-.todo-text:focus-visible, .todo-delete:focus-visible, .todo-add button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+.todo-text:focus-visible, .todo-start:focus-visible, .todo-delete:focus-visible, .todo-add button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
 .todo-list .completed .todo-text { color: var(--muted); text-decoration: line-through; }
 .todo-edit { width: 100%; min-width: 0; border: 1px solid var(--teal); border-radius: 6px; padding: 5px 6px; background: var(--surface); color: var(--ink); font-size: 12px; outline: 3px solid color-mix(in srgb, var(--teal) 16%, transparent); }
-.todo-delete { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 6px; padding: 0; background: transparent; color: var(--subtle); font-size: 18px; }
+.todo-start, .todo-delete { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 6px; padding: 0; background: transparent; color: var(--subtle); font-size: 18px; }
+.todo-start:hover:not(:disabled) { background: color-mix(in srgb, var(--teal) 10%, transparent); color: var(--teal); }
 .todo-delete:hover:not(:disabled) { background: var(--danger-soft); color: var(--danger); }
-.todo-delete:disabled, .todo-text:disabled { cursor: default; opacity: .55; }
+.todo-start:disabled, .todo-delete:disabled, .todo-text:disabled { cursor: default; opacity: .55; }
 .todo-add { display: grid; grid-template-columns: minmax(0, 1fr) 34px; gap: 7px; padding: 10px; }
 .todo-add input { width: 100%; min-width: 0; border: 1px solid var(--line-strong); border-radius: 7px; padding: 8px 9px; background: var(--surface); color: var(--ink); font-size: 12px; outline: 0; }
 .todo-add input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 13%, transparent); }

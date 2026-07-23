@@ -14,7 +14,7 @@ export interface RailAction {
 }
 
 /** Coordonne les panneaux latéraux, leur rail commun et le redimensionnement. */
-export function RightSidebar({ activeWidget, onResize, snapshot, width, workspacePath, railActions, onAction, onError, onFileSelect, onRefresh, onRevert, onWidgetSelect }: {
+export function RightSidebar({ activeWidget, onResize, snapshot, width, workspacePath, railActions, onAction, onError, onFileSelect, onRefresh, onRevert, onTodoStartSession, onWidgetSelect }: {
   activeWidget: RightWidget | null
   onResize: (width: number) => void
   snapshot: GitSnapshot | null
@@ -26,6 +26,7 @@ export function RightSidebar({ activeWidget, onResize, snapshot, width, workspac
   onFileSelect: (path: string, commitHash?: string) => Promise<GitFileDiff>
   onRefresh: () => void
   onRevert: (hash: string) => Promise<GitRevertResult>
+  onTodoStartSession: (message: string) => Promise<void>
   onWidgetSelect: (widget: RightWidget) => void
 }) {
   const [message, setMessage] = useState('')
@@ -154,7 +155,7 @@ export function RightSidebar({ activeWidget, onResize, snapshot, width, workspac
             {!hasChanges && snapshot.ahead === 0 && <p className="git-empty">Aucun changement à committer.</p>}
           </>}
         </WidgetLayout>}
-        {activeWidget === 'todo' && <TodoWidget onOpenCountChange={setTodoOpenCount} workspacePath={workspacePath} />}
+        {activeWidget === 'todo' && <TodoWidget onOpenCountChange={setTodoOpenCount} onStartSession={onTodoStartSession} workspacePath={workspacePath} />}
       </section>
     </div>}
     <div className="git-rail">

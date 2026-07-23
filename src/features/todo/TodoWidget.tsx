@@ -3,8 +3,9 @@ import type { TodoItem } from '../../../shared/types.ts'
 import { getTodos, updateTodos } from '../../api.ts'
 
 /** Affiche et modifie la liste de tâches persistante du workspace courant. */
-export function TodoWidget({ onOpenCountChange, workspacePath }: {
+export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }: {
   onOpenCountChange: (count: number | null) => void
+  onStartSession: (message: string) => Promise<void>
   workspacePath: string
 }) {
   const [todos, setTodos] = useState<TodoItem[]>([])
@@ -14,6 +15,7 @@ export function TodoWidget({ onOpenCountChange, workspacePath }: {
   const [reloadRequest, setReloadRequest] = useState(0)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [startingId, setStartingId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   /** Recharge la liste lorsque le workspace change et ignore les réponses devenues obsolètes. */
@@ -89,6 +91,16 @@ export function TodoWidget({ onOpenCountChange, workspacePath }: {
     await save(todos.filter((item) => item.id !== todo.id))
   }
 
+  /** Lance une nouvelle session avec le texte de la tâche comme premier message. */
+  async function startSession(todo: TodoItem): Promise<void> {
+    setStartingId(todo.id)
+    try {
+      await onStartSession(todo.text)
+    } finally {
+      setStartingId(null)
+    }
+  }
+
   const remaining = openCount(todos)
 
   return <>
@@ -111,8 +123,9 @@ export function TodoWidget({ onOpenCountChange, workspacePath }: {
               onChange={(event) => setEditingText(event.target.value)}
               onKeyDown={(event) => editWithKeyboard(event, todo)}
               value={editingText}
-            /> : <button className="todo-text" disabled={busy} onClick={() => { setEditingId(todo.id); setEditingText(todo.text) }} title="Modifier" type="button">{todo.text}</button>}
-            <button aria-label={`Supprimer « ${todo.text} »`} className="todo-delete" disabled={busy} onClick={() => void removeTodo(todo)} title="Supprimer" type="button">×</button>
+            /> : <button className="todo-text" disabled={busy || startingId !== null} onClick={() => { setEditingId(todo.id); setEditingText(todo.text) }} title="Modifier" type="button">{todo.text}</button>}
+            <button aria-label={`Démarrer une session avec « ${todo.text} »`} className="todo-start" disabled={busy || editingId !== null || startingId !== null} onClick={() => void startSession(todo)} title="Démarrer une session avec cette tâche" type="button">{startingId === todo.id ? '…' : '↗'}</button>
+            <button aria-label={`Supprimer « ${todo.text} »`} className="todo-delete" disabled={busy || startingId !== null} onClick={() => void removeTodo(todo)} title="Supprimer" type="button">×</button>
           </li>)}
         </ul>}
       </>}

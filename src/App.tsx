@@ -298,8 +298,8 @@ function App() {
   const selectedSession = sessions.find((session) => session.id === selectedId)
   const questionnaire = dialog && dialog.sessionId === selectedId && isAskUserQuestionDialog(dialog.request) ? dialog : null
 
-  /** Lance une session (création ou ouverture), affiche l'écran de chargement et sélectionne après synchronisation locale. */
-  const startAndSelectSession = useCallback(async (start: () => Promise<SessionSummary>): Promise<void> => {
+  /** Lance et sélectionne une session, puis lui transmet éventuellement son premier message. */
+  const startAndSelectSession = useCallback(async (start: () => Promise<SessionSummary>, initialMessage?: string): Promise<void> => {
     creatingSessionRef.current = true
     setCreatingSession(true)
     setSelectedId('')
@@ -307,6 +307,11 @@ function App() {
       const session = await start()
       await refreshSessions()
       setSelectedId(session.id)
+      if (initialMessage) {
+        await sendPiCommand(session.id, { type: 'prompt', message: initialMessage })
+        await refreshSessions()
+        setScrollToBottomRequest((current) => current + 1)
+      }
       creatingSessionRef.current = false
       setCreatingSession(false)
     } catch (cause) {
@@ -494,6 +499,7 @@ function App() {
           showToast('notice', `Commit ${hash.slice(0, 7)} revert.`)
           return result
         }}
+        onTodoStartSession={(message) => startAndSelectSession(() => createSession(workspacePath), message)}
         onWidgetSelect={(widget) => setActiveRightWidget((current) => {
           const next = current === widget ? null : widget
           window.localStorage.setItem('pi-workbench.right-sidebar-widget', next ?? 'none')
