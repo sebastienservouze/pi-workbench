@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { applyToolCallUpdate, formatToolCallTooltip, formatToolData, interruptToolCallGeneration, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolEditChanges, toolFilePath, toolResultInMessage, toolTextPreview, truncateToolText, windowsFileUrl } from '../src/features/conversation/tool-calls.ts'
+import { applyToolCallUpdate, formatToolCallTooltip, formatToolData, interruptToolCallGeneration, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolDataLength, toolEditChanges, toolFilePath, toolResultInMessage, toolTextPreview, truncateToolText, windowsFileUrl } from '../src/features/conversation/tool-calls.ts'
 
 test('extracts tool calls and their resolved result from Pi messages', () => {
   const calls = toolCallsInMessage({
@@ -104,9 +104,10 @@ test('extracts valid edit replacements without accepting malformed entries', () 
   assert.deepEqual(toolEditChanges({ edits: 'not an array' }), [])
 })
 
-test('adds input and output sizes below the full tool title', () => {
-  assert.equal(formatToolCallTooltip('pwd', 'abc'), 'pwd\nAppel : 3 caractères')
-  assert.equal(formatToolCallTooltip('pwd', 'abc', 'de'), 'pwd\nAppel : 3 caractères · Résultat : 2 caractères')
+test('measures serialized arguments and adds input and output sizes below the full tool title', () => {
+  assert.equal(toolDataLength({ command: 'pwd' }), 17)
+  assert.equal(formatToolCallTooltip('pwd', 17), 'pwd\nAppel : 17 caractères')
+  assert.equal(formatToolCallTooltip('pwd', 17, 0), 'pwd\nAppel : 17 caractères · Résultat : 0 caractères')
 })
 
 test('truncates text only after 140 characters', () => {

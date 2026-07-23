@@ -12,7 +12,7 @@ import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typesc
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { getWorkspaceFile, getWorkspaceFilePath } from '../../api.ts'
 import { canHighlightFile } from './file-preview.ts'
-import { formatToolCallTooltip, formatToolData, readContentDisplay, toolCallPresentation, toolContentText, toolEditChanges, toolFilePath, toolTextPreview, windowsFileUrl } from './tool-calls.ts'
+import { formatToolCallTooltip, formatToolData, readContentDisplay, toolCallPresentation, toolContentText, toolDataLength, toolEditChanges, toolFilePath, toolTextPreview, windowsFileUrl } from './tool-calls.ts'
 
 SyntaxHighlighter.registerLanguage('bash', bash)
 SyntaxHighlighter.registerLanguage('csharp', csharp)
@@ -52,10 +52,13 @@ export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, in
   const [htmlOpenError, setHtmlOpenError] = useState<string>()
   const [codeRendered, setCodeRendered] = useState(false)
   const input = streaming || interrupted ? rawArgs ?? '' : formatToolData(args)
+  const inputLength = toolDataLength(args)
   const output = hasResult ? toolContentText(resultContent) : ''
+  const outputLength = output.length
   const displayedOutput = output || 'Aucune sortie.'
   const presentation = toolCallPresentation({ id, name, args }, repositoryRoot)
-  const tooltip = formatToolCallTooltip(presentation.headerDetail?.title ?? input, input, hasResult ? displayedOutput : undefined)
+  const tooltip = formatToolCallTooltip(presentation.headerDetail?.title ?? input, inputLength, hasResult ? outputLength : undefined)
+  const resolvedSizeLabel = `Entrée : ${inputLength} caractères. Sortie : ${outputLength} caractères.`
   const content = htmlOpenError ?? writtenContentError ?? (name === 'write' && writtenContent === undefined && loadingWrittenContent ? 'Chargement du fichier…' : name === 'write' ? writtenContent ?? displayedOutput : displayedOutput)
   const contentError = resultError || Boolean(writtenContentError) || Boolean(htmlOpenError)
   const preview = toolTextPreview(content)
@@ -105,9 +108,9 @@ export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, in
       <span><strong aria-label={tooltip}>{name || 'Outil'}</strong></span>
       {presentation.headerDetail && <span className="tool-call-command"><code aria-label={`Commande complète : ${presentation.headerDetail.title}`}>{presentation.headerDetail.text}</code></span>}
       {presentation.headerDetail?.suffix && <span className="tool-call-range"><code aria-label={`Plage lue : ${presentation.headerDetail.suffix}`}>{presentation.headerDetail.suffix}</code></span>}
-      <small>
+      <small aria-label={hasResult && !contentError ? resolvedSizeLabel : undefined}>
         {active && <span aria-label={streaming ? 'Paramètres en cours de génération' : 'Outil en cours'} className="spinner tool-call-spinner" role="status" />}
-        {hasResult ? contentError ? 'Échec' : 'Terminé' : interrupted ? 'Génération interrompue' : streaming ? 'Génération…' : 'En cours…'}
+        {hasResult ? contentError ? 'Échec' : <span aria-hidden="true">↘ {inputLength} car. · ↗ {outputLength} car.</span> : interrupted ? 'Génération interrompue' : streaming ? 'Génération…' : 'En cours…'}
         {active && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
       </small>
     </button>

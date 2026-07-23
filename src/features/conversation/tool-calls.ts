@@ -149,8 +149,12 @@ export function formatToolData(value: unknown): string {
   try { return JSON.stringify(value, null, 2) ?? String(value) } catch { return String(value) }
 }
 
-export function formatToolCallTooltip(title: string, input: string, output?: string): string {
-  return `${title}\nAppel : ${input.length} caractères${output === undefined ? '' : ` · Résultat : ${output.length} caractères`}`
+export function toolDataLength(value: unknown): number {
+  try { return (JSON.stringify(value) ?? String(value)).length } catch { return String(value).length }
+}
+
+export function formatToolCallTooltip(title: string, inputLength: number, outputLength?: number): string {
+  return `${title}\nAppel : ${inputLength} caractères${outputLength === undefined ? '' : ` · Résultat : ${outputLength} caractères`}`
 }
 
 export function truncateToolText(text: string, maxLength = 140): { text: string; truncated: boolean } {
