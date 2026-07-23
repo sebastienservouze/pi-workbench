@@ -38,6 +38,7 @@ export interface ToolSummary {
   name: string
   count: number
   failed: number
+  inputLength: number
   outputLength: number
   durationMs: number
   measuredDurationCount: number
@@ -226,9 +227,10 @@ function statsUsage(stats: SessionStats | null): MessageUsage | null {
 function summarizeTools(calls: AnalyzedToolCall[]): ToolSummary[] {
   const summaries = new Map<string, ToolSummary>()
   for (const call of calls) {
-    const summary = summaries.get(call.name) ?? { name: call.name, count: 0, failed: 0, outputLength: 0, durationMs: 0, measuredDurationCount: 0 }
+    const summary = summaries.get(call.name) ?? { name: call.name, count: 0, failed: 0, inputLength: 0, outputLength: 0, durationMs: 0, measuredDurationCount: 0 }
     summary.count += 1
     summary.failed += Number(call.isError)
+    summary.inputLength += call.inputLength
     summary.outputLength += call.outputLength
     if (call.durationMs !== undefined) {
       summary.durationMs += call.durationMs

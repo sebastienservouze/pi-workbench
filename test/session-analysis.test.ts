@@ -108,6 +108,7 @@ test('cumule les volumes et durées par type d’outil', () => {
     name: 'read',
     count: 2,
     failed: 1,
+    inputLength: 24,
     outputLength: 8,
     durationMs: 350,
     measuredDurationCount: 2,

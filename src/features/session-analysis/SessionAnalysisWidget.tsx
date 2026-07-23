@@ -3,7 +3,7 @@ import { formatTokens, formatTurnCost } from '../conversation/message-usage.ts'
 import type { AnalyzedToolCall, AnalyzedTurn, SessionAnalysis, SessionAnalysisTarget, ToolSummary } from './session-analysis.ts'
 
 type ToolRanking = 'duration' | 'failure' | 'output'
-type ToolUsageRanking = 'duration' | 'output'
+type ToolUsageRanking = 'duration' | 'input' | 'output'
 
 /** Présente les mesures déterministes de la session et relie chaque anomalie à la conversation. */
 export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: SessionAnalysis; onNavigate: (target: SessionAnalysisTarget) => void }) {
@@ -18,7 +18,7 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
     .sort((a, b) => toolValue(b, toolRanking) - toolValue(a, toolRanking))
     .slice(0, 8), [analysis.toolCalls, toolRanking])
   const rankedTools = useMemo(() => [...analysis.tools]
-    .filter((tool) => toolUsageRanking === 'output' || tool.measuredDurationCount > 0)
+    .filter((tool) => toolUsageRanking !== 'duration' || tool.measuredDurationCount > 0)
     .sort((a, b) => toolSummaryValue(b, toolUsageRanking) - toolSummaryValue(a, toolUsageRanking)), [analysis.tools, toolUsageRanking])
   const maxToolUsage = toolSummaryValue(rankedTools[0], toolUsageRanking)
   const failureRate = analysis.totalToolCalls > 0 ? analysis.failedToolCalls / analysis.totalToolCalls : 0
@@ -57,7 +57,7 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
     </section>
 
     <section className="analysis-section">
-      <header><h2>Usage cumulé par outil</h2><select aria-label="Classer l’usage cumulé des outils" onChange={(event) => setToolUsageRanking(event.target.value as ToolUsageRanking)} value={toolUsageRanking}><option value="output">sortie cumulée</option><option value="duration">durée cumulée</option></select></header>
+      <header><h2>Usage cumulé par outil</h2><select aria-label="Classer l’usage cumulé des outils" onChange={(event) => setToolUsageRanking(event.target.value as ToolUsageRanking)} value={toolUsageRanking}><option value="output">sortie cumulée</option><option value="input">entrée cumulée</option><option value="duration">durée cumulée</option></select></header>
       {rankedTools.length > 0 ? <ol className="tool-usage-ranking">
         {rankedTools.map((tool) => <ToolUsageRow key={tool.name} maxValue={maxToolUsage} metric={toolUsageRanking} tool={tool} />)}
       </ol> : <EmptyState>{toolUsageRanking === 'duration' ? 'Les durées sont mesurées pendant cette ouverture du Workbench.' : 'Aucun appel d’outil dans cette session.'}</EmptyState>}
@@ -196,7 +196,7 @@ function toolValue(call: AnalyzedToolCall, metric: ToolRanking): number {
 }
 
 function toolSummaryValue(tool: ToolSummary | undefined, metric: ToolUsageRanking): number {
-  return metric === 'duration' ? tool?.durationMs ?? 0 : tool?.outputLength ?? 0
+  return metric === 'duration' ? tool?.durationMs ?? 0 : metric === 'input' ? tool?.inputLength ?? 0 : tool?.outputLength ?? 0
 }
 
 function formatAnalysisTokens(value: number, available: boolean): string {
