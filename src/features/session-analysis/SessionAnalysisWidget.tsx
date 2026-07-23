@@ -106,24 +106,32 @@ function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnal
       })}
       {points.length > 1 && <polygon className="chart-area" points={areaPoints} />}
       {points.length > 1 && <polyline className="chart-line" points={linePoints} />}
-      {points.map(({ turn, x, y }) => <g
-        aria-label={`Tour ${turn.number}, ${formatTurnCost(turn.cost)}, ${turn.toolCallCount} outil${turn.toolCallCount !== 1 ? 's' : ''}`}
-        className="chart-point"
-        key={turn.messageIndex}
-        onClick={() => onNavigate({ kind: 'turn', index: turn.messageIndex })}
-        onKeyDown={(event) => {
-          if (event.key !== 'Enter' && event.key !== ' ') return
-          event.preventDefault()
-          onNavigate({ kind: 'turn', index: turn.messageIndex })
-        }}
-        role="button"
-        tabIndex={0}
-      >
-        <title>Tour {turn.number} · {formatTurnCost(turn.cost)}</title>
-        <circle className="chart-point-hit" cx={x} cy={y} r="11" />
-        <circle className="chart-point-dot" cx={x} cy={y} r="3.5" />
-        <text className="chart-x-label" x={x} y={height - 9}>{turn.number}</text>
-      </g>)}
+      {points.map(({ turn, x, y }) => {
+        const tooltipWidth = 124
+        const tooltipX = Math.min(width - padding.right - tooltipWidth, Math.max(padding.left, x - tooltipWidth / 2))
+        const tooltipY = y < padding.top + 48 ? y + 13 : y - 47
+        return <g
+          aria-label={`Tour ${turn.number}, ${formatTurnCost(turn.cost)}, ${turn.toolCallCount} outil${turn.toolCallCount !== 1 ? 's' : ''}`}
+          className="chart-point"
+          key={turn.messageIndex}
+          onClick={() => onNavigate({ kind: 'turn', index: turn.messageIndex })}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return
+            event.preventDefault()
+            onNavigate({ kind: 'turn', index: turn.messageIndex })
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          <circle className="chart-point-hit" cx={x} cy={y} r="11" />
+          <circle className="chart-point-dot" cx={x} cy={y} r="3.5" />
+          <text className="chart-x-label" x={x} y={height - 9}>{turn.number}</text>
+          <g aria-hidden="true" className="chart-tooltip" transform={`translate(${tooltipX} ${tooltipY})`}>
+            <rect height="38" rx="6" width={tooltipWidth} />
+            <text x="10" y="15"><tspan className="chart-tooltip-cost">{formatTurnCost(turn.cost)}</tspan><tspan className="chart-tooltip-tools" x="10" dy="14">{turn.toolCallCount} outil{turn.toolCallCount !== 1 ? 's' : ''} appelé{turn.toolCallCount !== 1 ? 's' : ''}</tspan></text>
+          </g>
+        </g>
+      })}
       <text className="chart-axis-title" x={padding.left + plotWidth / 2} y={height - 1}>Tour</text>
     </svg>
   </div>

@@ -38,6 +38,12 @@
 .chart-point:hover .chart-point-dot, .chart-point:focus-visible .chart-point-dot { r: 5px; fill: currentcolor; }
 .chart-point:focus { outline: none; }
 .chart-point:focus-visible .chart-point-hit { stroke: currentcolor; }
+.chart-tooltip { opacity: 0; pointer-events: none; transition: opacity 160ms ease-out; }
+.chart-point:hover .chart-tooltip, .chart-point:focus-visible .chart-tooltip { opacity: 1; }
+.chart-tooltip rect { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.chart-tooltip text { fill: var(--ink); font: 9px ui-monospace, monospace; }
+.chart-tooltip-cost { font-weight: 700; }
+.chart-tooltip-tools { fill: var(--muted); font-size: 8px; }
 .analysis-ranking, .analysis-tools { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .analysis-ranking button { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 48px; border: 0; border-radius: 7px; padding: 7px 6px; background: transparent; color: inherit; text-align: left; }
 .analysis-ranking button:hover { background: var(--surface-raised); }
@@ -59,4 +65,4 @@
 .analysis-empty { margin: 5px 6px 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
 .conversation-target { border-radius: 9px; animation: conversation-target-fade 1.8s ease-out; }
 @keyframes conversation-target-fade { from { background: var(--teal-soft); box-shadow: 0 0 0 5px var(--teal-soft); } to { background: transparent; box-shadow: 0 0 0 0 transparent; } }
-@media (prefers-reduced-motion: reduce) { .chart-point-dot { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .chart-point-dot, .chart-tooltip { transition: none; } }
