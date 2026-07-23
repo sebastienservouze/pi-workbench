@@ -28,8 +28,8 @@
 .token-chart-legend span { display: inline-flex; align-items: center; gap: 4px; font-size: 8px; }
 .token-chart-legend i { width: 12px; height: 2px; background: currentcolor; }
 .turn-cost-chart-frame, .token-chart-frame { display: flex; min-width: 0; }
-.turn-cost-chart-scroll, .token-chart-scroll { flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0 1px; scrollbar-width: thin; }
-.turn-cost-chart, .token-chart { display: block; max-width: none; height: 178px; }
+.turn-cost-chart-scroll, .token-chart-scroll { flex: 1; min-width: 0; overflow: hidden; padding: 2px 0 1px; }
+.turn-cost-chart, .token-chart { display: block; width: 100%; min-width: 0; height: 178px; }
 .turn-cost-chart { color: var(--teal); }
 .chart-y-axis { position: relative; flex: 0 0 52px; height: 181px; }
 .chart-y-axis span { position: absolute; right: 8px; color: var(--muted); font: 8px ui-monospace, monospace; transform: translateY(-50%); white-space: nowrap; }

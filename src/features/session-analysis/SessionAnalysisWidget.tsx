@@ -102,10 +102,9 @@ const TOKEN_SERIES = [
 
 /** Compare les volumes de tokens de chaque tour avec des séries distinctes et navigables. */
 function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAnalysisTarget) => void; turns: AnalyzedTurn[] }) {
-  const chartScrollRef = useRef<HTMLDivElement>(null)
+  const [chartRef, width] = useChartWidth()
   const height = 178
   const padding = { top: 14, right: 16, bottom: 30, left: 12 }
-  const width = Math.max(248, padding.left + padding.right + (turns.length - 1) * 30)
   const plotWidth = width - padding.left - padding.right
   const plotHeight = height - padding.top - padding.bottom
   const maxTokens = Math.max(...turns.flatMap((turn) => TOKEN_SERIES.map((series) => turn.usage[series.key])))
@@ -122,10 +121,6 @@ function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAn
     y: padding.top + plotHeight * ratio,
   }))
 
-  useLayoutEffect(() => {
-    if (chartScrollRef.current) chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth
-  }, [turns.length])
-
   return <div className="token-usage-chart-block">
     <div aria-hidden="true" className="token-chart-legend">
       {TOKEN_SERIES.map((series) => <span className={series.className} key={series.key}><i />{series.label}</span>)}
@@ -134,8 +129,8 @@ function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAn
       <div aria-hidden="true" className="chart-y-axis">
         {yTicks.map((tick) => <span key={tick.y} style={{ top: tick.y + 2 }}>{tick.label}</span>)}
       </div>
-      <div className="token-chart-scroll" ref={chartScrollRef}>
-        <svg aria-label="Tokens par tour agent, dans l’ordre chronologique" className="token-chart" role="group" style={{ width }} viewBox={`0 0 ${width} ${height}`}>
+      <div className="token-chart-scroll" ref={chartRef}>
+        <svg aria-label="Tokens par tour agent, dans l’ordre chronologique" className="token-chart" role="group" viewBox={`0 0 ${width} ${height}`}>
           {yTicks.map((tick) => <line className="chart-grid" key={tick.y} x1={padding.left} x2={width - padding.right} y1={tick.y} y2={tick.y} />)}
           {TOKEN_SERIES.map((series, seriesIndex) => <polyline className={`chart-line ${series.className}`} key={series.key} points={points.map((point) => `${point.x},${point.values[seriesIndex]?.y}`).join(' ')} />)}
           {points.map(({ turn, values, x }) => {
@@ -172,10 +167,9 @@ function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAn
 
 /** Trace tous les coûts dans l’ordre et conserve chaque tour comme cible de navigation accessible. */
 function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnalysisTarget) => void; turns: AnalyzedTurn[] }) {
-  const chartScrollRef = useRef<HTMLDivElement>(null)
+  const [chartRef, width] = useChartWidth()
   const height = 178
   const padding = { top: 14, right: 16, bottom: 30, left: 12 }
-  const width = Math.max(248, padding.left + padding.right + (turns.length - 1) * 30)
   const plotWidth = width - padding.left - padding.right
   const plotHeight = height - padding.top - padding.bottom
   const maxCost = Math.max(...turns.map((turn) => turn.cost))
@@ -191,16 +185,12 @@ function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnal
     y: padding.top + plotHeight * ratio,
   }))
 
-  useLayoutEffect(() => {
-    if (chartScrollRef.current) chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth
-  }, [turns.length])
-
   return <div className="turn-cost-chart-frame">
     <div aria-hidden="true" className="chart-y-axis">
       {yTicks.map((tick) => <span key={tick.y} style={{ top: tick.y + 2 }}>{tick.label}</span>)}
     </div>
-    <div className="turn-cost-chart-scroll" ref={chartScrollRef}>
-      <svg aria-label="Coût de chaque tour assistant, dans l’ordre chronologique" className="turn-cost-chart" role="group" style={{ width }} viewBox={`0 0 ${width} ${height}`}>
+    <div className="turn-cost-chart-scroll" ref={chartRef}>
+      <svg aria-label="Coût de chaque tour assistant, dans l’ordre chronologique" className="turn-cost-chart" role="group" viewBox={`0 0 ${width} ${height}`}>
       {yTicks.map((tick) => <line className="chart-grid" key={tick.y} x1={padding.left} x2={width - padding.right} y1={tick.y} y2={tick.y} />)}
       {points.length > 1 && <polygon className="chart-area" points={areaPoints} />}
       {points.length > 1 && <polyline className="chart-line" points={linePoints} />}
@@ -234,6 +224,24 @@ function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnal
       </svg>
     </div>
   </div>
+}
+
+/** Suit la largeur réellement allouée au tracé pour densifier ses points sans défilement horizontal. */
+function useChartWidth() {
+  const chartRef = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState(248)
+
+  useLayoutEffect(() => {
+    const chart = chartRef.current
+    if (!chart) return
+    const updateWidth = () => setWidth(Math.max(1, Math.round(chart.clientWidth)))
+    updateWidth()
+    const observer = new ResizeObserver(updateWidth)
+    observer.observe(chart)
+    return () => observer.disconnect()
+  }, [])
+
+  return [chartRef, width] as const
 }
 
 /** Compare les volumes cumulés d’un type d’outil sans leur attribuer de coût monétaire. */
