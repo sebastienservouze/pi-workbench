@@ -25,7 +25,7 @@
 .analysis-section select:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
 .token-usage-chart-block { border-top: 1px solid var(--line); padding-top: 9px; }
 .token-chart-legend { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 10px 5px; }
-.token-chart-legend button { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; border: 0; border-radius: 4px; padding: 3px 4px; background: transparent; color: inherit; font-size: 8px; cursor: pointer; }
+.token-chart-legend button { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; border: 0; border-radius: 4px; padding: 3px 4px; background: transparent; font-size: 8px; cursor: pointer; }
 .token-chart-legend button:hover { background: var(--surface-raised); }
 .token-chart-legend button:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
 .token-chart-legend button.is-hidden { opacity: .45; }
