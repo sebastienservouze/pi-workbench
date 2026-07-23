@@ -100,19 +100,23 @@ const TOKEN_SERIES = [
   { key: 'output', label: 'Output', className: 'token-series-output' },
 ] as const
 
+type TokenSeriesKey = typeof TOKEN_SERIES[number]['key']
+
 /** Compare les volumes de tokens de chaque tour avec des séries distinctes et navigables. */
 function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAnalysisTarget) => void; turns: AnalyzedTurn[] }) {
   const [activePointIndex, setActivePointIndex] = useState<number>()
+  const [hiddenSeries, setHiddenSeries] = useState<Set<TokenSeriesKey>>(() => new Set())
   const [chartRef, width] = useChartWidth()
+  const visibleSeries = TOKEN_SERIES.filter(({ key }) => !hiddenSeries.has(key))
   const height = 178
   const padding = { top: 14, right: 16, bottom: 30, left: 12 }
   const plotWidth = width - padding.left - padding.right
   const plotHeight = height - padding.top - padding.bottom
-  const maxTokens = Math.max(...turns.flatMap((turn) => TOKEN_SERIES.map((series) => turn.usage[series.key])))
+  const maxTokens = Math.max(0, ...turns.flatMap((turn) => visibleSeries.map((series) => turn.usage[series.key])))
   const points = turns.map((turn, index) => ({
     turn,
     x: turns.length === 1 ? padding.left + plotWidth / 2 : padding.left + index * plotWidth / (turns.length - 1),
-    values: TOKEN_SERIES.map((series) => {
+    values: visibleSeries.map((series) => {
       const value = turn.usage[series.key]
       return { ...series, value, y: padding.top + plotHeight * (1 - (maxTokens > 0 ? value / maxTokens : 0)) }
     }),
@@ -123,10 +127,19 @@ function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAn
   }))
   const activePoint = points.find(({ turn }) => turn.messageIndex === activePointIndex)
   const tooltipWidth = 148
+  const toggleSeries = (key: TokenSeriesKey) => setHiddenSeries((current) => {
+    const next = new Set(current)
+    if (next.has(key)) next.delete(key)
+    else next.add(key)
+    return next
+  })
 
   return <div className="token-usage-chart-block">
-    <div aria-hidden="true" className="token-chart-legend">
-      {TOKEN_SERIES.map((series) => <span className={series.className} key={series.key}><i />{series.label}</span>)}
+    <div aria-label="Séries de tokens affichées" className="token-chart-legend" role="group">
+      {TOKEN_SERIES.map((series) => {
+        const visible = !hiddenSeries.has(series.key)
+        return <button aria-pressed={visible} className={`${series.className}${visible ? '' : ' is-hidden'}`} key={series.key} onClick={() => toggleSeries(series.key)} type="button"><i />{series.label}</button>
+      })}
     </div>
     <div className="token-chart-frame">
       <div aria-hidden="true" className="chart-y-axis">
@@ -135,9 +148,9 @@ function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAn
       <div className="token-chart-scroll" ref={chartRef}>
         <svg aria-label="Tokens par tour agent, dans l’ordre chronologique" className="token-chart" role="group" viewBox={`0 0 ${width} ${height}`}>
           {yTicks.map((tick) => <line className="chart-grid" key={tick.y} x1={padding.left} x2={width - padding.right} y1={tick.y} y2={tick.y} />)}
-          {TOKEN_SERIES.map((series, seriesIndex) => <polyline className={`chart-line ${series.className}`} key={series.key} points={points.map((point) => `${point.x},${point.values[seriesIndex]?.y}`).join(' ')} />)}
+          {visibleSeries.map((series, seriesIndex) => <polyline className={`chart-line ${series.className}`} key={series.key} points={points.map((point) => `${point.x},${point.values[seriesIndex]?.y}`).join(' ')} />)}
           {points.map(({ turn, values, x }) => <g
-            aria-label={`Tour ${turn.number}, ${values.map((point) => `${point.label} ${point.value} tokens`).join(', ')}`}
+            aria-label={`Tour ${turn.number}${values.length > 0 ? `, ${values.map((point) => `${point.label} ${point.value} tokens`).join(', ')}` : ''}`}
             className="chart-point"
             key={turn.messageIndex}
             onBlur={() => setActivePointIndex(undefined)}
@@ -158,8 +171,8 @@ function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAn
             <text className="chart-x-label" x={x} y={height - 9}>{turn.number}</text>
           </g>)}
           <text className="chart-axis-title" x={padding.left + plotWidth / 2} y={height - 1}>Tour</text>
-          {activePoint && <g aria-hidden="true" className="chart-tooltip token-chart-tooltip" transform={`translate(${Math.min(width - padding.right - tooltipWidth, Math.max(padding.left, activePoint.x - tooltipWidth / 2))} ${padding.top + 4})`}>
-            <rect height="52" rx="6" width={tooltipWidth} />
+          {activePoint && activePoint.values.length > 0 && <g aria-hidden="true" className="chart-tooltip token-chart-tooltip" transform={`translate(${Math.min(width - padding.right - tooltipWidth, Math.max(padding.left, activePoint.x - tooltipWidth / 2))} ${padding.top + 4})`}>
+            <rect height={10 + activePoint.values.length * 14} rx="6" width={tooltipWidth} />
             <text x="10" y="14">{activePoint.values.map((point, index) => <tspan className={`token-tooltip-value ${point.className}`} dy={index === 0 ? 0 : 14} key={point.key} x="10">{point.label} · {formatTokens(point.value)}</tspan>)}</text>
           </g>}
         </svg>

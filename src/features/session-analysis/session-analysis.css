@@ -24,8 +24,11 @@
 .analysis-section select { max-width: 125px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 3px 5px; background: var(--surface); color: var(--ink); font-size: 9px; }
 .analysis-section select:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
 .token-usage-chart-block { border-top: 1px solid var(--line); padding-top: 9px; }
-.token-chart-legend { display: flex; flex-wrap: wrap; gap: 5px 12px; padding: 0 14px 5px; }
-.token-chart-legend span { display: inline-flex; align-items: center; gap: 4px; font-size: 8px; }
+.token-chart-legend { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 10px 5px; }
+.token-chart-legend button { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; border: 0; border-radius: 4px; padding: 3px 4px; background: transparent; color: inherit; font-size: 8px; cursor: pointer; }
+.token-chart-legend button:hover { background: var(--surface-raised); }
+.token-chart-legend button:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
+.token-chart-legend button.is-hidden { opacity: .45; }
 .token-chart-legend i { width: 12px; height: 2px; background: currentcolor; }
 .turn-cost-chart-frame, .token-chart-frame { display: flex; min-width: 0; }
 .turn-cost-chart-scroll, .token-chart-scroll { flex: 1; min-width: 0; overflow: hidden; padding: 2px 0 1px; }
