@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import './App.css'
-import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getSnapshot, getVsCodeStatus, listRecentSessions, listSessions, openExplorer, openSession, openVsCode, revertGitCommit, sendPiCommand } from './api.ts'
-import type { GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
+import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getQuotas, getSnapshot, getVsCodeStatus, listRecentSessions, listSessions, openExplorer, openSession, openVsCode, refreshQuotas, revertGitCommit, sendPiCommand } from './api.ts'
+import type { GitSnapshot, JsonObject, ManagerEvent, QuotaSnapshot, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 import { Composer } from './features/composer/Composer.tsx'
 import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
 import { activityForPiEvent, waitingActivity, type Activity } from './features/conversation/activity.ts'
@@ -54,6 +54,7 @@ function App() {
   const [dialog, setDialog] = useState<UiDialog | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [gitSnapshot, setGitSnapshot] = useState<GitSnapshot | null>(null)
+  const [quotas, setQuotas] = useState<QuotaSnapshot | null>(null)
   const [activeRightWidget, setActiveRightWidget] = useState<RightWidget | null>(readActiveRightWidget)
   const [gitSidebarWidth, setGitSidebarWidth] = useState(() => readGitSidebarWidth(window.localStorage.getItem('pi-workbench.git-sidebar-width')))
   const [theme, setTheme] = useState(() => window.localStorage.getItem('pi-workbench.theme') ?? 'light')
@@ -173,6 +174,7 @@ function App() {
 
   useEffect(() => void refreshSessions(), [refreshSessions])
   useEffect(() => void refreshGit(), [refreshGit])
+  useEffect(() => { void getQuotas().then(setQuotas).catch(() => undefined) }, [])
   useEffect(() => {
     setSnapshot(emptySnapshot)
     setSnapshotSessionId('')
@@ -214,6 +216,9 @@ function App() {
       if (event.type === 'tool_execution_end') void refreshGit()
       if (event.type === 'extension_ui_request' && event.method === 'setStatus' && event.statusKey === 'agent') {
         updateSessionAgent(sessionId, typeof event.activeAgent === 'string' ? event.activeAgent : undefined)
+      }
+      if (event.type === 'extension_ui_request' && event.method === 'setStatus' && event.statusKey === 'pi-workbench.quotas') {
+        void getQuotas().then(setQuotas).catch(() => undefined)
       }
 
       if (sessionId === selectedIdRef.current && event.type === 'extension_ui_request' && isBlockingDialog(event) && !isAgentSelector(event)) {
@@ -438,7 +443,7 @@ function App() {
     },
   ], [showToast, vsCodeAvailable, workspacePath])
 
-  const rightPanelVisible = activeRightWidget === 'todo'
+  const rightPanelVisible = activeRightWidget === 'todo' || activeRightWidget === 'quotas'
     || (activeRightWidget === 'analysis' && sessionAnalysis !== null)
     || (activeRightWidget === 'git' && gitSnapshot?.repository === true)
 
@@ -538,6 +543,7 @@ function App() {
         onAnalysisNavigate={navigateToAnalysisTarget}
         onResize={updateGitSidebarWidth}
         snapshot={gitSnapshot?.repository ? gitSnapshot : null}
+        quotas={quotas}
         width={gitSidebarWidth}
         workspacePath={workspacePath}
         railActions={railActions}
@@ -550,6 +556,16 @@ function App() {
         }}
         onError={(cause) => showToast('error', messageOf(cause))}
         onFileSelect={(path, commitHash) => getGitFileDiff(workspacePath, path, commitHash)}
+        onQuotaRefresh={async () => {
+          if (!selectedId) throw new Error('Une session Pi ouverte est nécessaire pour actualiser les quotas.')
+          try {
+            setQuotas((current) => current && { ...current, refreshing: true })
+            setQuotas(await refreshQuotas(selectedId))
+          } catch (cause) {
+            showToast('error', messageOf(cause))
+            setQuotas(await getQuotas().catch(() => quotas))
+          }
+        }}
         onRefresh={() => void refreshGit(workspacePath, true)}
         onRevert={async (hash) => {
           const result = await revertGitCommit(workspacePath, hash)
@@ -609,7 +625,7 @@ function readRecentWorkspaces(): string[] {
 
 function readActiveRightWidget(): RightWidget | null {
   const stored = window.localStorage.getItem('pi-workbench.right-sidebar-widget')
-  if (stored === 'analysis' || stored === 'git' || stored === 'todo') return stored
+  if (stored === 'analysis' || stored === 'git' || stored === 'quotas' || stored === 'todo') return stored
   if (stored === 'none') return null
   return window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git'
 }

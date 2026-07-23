@@ -1,4 +1,4 @@
-import type { DirectoryListing, GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, RecentSession, SessionSnapshot, SessionSummary, TodoItem, VsCodeStatus, WorkspaceFile } from '../shared/types.ts'
+import type { DirectoryListing, GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, QuotaSnapshot, RecentSession, SessionSnapshot, SessionSummary, TodoItem, VsCodeStatus, WorkspaceFile } from '../shared/types.ts'
 
 export async function listSessions(): Promise<SessionSummary[]> {
   return request<SessionSummary[]>('/api/sessions')
@@ -88,6 +88,17 @@ export async function openSession(cwd: string, sessionPath: string): Promise<Ses
 
 export async function getSnapshot(sessionId: string): Promise<SessionSnapshot> {
   return request<SessionSnapshot>(`/api/sessions/${encodeURIComponent(sessionId)}/snapshot`)
+}
+
+export async function getQuotas(): Promise<QuotaSnapshot> {
+  return request<QuotaSnapshot>('/api/quotas')
+}
+
+export async function refreshQuotas(sessionId: string): Promise<QuotaSnapshot> {
+  return request<QuotaSnapshot>('/api/quotas/refresh', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId }),
+  })
 }
 
 export async function sendPiCommand(sessionId: string, command: JsonObject): Promise<JsonObject> {

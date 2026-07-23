@@ -1,6 +1,7 @@
 @import './styles/base.css';
 @import './features/workspace/workspace.css';
 @import './features/git/git.css';
+@import './features/quotas/quotas.css';
 @import './features/todo/todo.css';
 @import './features/conversation/conversation.css';
 @import './features/session-analysis/session-analysis.css';

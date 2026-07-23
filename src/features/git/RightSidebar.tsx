@@ -1,11 +1,12 @@
 import { useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
-import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot } from '../../../shared/types.ts'
+import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, QuotaSnapshot } from '../../../shared/types.ts'
+import { QuotaWidget } from '../quotas/QuotaWidget.tsx'
 import { SessionAnalysisWidget } from '../session-analysis/SessionAnalysisWidget.tsx'
 import type { SessionAnalysis, SessionAnalysisTarget } from '../session-analysis/session-analysis.ts'
 import { TodoWidget } from '../todo/TodoWidget.tsx'
 import { maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff } from './git-sidebar.ts'
 
-export type RightWidget = 'analysis' | 'git' | 'todo'
+export type RightWidget = 'analysis' | 'git' | 'quotas' | 'todo'
 
 export interface RailAction {
   key: string
@@ -16,18 +17,20 @@ export interface RailAction {
 }
 
 /** Coordonne les panneaux latéraux, leur rail commun et le redimensionnement. */
-export function RightSidebar({ activeWidget, analysis, onAnalysisNavigate, onResize, snapshot, width, workspacePath, railActions, onAction, onError, onFileSelect, onRefresh, onRevert, onTodoStartSession, onWidgetSelect }: {
+export function RightSidebar({ activeWidget, analysis, onAnalysisNavigate, onResize, snapshot, quotas, width, workspacePath, railActions, onAction, onError, onFileSelect, onQuotaRefresh, onRefresh, onRevert, onTodoStartSession, onWidgetSelect }: {
   activeWidget: RightWidget | null
   analysis: SessionAnalysis | null
   onAnalysisNavigate: (target: SessionAnalysisTarget) => void
   onResize: (width: number) => void
   snapshot: GitSnapshot | null
+  quotas: QuotaSnapshot | null
   width: number
   workspacePath: string
   railActions: RailAction[]
   onAction: (message: string) => Promise<GitActionResult>
   onError: (cause: unknown) => void
   onFileSelect: (path: string, commitHash?: string) => Promise<GitFileDiff>
+  onQuotaRefresh: () => Promise<void>
   onRefresh: () => void
   onRevert: (hash: string) => Promise<GitRevertResult>
   onTodoStartSession: (message: string) => Promise<void>
@@ -130,7 +133,7 @@ export function RightSidebar({ activeWidget, analysis, onAnalysisNavigate, onRes
         role="separator"
         tabIndex={0}
       />
-      <section aria-label={activeWidget === 'analysis' ? 'Analyse de la session' : activeWidget === 'todo' ? 'Tâches du workspace' : fileDiff || selectedPath ? 'Diff Git' : 'Informations Git'} className="git-panel" id={`${activeWidget}-panel`}>
+      <section aria-label={activeWidget === 'analysis' ? 'Analyse de la session' : activeWidget === 'todo' ? 'Tâches du workspace' : activeWidget === 'quotas' ? 'Quotas des fournisseurs' : fileDiff || selectedPath ? 'Diff Git' : 'Informations Git'} className="git-panel" id={`${activeWidget}-panel`}>
         {activeWidget === 'analysis' && analysis && <WidgetLayout header={<div><strong>Analyse de session</strong><span>{analysis.requests.length} requête{analysis.requests.length > 1 ? 's' : ''} analysée{analysis.requests.length > 1 ? 's' : ''}</span></div>}><SessionAnalysisWidget analysis={analysis} onNavigate={onAnalysisNavigate} /></WidgetLayout>}
         {activeWidget === 'git' && snapshot && <WidgetLayout
           footer={activeWidget === 'git' && !selectedPath && (hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>
@@ -160,6 +163,7 @@ export function RightSidebar({ activeWidget, analysis, onAnalysisNavigate, onRes
             {!hasChanges && snapshot.ahead === 0 && <p className="git-empty">Aucun changement à committer.</p>}
           </>}
         </WidgetLayout>}
+        {activeWidget === 'quotas' && <QuotaWidget onRefresh={onQuotaRefresh} quotas={quotas} />}
         {activeWidget === 'todo' && <TodoWidget onOpenCountChange={setTodoOpenCount} onStartSession={onTodoStartSession} workspacePath={workspacePath} />}
       </section>
     </div>}
@@ -188,6 +192,18 @@ export function RightSidebar({ activeWidget, analysis, onAnalysisNavigate, onRes
         <span aria-hidden="true">⎇</span>
         {(hasChanges || snapshot.ahead > 0) && <small>{snapshot.files.length + snapshot.ahead}</small>}
       </button>}
+      <button
+        aria-controls={activeWidget === 'quotas' ? 'quotas-panel' : undefined}
+        aria-expanded={activeWidget === 'quotas'}
+        aria-label={activeWidget === 'quotas' ? 'Réduire le panneau des quotas' : 'Développer le panneau des quotas'}
+        className="rail-tab"
+        onClick={() => onWidgetSelect('quotas')}
+        title="Quotas"
+        type="button"
+      >
+        <span aria-hidden="true">%</span>
+        {(quotas?.openai.stale || quotas?.copilot.stale) && <small>!</small>}
+      </button>
       <button
         aria-controls={activeWidget === 'todo' ? 'todo-panel' : undefined}
         aria-expanded={activeWidget === 'todo'}

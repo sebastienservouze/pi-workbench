@@ -136,3 +136,42 @@ export interface SessionSnapshot {
   commands: JsonObject[]
   stats: SessionStats | null
 }
+
+export interface OpenAiQuotaWindow {
+  period: '5h' | '7d'
+  remainingPercent: number
+  resetsAt?: number
+}
+
+export interface CopilotQuotaWindow {
+  name: string
+  used: number
+  limit: number
+  resetsAt?: number
+}
+
+export interface QuotaProviderSnapshot<T> {
+  data: T[]
+  updatedAt?: number
+  stale: boolean
+  error?: string
+}
+
+export interface QuotaSnapshot {
+  openai: QuotaProviderSnapshot<OpenAiQuotaWindow>
+  copilot: QuotaProviderSnapshot<CopilotQuotaWindow>
+  refreshing: boolean
+  sessionRequired: boolean
+}
+
+export type QuotaProviderReport<T> =
+  | { ok: true; data: T[] }
+  | { ok: false; error: string }
+
+export interface QuotaReport {
+  protocol: 'pi-workbench.quotas'
+  version: 1
+  refreshedAt: number
+  openai: QuotaProviderReport<OpenAiQuotaWindow>
+  copilot: QuotaProviderReport<CopilotQuotaWindow>
+}

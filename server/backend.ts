@@ -10,7 +10,8 @@ import { commitAndPush, getGitFileDiff, getGitSnapshot, revertGitCommit } from '
 import { readWorkspaceFile, WorkspaceFileError } from './workspace-file.ts'
 import { loadWorkspaceTodos, parseTodoItems, saveWorkspaceTodos } from './todo-store.ts'
 import { isVsCodeAvailable, openExplorer, openVsCode, windowsWorkspacePath } from './vscode.ts'
-import type { DirectoryListing, JsonObject, ManagerEvent, SessionSnapshot } from '../shared/types.ts'
+import { QuotaCache } from './quota-cache.ts'
+import type { DirectoryListing, JsonObject, ManagerEvent, QuotaSnapshot, SessionSnapshot } from '../shared/types.ts'
 
 const host = '127.0.0.1'
 const port = readPort('PI_WORKBENCH_BACKEND_PORT', 43_121)
@@ -18,9 +19,17 @@ const managerPort = readPort('PI_WORKBENCH_MANAGER_PORT', 43_120)
 const manager = new ManagerClient(host, managerPort)
 const eventClients = new Set<ServerResponse>()
 const distDirectory = fileURLToPath(new URL('../dist/', import.meta.url))
+const quotaCache = new QuotaCache()
+let quotaRefresh: Promise<QuotaSnapshot> | undefined
 
-manager.on('event', (event: ManagerEvent) => broadcast(event))
-manager.on('connected', () => broadcast({ kind: 'event', event: 'manager_connected', sessionId: '' }))
+manager.on('event', (event: ManagerEvent) => {
+  quotaCache.receiveManagerEvent(event)
+  broadcast(event)
+})
+manager.on('connected', () => {
+  broadcast({ kind: 'event', event: 'manager_connected', sessionId: '' })
+  void restoreQuotasFromIdleSession()
+})
 manager.on('disconnected', () => broadcast({ kind: 'event', event: 'manager_disconnected', sessionId: '' }))
 manager.start()
 
@@ -59,6 +68,19 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
 
   if (method === 'GET' && url.pathname === '/api/sessions') {
     sendJson(response, 200, await manager.request({ action: 'list' }))
+    return
+  }
+
+  if (method === 'GET' && url.pathname === '/api/quotas') {
+    const sessions = await manager.request({ action: 'list' })
+    sendJson(response, 200, quotaCache.snapshot(!Array.isArray(sessions) || sessions.length === 0))
+    return
+  }
+
+  if (method === 'POST' && url.pathname === '/api/quotas/refresh') {
+    const body = await readJsonBody(request)
+    if (typeof body.sessionId !== 'string' || !body.sessionId) throw new HttpError(409, 'Une session Pi ouverte est nécessaire pour actualiser les quotas.')
+    sendJson(response, 200, await refreshQuotas(body.sessionId))
     return
   }
 
@@ -220,6 +242,32 @@ async function piCommand(sessionId: string, command: JsonObject): Promise<JsonOb
   const response = await manager.request({ action: 'command', sessionId, command })
   if (!isObject(response)) throw new Error('Invalid response from Pi manager')
   return response
+}
+
+/** Déduplique les clics concurrents et laisse l'extension publier le relevé hors conversation. */
+function refreshQuotas(sessionId: string): Promise<QuotaSnapshot> {
+  quotaRefresh ??= (async () => {
+    quotaCache.setRefreshing(true)
+    try {
+      await manager.request({ action: 'command', sessionId, command: { type: 'prompt', message: '/workbench-quotas' } }, 60_000)
+    } finally {
+      quotaCache.setRefreshing(false)
+    }
+    return quotaCache.snapshot(false)
+  })().finally(() => { quotaRefresh = undefined })
+  return quotaRefresh
+}
+
+/** Restaure le cache après un redémarrage du backend sans interrompre une session en cours. */
+async function restoreQuotasFromIdleSession(): Promise<void> {
+  try {
+    const sessions = await manager.request({ action: 'list' })
+    if (!Array.isArray(sessions)) return
+    const idleSession = sessions.find((session) => isObject(session) && session.status === 'idle' && typeof session.id === 'string')
+    if (isObject(idleSession) && typeof idleSession.id === 'string') await refreshQuotas(idleSession.id)
+  } catch {
+    // Un relevé manuel restera possible une fois le manager disponible.
+  }
 }
 
 function objectData(response: JsonObject): JsonObject | null {

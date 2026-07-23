@@ -21,6 +21,16 @@ Les échecs reposent exclusivement sur `isError === true`. Les volumes d’outil
 
 Un clic sur une requête coûteuse positionne la conversation sur son message utilisateur. Un clic sur un appel d’outil active au besoin la vue détaillée, développe le résultat et positionne la conversation sur la carte correspondante.
 
+### Quotas fournisseurs
+
+Le widget Quotas affiche les fenêtres 5 heures et 7 jours retournées par OpenAI Codex, puis les consommations mensuelles retournées par GitHub Copilot. Il ne déduit aucune limite absente des réponses fournisseurs. Chaque ligne précise la prochaine réinitialisation lorsqu’elle est disponible.
+
+Les credentials restent dans le processus Pi : l’extension `extensions/quotas.ts` résout l’OAuth via le registre de modèles, appelle les endpoints fournisseurs, normalise les réponses et publie uniquement un relevé non sensible avec `setStatus`. Le backend conserve le dernier relevé valide par fournisseur ; si une actualisation partielle échoue, les données précédentes restent visibles et sont marquées comme périmées. Les requêtes manuelles concurrentes sont dédupliquées.
+
+Un relevé est lancé au démarrage d’une session Pi. Le bouton du panneau permet une actualisation manuelle et nécessite donc une session ouverte. Après un redémarrage du backend, une session inactive existante peut restaurer le cache sans relancer Pi ni ajouter de message à la conversation.
+
+Les endpoints fournisseurs étant non documentés, leurs formats sont isolés dans `shared/quota-parsers.ts` et couverts par `test/quotas.test.ts`. Le credential OAuth GitHub brut nécessaire à l’endpoint de quota n’est pas exposé par l’API publique actuelle de `ModelRegistry` : l’extension le lit à travers le `CredentialStore` du runtime Pi, sans accéder au fichier de credentials, et garde cette compatibilité dans la seule fonction `readCredential`.
+
 ### Widgets d’action (sans panneau)
 
 Un widget peut être une simple action, sans panneau associé : il rend une icône dans le rail et exécute un callback au clic. Il n’a pas d’état ouvert/fermé et n’interagit pas avec le panneau.

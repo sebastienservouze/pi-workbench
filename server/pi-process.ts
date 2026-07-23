@@ -19,10 +19,11 @@ export class PiProcess extends EventEmitter {
   /** Démarre Pi en RPC et relie son flux JSONL au cycle de vie de cette instance. */
   constructor(cwd: string, sessionId: string, sessionPath?: string) {
     super()
-    const extensionPath = fileURLToPath(new URL('../extensions/ask-user-question.ts', import.meta.url))
+    const questionExtensionPath = fileURLToPath(new URL('../extensions/ask-user-question.ts', import.meta.url))
+    const quotaExtensionPath = fileURLToPath(new URL('../extensions/quotas.ts', import.meta.url))
     const sessionArgs = sessionPath ? ['--session', sessionPath] : ['--session-id', sessionId]
 
-    this.child = spawn('pi', ['--mode', 'rpc', '--extension', extensionPath, ...sessionArgs], {
+    this.child = spawn('pi', ['--mode', 'rpc', '--extension', questionExtensionPath, '--extension', quotaExtensionPath, ...sessionArgs], {
       cwd,
       env: process.env,
       stdio: ['pipe', 'pipe', 'pipe'],
