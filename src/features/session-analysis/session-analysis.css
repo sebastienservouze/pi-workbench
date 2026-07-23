@@ -23,6 +23,21 @@
 .analysis-section header > span { color: var(--subtle); font-size: 9px; }
 .analysis-section select { max-width: 125px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 3px 5px; background: var(--surface); color: var(--ink); font-size: 9px; }
 .analysis-section select:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+.turn-cost-chart-scroll { overflow-x: auto; overflow-y: hidden; padding: 2px 0 1px; scrollbar-width: thin; }
+.turn-cost-chart { display: block; max-width: none; height: 178px; color: var(--teal); }
+.chart-grid { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.chart-area { fill: var(--teal-soft); }
+.chart-line { fill: none; stroke: currentcolor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.chart-y-label, .chart-x-label, .chart-axis-title { fill: var(--muted); font: 8px ui-monospace, monospace; }
+.chart-y-label { text-anchor: end; }
+.chart-x-label, .chart-axis-title { text-anchor: middle; }
+.chart-axis-title { fill: var(--subtle); font-size: 7px; }
+.chart-point { cursor: pointer; }
+.chart-point-hit { fill: transparent; stroke: transparent; stroke-width: 2; }
+.chart-point-dot { fill: var(--surface); stroke: currentcolor; stroke-width: 2; transition: r 160ms ease-out, fill 160ms ease-out; vector-effect: non-scaling-stroke; }
+.chart-point:hover .chart-point-dot, .chart-point:focus-visible .chart-point-dot { r: 5px; fill: currentcolor; }
+.chart-point:focus { outline: none; }
+.chart-point:focus-visible .chart-point-hit { stroke: currentcolor; }
 .analysis-ranking, .analysis-tools { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .analysis-ranking button { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; min-height: 48px; border: 0; border-radius: 7px; padding: 7px 6px; background: transparent; color: inherit; text-align: left; }
 .analysis-ranking button:hover { background: var(--surface-raised); }
@@ -44,3 +59,4 @@
 .analysis-empty { margin: 5px 6px 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
 .conversation-target { border-radius: 9px; animation: conversation-target-fade 1.8s ease-out; }
 @keyframes conversation-target-fade { from { background: var(--teal-soft); box-shadow: 0 0 0 5px var(--teal-soft); } to { background: transparent; box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) { .chart-point-dot { transition: none; } }

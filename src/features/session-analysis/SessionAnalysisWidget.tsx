@@ -11,7 +11,6 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
     .filter((request) => request.modelCallCount > 0)
     .sort((a, b) => b.cost - a.cost)
     .slice(0, 5), [analysis.requests])
-  const costlyTurns = useMemo(() => [...analysis.turns].sort((a, b) => b.cost - a.cost).slice(0, 5), [analysis.turns])
   const rankedCalls = useMemo(() => [...analysis.toolCalls]
     .filter((call) => toolRanking === 'duration' ? call.durationMs !== undefined : toolRanking === 'failure' ? call.isError : true)
     .sort((a, b) => toolValue(b, toolRanking) - toolValue(a, toolRanking))
@@ -45,10 +44,10 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
     {analysis.unattributedCost > 0.000001 && <p className="analysis-note"><strong>{formatTurnCost(analysis.unattributedCost)}</strong> non attribué aux requêtes visibles.</p>}
 
     <section className="analysis-section">
-      <header><h2>Tours assistant coûteux</h2><span>coût</span></header>
-      {costlyTurns.length > 0 ? <ol className="analysis-ranking">
-        {costlyTurns.map((turn) => <TurnRow key={turn.messageIndex} onNavigate={onNavigate} turn={turn} />)}
-      </ol> : <EmptyState>Les coûts apparaîtront après la première réponse.</EmptyState>}
+      <header><h2>Coût par tour assistant</h2><span>chronologique</span></header>
+      {analysis.turns.length > 0
+        ? <TurnCostChart onNavigate={onNavigate} turns={analysis.turns} />
+        : <EmptyState>Les coûts apparaîtront après la première réponse.</EmptyState>}
     </section>
 
     <section className="analysis-section">
@@ -83,12 +82,51 @@ function Metric({ danger = false, label, value }: { danger?: boolean; label: str
   return <div className={danger ? 'danger' : undefined}><dt>{label}</dt><dd>{value}</dd></div>
 }
 
-/** Rend un tour assistant classé et ouvre sa réponse, y compris lorsqu’elle ne contient que des outils. */
-function TurnRow({ onNavigate, turn }: { onNavigate: (target: SessionAnalysisTarget) => void; turn: AnalyzedTurn }) {
-  return <li><button onClick={() => onNavigate({ kind: 'turn', index: turn.messageIndex })} type="button">
-    <span><strong>Tour assistant {turn.number}</strong><small>{turn.toolCallCount} outil{turn.toolCallCount !== 1 ? 's' : ''}</small></span>
-    <b>{formatTurnCost(turn.cost)}</b>
-  </button></li>
+/** Trace tous les coûts dans l’ordre et conserve chaque tour comme cible de navigation accessible. */
+function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnalysisTarget) => void; turns: AnalyzedTurn[] }) {
+  const height = 178
+  const padding = { top: 14, right: 16, bottom: 30, left: 52 }
+  const width = Math.max(300, padding.left + padding.right + (turns.length - 1) * 30)
+  const plotWidth = width - padding.left - padding.right
+  const plotHeight = height - padding.top - padding.bottom
+  const maxCost = Math.max(...turns.map((turn) => turn.cost))
+  const points = turns.map((turn, index) => ({
+    turn,
+    x: turns.length === 1 ? padding.left + plotWidth / 2 : padding.left + index * plotWidth / (turns.length - 1),
+    y: padding.top + plotHeight * (1 - (maxCost > 0 ? turn.cost / maxCost : 0)),
+  }))
+  const linePoints = points.map(({ x, y }) => `${x},${y}`).join(' ')
+  const areaPoints = `${padding.left},${padding.top + plotHeight} ${linePoints} ${width - padding.right},${padding.top + plotHeight}`
+
+  return <div className="turn-cost-chart-scroll">
+    <svg aria-label="Coût de chaque tour assistant, dans l’ordre chronologique" className="turn-cost-chart" role="group" style={{ width }} viewBox={`0 0 ${width} ${height}`}>
+      {(maxCost > 0 ? [0, 0.5, 1] : [1]).map((ratio) => {
+        const y = padding.top + plotHeight * ratio
+        return <g key={ratio}><line className="chart-grid" x1={padding.left} x2={width - padding.right} y1={y} y2={y} /><text className="chart-y-label" x={padding.left - 8} y={y + 3}>{formatTurnCost(maxCost * (1 - ratio))}</text></g>
+      })}
+      {points.length > 1 && <polygon className="chart-area" points={areaPoints} />}
+      {points.length > 1 && <polyline className="chart-line" points={linePoints} />}
+      {points.map(({ turn, x, y }) => <g
+        aria-label={`Tour ${turn.number}, ${formatTurnCost(turn.cost)}, ${turn.toolCallCount} outil${turn.toolCallCount !== 1 ? 's' : ''}`}
+        className="chart-point"
+        key={turn.messageIndex}
+        onClick={() => onNavigate({ kind: 'turn', index: turn.messageIndex })}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return
+          event.preventDefault()
+          onNavigate({ kind: 'turn', index: turn.messageIndex })
+        }}
+        role="button"
+        tabIndex={0}
+      >
+        <title>Tour {turn.number} · {formatTurnCost(turn.cost)}</title>
+        <circle className="chart-point-hit" cx={x} cy={y} r="11" />
+        <circle className="chart-point-dot" cx={x} cy={y} r="3.5" />
+        <text className="chart-x-label" x={x} y={height - 9}>{turn.number}</text>
+      </g>)}
+      <text className="chart-axis-title" x={padding.left + plotWidth / 2} y={height - 1}>Tour</text>
+    </svg>
+  </div>
 }
 
 /** Rend un appel classé et conserve sa cible de navigation dans la conversation. */
