@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { formatToolCallTooltip, formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolFilePath, toolResultInMessage, toolTextPreview, truncateToolText, windowsFileUrl } from '../src/features/conversation/tool-calls.ts'
+import { formatToolCallTooltip, formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolEditChanges, toolFilePath, toolResultInMessage, toolTextPreview, truncateToolText, windowsFileUrl } from '../src/features/conversation/tool-calls.ts'
 
 test('extracts tool calls and their resolved result from Pi messages', () => {
   const calls = toolCallsInMessage({
@@ -48,6 +48,20 @@ test('ignores non-tool content and formats tool arguments safely', () => {
   assert.deepEqual(toolCallsInMessage({ role: 'assistant', content: [{ type: 'text', text: 'Bonjour' }] }), [])
   assert.equal(toolResultInMessage({ role: 'user', content: 'Bonjour' }), null)
   assert.equal(formatToolData({ command: 'pwd' }), '{\n  "command": "pwd"\n}')
+})
+
+test('extracts valid edit replacements without accepting malformed entries', () => {
+  assert.deepEqual(toolEditChanges({
+    edits: [
+      { oldText: 'before', newText: 'after' },
+      { oldText: '', newText: 'inserted' },
+      { oldText: 'missing replacement' },
+    ],
+  }), [
+    { oldText: 'before', newText: 'after' },
+    { oldText: '', newText: 'inserted' },
+  ])
+  assert.deepEqual(toolEditChanges({ edits: 'not an array' }), [])
 })
 
 test('adds input and output sizes below the full tool title', () => {

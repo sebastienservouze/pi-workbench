@@ -23,6 +23,11 @@ export interface ReadContentDisplay {
   language?: string
 }
 
+export interface ToolEditChange {
+  oldText: string
+  newText: string
+}
+
 export function toolCallsInMessage(message: JsonObject): ToolCall[] {
   if (message.role !== 'assistant' || !Array.isArray(message.content)) return []
 
@@ -57,6 +62,14 @@ export function toolContentText(content: unknown): string {
   if (isObject(content) && 'content' in content) return toolContentText(content.content)
   if (!Array.isArray(content)) return ''
   return content.flatMap((part) => isObject(part) && part.type === 'text' && typeof part.text === 'string' ? [part.text] : []).join('\n')
+}
+
+/** Extrait les remplacements valides fournis à l’outil d’édition. */
+export function toolEditChanges(args: unknown): ToolEditChange[] {
+  if (!isObject(args) || !Array.isArray(args.edits)) return []
+  return args.edits.flatMap((edit) => isObject(edit) && typeof edit.oldText === 'string' && typeof edit.newText === 'string'
+    ? [{ oldText: edit.oldText, newText: edit.newText }]
+    : [])
 }
 
 export function formatToolData(value: unknown): string {

@@ -12,7 +12,7 @@ import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typesc
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { getWorkspaceFile, getWorkspaceFilePath } from '../../api.ts'
 import { canHighlightFile } from './file-preview.ts'
-import { formatToolCallTooltip, formatToolData, readContentDisplay, toolCallPresentation, toolContentText, toolFilePath, toolTextPreview, windowsFileUrl } from './tool-calls.ts'
+import { formatToolCallTooltip, formatToolData, readContentDisplay, toolCallPresentation, toolContentText, toolEditChanges, toolFilePath, toolTextPreview, windowsFileUrl } from './tool-calls.ts'
 
 SyntaxHighlighter.registerLanguage('bash', bash)
 SyntaxHighlighter.registerLanguage('csharp', csharp)
@@ -41,7 +41,7 @@ export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, na
   const filePath = name === 'read' || name === 'write' ? toolFilePath(args) : null
   const display = filePath ? readContentDisplay({ path: filePath }) : { kind: 'text' as const }
   const htmlFile = display.kind === 'html'
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(name === 'edit')
   const [writtenContent, setWrittenContent] = useState<string>()
   const [writtenContentError, setWrittenContentError] = useState<string>()
   const [loadingWrittenContent, setLoadingWrittenContent] = useState(false)
@@ -108,7 +108,7 @@ export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, na
       </small>
     </button>
     {hasResult && (expanded && !htmlFile
-      ? <ToolCallContent call={{ name, args }} content={content} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} />
+      ? <ToolCallContent call={{ name, args }} content={content} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} showEditDiff={!contentError} />
       : <ToolCallPreview call={{ name, args }} content={preview.text} htmlFile={htmlFile} onClick={activate} remainingLineCount={preview.remainingLineCount} />
     )}
   </article>
@@ -130,8 +130,11 @@ function ToolCallPreview({ call, content, htmlFile, onClick, remainingLineCount 
 }
 
 /** Affiche le résultat complet dans son format adapté à la place de l’aperçu. */
-function ToolCallContent({ call, content, onCollapse, renderingCode }: { call: { name: string; args: unknown }; content: string; onCollapse: () => void; renderingCode: boolean }) {
+function ToolCallContent({ call, content, onCollapse, renderingCode, showEditDiff }: { call: { name: string; args: unknown }; content: string; onCollapse: () => void; renderingCode: boolean; showEditDiff: boolean }) {
   if (renderingCode) return <section className="tool-call-content tool-call-loading" role="status" onClick={onCollapse}><span aria-hidden="true" className="spinner" />Colorisation du fichier…</section>
+
+  const changes = showEditDiff && call.name === 'edit' ? toolEditChanges(call.args) : []
+  if (changes.length > 0) return <ToolCallEditDiff changes={changes} onCollapse={onCollapse} />
 
   const display = call.name === 'read' || call.name === 'write' ? readContentDisplay(call.args) : { kind: 'text' as const }
   if (display.kind === 'markdown') return <section className="tool-call-content tool-call-markdown" onClick={onCollapse}><Markdown>{content}</Markdown></section>
@@ -140,6 +143,17 @@ function ToolCallContent({ call, content, onCollapse, renderingCode }: { call: {
   return <section className="tool-call-content" onClick={onCollapse}><pre>{content}</pre></section>
 }
 
+
+/** Affiche chaque remplacement d’un appel edit dans un bloc de diff distinct. */
+function ToolCallEditDiff({ changes, onCollapse }: { changes: ReturnType<typeof toolEditChanges>; onCollapse: () => void }) {
+  return <section className="tool-call-content tool-call-edit-diff" onClick={onCollapse}>
+    {changes.map((change, index) => <section className="tool-call-edit-change" key={index}>
+      <h4>Modification {index + 1}</h4>
+      <div className="tool-call-edit-line removed"><i aria-hidden="true">−</i><pre>{change.oldText}</pre></div>
+      <div className="tool-call-edit-line added"><i aria-hidden="true">+</i><pre>{change.newText}</pre></div>
+    </section>)}
+  </section>
+}
 
 function messageOf(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause)

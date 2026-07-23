@@ -147,6 +147,14 @@
 .tool-call-preview > span { display: block; padding: 0 10px 9px; color: var(--muted); font: 10px/1.5 ui-sans-serif, system-ui, sans-serif; }
 .tool-call-preview > span + span { padding-top: 0; }
 .tool-call-content { border-top: 1px solid rgb(33 68 61 / 14%); cursor: pointer; }
+.tool-call-edit-diff { display: grid; gap: 10px; padding: 10px; }
+.tool-call-edit-change { overflow: hidden; border: 1px solid rgb(33 68 61 / 14%); border-radius: 6px; }
+.tool-call-edit-change h4 { margin: 0; padding: 5px 8px; background: rgb(33 68 61 / 7%); font: 10px/1.4 ui-sans-serif, system-ui, sans-serif; }
+.tool-call-edit-line { display: grid; grid-template-columns: 22px minmax(0, 1fr); }
+.tool-call-edit-line > i { padding: 6px 0; font-style: normal; text-align: center; }
+.tool-call-edit-line pre { min-width: 0; margin: 0; padding: 6px 8px; font: 11px/1.5 ui-monospace, monospace; overflow-wrap: anywhere; white-space: pre-wrap; }
+.tool-call-edit-line.removed { background: #fbe9e7; color: #843b31; }
+.tool-call-edit-line.added { background: #e4f4e9; color: #1d613b; }
 .tool-call-loading { display: flex; align-items: center; gap: 8px; padding: 10px; color: var(--muted); }
 .tool-call-notice { margin: 10px 10px 0; color: var(--muted); font: 11px/1.5 ui-sans-serif, system-ui, sans-serif; }
 .tool-call-content pre { margin: 0; border: 0; border-radius: 0; padding: 9px 10px; background: rgb(255 255 255 / 56%); color: inherit; font: 11px/1.5 ui-monospace, monospace; overflow-wrap: anywhere; white-space: pre-wrap; }
