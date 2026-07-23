@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { formatTokens, formatTurnCost } from '../conversation/message-usage.ts'
 import type { AnalyzedToolCall, AnalyzedTurn, SessionAnalysis, SessionAnalysisTarget } from './session-analysis.ts'
 
@@ -84,6 +84,7 @@ function Metric({ danger = false, label, value }: { danger?: boolean; label: str
 
 /** Trace tous les coûts dans l’ordre et conserve chaque tour comme cible de navigation accessible. */
 function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnalysisTarget) => void; turns: AnalyzedTurn[] }) {
+  const chartScrollRef = useRef<HTMLDivElement>(null)
   const height = 178
   const padding = { top: 14, right: 16, bottom: 30, left: 52 }
   const width = Math.max(300, padding.left + padding.right + (turns.length - 1) * 30)
@@ -98,7 +99,11 @@ function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnal
   const linePoints = points.map(({ x, y }) => `${x},${y}`).join(' ')
   const areaPoints = `${padding.left},${padding.top + plotHeight} ${linePoints} ${width - padding.right},${padding.top + plotHeight}`
 
-  return <div className="turn-cost-chart-scroll">
+  useLayoutEffect(() => {
+    if (chartScrollRef.current) chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth
+  }, [turns.length])
+
+  return <div className="turn-cost-chart-scroll" ref={chartScrollRef}>
     <svg aria-label="Coût de chaque tour assistant, dans l’ordre chronologique" className="turn-cost-chart" role="group" style={{ width }} viewBox={`0 0 ${width} ${height}`}>
       {(maxCost > 0 ? [0, 0.5, 1] : [1]).map((ratio) => {
         const y = padding.top + plotHeight * ratio
