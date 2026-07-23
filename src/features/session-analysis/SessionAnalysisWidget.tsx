@@ -34,18 +34,17 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
       <Metric label="Échecs" value={`${analysis.failedToolCalls} · ${formatPercent(failureRate)}`} danger={analysis.failedToolCalls > 0} />
     </dl>
 
-    {analysis.contextPercent !== undefined && <section className="analysis-context" aria-label="Utilisation du contexte">
-      <div><strong>Contexte</strong><span>{formatPercent(analysis.contextPercent / 100)}</span></div>
-      <progress aria-label={`${analysis.contextPercent.toFixed(1)} % du contexte utilisé`} max="100" value={analysis.contextPercent} />
-    </section>}
-
-    <dl className="analysis-tokens">
-      <div><dt>Cache miss</dt><dd>{formatAnalysisTokens(analysis.tokens.cacheMiss, analysis.tokensAvailable)}</dd></div>
-      <div><dt>Cache read</dt><dd>{formatAnalysisTokens(analysis.tokens.cacheRead, analysis.tokensAvailable)}</dd></div>
-      <div><dt>Cache write</dt><dd>{formatAnalysisTokens(analysis.tokens.cacheWrite, analysis.tokensAvailable)}</dd></div>
-      <div><dt>Output</dt><dd>{formatAnalysisTokens(analysis.tokens.output, analysis.tokensAvailable)}</dd></div>
-      <div><dt>Médiane</dt><dd>{turnCostAvailable ? formatTurnCost(analysis.medianTurnCost) : '—'}</dd></div>
-    </dl>
+    <section className="analysis-context" aria-label="Utilisation du contexte">
+      <header><strong>Contexte</strong>{analysis.contextPercent !== undefined && <span>{formatPercent(analysis.contextPercent / 100)}</span>}</header>
+      {analysis.contextPercent !== undefined && <progress aria-label={`${analysis.contextPercent.toFixed(1)} % du contexte utilisé`} max="100" value={analysis.contextPercent} />}
+      <dl className="analysis-tokens">
+        <div><dt>Cache miss</dt><dd>{formatAnalysisTokens(analysis.tokens.cacheMiss, analysis.tokensAvailable)}</dd></div>
+        <div><dt>Cache read</dt><dd>{formatAnalysisTokens(analysis.tokens.cacheRead, analysis.tokensAvailable)}</dd></div>
+        <div><dt>Output</dt><dd>{formatAnalysisTokens(analysis.tokens.output, analysis.tokensAvailable)}</dd></div>
+        <div><dt>Médiane</dt><dd>{turnCostAvailable ? formatTurnCost(analysis.medianTurnCost) : '—'}</dd></div>
+      </dl>
+      {analysis.turns.length > 0 && <TokenUsageChart onNavigate={onNavigate} turns={analysis.turns} />}
+    </section>
 
     {analysis.unattributedCost > 0.000001 && <p className="analysis-note"><strong>{formatTurnCost(analysis.unattributedCost)}</strong> non attribué aux requêtes visibles.</p>}
 
@@ -93,6 +92,82 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
 
 function Metric({ danger = false, label, value }: { danger?: boolean; label: string; value: string }) {
   return <div className={danger ? 'danger' : undefined}><dt>{label}</dt><dd>{value}</dd></div>
+}
+
+const TOKEN_SERIES = [
+  { key: 'cacheMiss', label: 'Cache miss', className: 'token-series-miss' },
+  { key: 'cacheRead', label: 'Cache read', className: 'token-series-read' },
+  { key: 'output', label: 'Output', className: 'token-series-output' },
+] as const
+
+/** Compare les volumes de tokens de chaque tour avec des séries distinctes et navigables. */
+function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAnalysisTarget) => void; turns: AnalyzedTurn[] }) {
+  const chartScrollRef = useRef<HTMLDivElement>(null)
+  const height = 178
+  const padding = { top: 14, right: 16, bottom: 30, left: 12 }
+  const width = Math.max(248, padding.left + padding.right + (turns.length - 1) * 30)
+  const plotWidth = width - padding.left - padding.right
+  const plotHeight = height - padding.top - padding.bottom
+  const maxTokens = Math.max(...turns.flatMap((turn) => TOKEN_SERIES.map((series) => turn.usage[series.key])))
+  const points = turns.map((turn, index) => ({
+    turn,
+    x: turns.length === 1 ? padding.left + plotWidth / 2 : padding.left + index * plotWidth / (turns.length - 1),
+    values: TOKEN_SERIES.map((series) => {
+      const value = turn.usage[series.key]
+      return { ...series, value, y: padding.top + plotHeight * (1 - (maxTokens > 0 ? value / maxTokens : 0)) }
+    }),
+  }))
+  const yTicks = (maxTokens > 0 ? [0, 0.5, 1] : [1]).map((ratio) => ({
+    label: formatTokens(maxTokens * (1 - ratio)),
+    y: padding.top + plotHeight * ratio,
+  }))
+
+  useLayoutEffect(() => {
+    if (chartScrollRef.current) chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth
+  }, [turns.length])
+
+  return <div className="token-usage-chart-block">
+    <div aria-hidden="true" className="token-chart-legend">
+      {TOKEN_SERIES.map((series) => <span className={series.className} key={series.key}><i />{series.label}</span>)}
+    </div>
+    <div className="token-chart-frame">
+      <div aria-hidden="true" className="chart-y-axis">
+        {yTicks.map((tick) => <span key={tick.y} style={{ top: tick.y + 2 }}>{tick.label}</span>)}
+      </div>
+      <div className="token-chart-scroll" ref={chartScrollRef}>
+        <svg aria-label="Tokens par tour agent, dans l’ordre chronologique" className="token-chart" role="group" style={{ width }} viewBox={`0 0 ${width} ${height}`}>
+          {yTicks.map((tick) => <line className="chart-grid" key={tick.y} x1={padding.left} x2={width - padding.right} y1={tick.y} y2={tick.y} />)}
+          {TOKEN_SERIES.map((series, seriesIndex) => <polyline className={`chart-line ${series.className}`} key={series.key} points={points.map((point) => `${point.x},${point.values[seriesIndex]?.y}`).join(' ')} />)}
+          {points.map(({ turn, values, x }) => {
+            const tooltipWidth = 148
+            const tooltipX = Math.min(width - padding.right - tooltipWidth, Math.max(padding.left, x - tooltipWidth / 2))
+            return <g
+              aria-label={`Tour ${turn.number}, ${values.map((point) => `${point.label} ${point.value} tokens`).join(', ')}`}
+              className="chart-point"
+              key={turn.messageIndex}
+              onClick={() => onNavigate({ kind: 'turn', index: turn.messageIndex })}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return
+                event.preventDefault()
+                onNavigate({ kind: 'turn', index: turn.messageIndex })
+              }}
+              role="button"
+              tabIndex={0}
+            >
+              <rect className="chart-column-hit" height={plotHeight} width="24" x={x - 12} y={padding.top} />
+              {values.map((point) => <circle className={`chart-point-dot ${point.className}`} cx={x} cy={point.y} key={point.key} r="3.5" />)}
+              <text className="chart-x-label" x={x} y={height - 9}>{turn.number}</text>
+              <g aria-hidden="true" className="chart-tooltip token-chart-tooltip" transform={`translate(${tooltipX} ${padding.top + 4})`}>
+                <rect height="52" rx="6" width={tooltipWidth} />
+                <text x="10" y="14">{values.map((point, index) => <tspan className={`token-tooltip-value ${point.className}`} dy={index === 0 ? 0 : 14} key={point.key} x="10">{point.label} · {formatTokens(point.value)}</tspan>)}</text>
+              </g>
+            </g>
+          })}
+          <text className="chart-axis-title" x={padding.left + plotWidth / 2} y={height - 1}>Tour</text>
+        </svg>
+      </div>
+    </div>
+  </div>
 }
 
 /** Trace tous les coûts dans l’ordre et conserve chaque tour comme cible de navigation accessible. */

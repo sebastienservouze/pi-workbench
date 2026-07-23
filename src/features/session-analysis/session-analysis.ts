@@ -8,6 +8,7 @@ export interface AnalyzedTurn {
   messageIndex: number
   number: number
   cost: number
+  usage: MessageUsage
   toolCallCount: number
 }
 
@@ -170,6 +171,7 @@ export function analyzeSession(messages: JsonObject[], stats: SessionStats | nul
     messageIndex,
     number: index + 1,
     cost: usage.cost,
+    usage,
     toolCallCount: toolCallsInMessage(messages[messageIndex] ?? {}).length,
   }))
   const turnCosts = turns.map((turn) => turn.cost).sort((a, b) => a - b)

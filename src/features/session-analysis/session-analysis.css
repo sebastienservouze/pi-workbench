@@ -5,13 +5,13 @@
 .analysis-summary dt { margin-bottom: 4px; color: var(--muted); font-size: 10px; }
 .analysis-summary dd { overflow: hidden; margin: 0; color: var(--ink); font: 700 15px ui-monospace, monospace; text-overflow: ellipsis; }
 .analysis-summary .danger dd { color: var(--danger); }
-.analysis-context { padding: 12px 14px 10px; }
-.analysis-context div { display: flex; justify-content: space-between; margin-bottom: 7px; font-size: 11px; }
-.analysis-context span { color: var(--muted); font-family: ui-monospace, monospace; }
-.analysis-context progress { display: block; width: 100%; height: 6px; overflow: hidden; border: 0; border-radius: 4px; background: var(--line); accent-color: var(--teal); }
+.analysis-context { padding: 12px 0 10px; }
+.analysis-context > header { display: flex; justify-content: space-between; margin: 0 14px 7px; font-size: 11px; }
+.analysis-context > header span { color: var(--muted); font-family: ui-monospace, monospace; }
+.analysis-context progress { display: block; width: calc(100% - 28px); height: 6px; margin: 0 14px; overflow: hidden; border: 0; border-radius: 4px; background: var(--line); accent-color: var(--teal); }
 .analysis-context progress::-webkit-progress-bar { background: var(--line); }
 .analysis-context progress::-webkit-progress-value { border-radius: 4px; background: var(--teal); }
-.analysis-tokens { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 14px; margin: 0; padding: 0 14px 12px; }
+.analysis-tokens { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 14px; margin: 0; padding: 10px 14px 12px; }
 .analysis-tokens div { display: flex; justify-content: space-between; gap: 8px; min-width: 0; font-size: 10px; }
 .analysis-tokens dt { color: var(--muted); }
 .analysis-tokens dd { margin: 0; font-family: ui-monospace, monospace; }
@@ -23,9 +23,14 @@
 .analysis-section header > span { color: var(--subtle); font-size: 9px; }
 .analysis-section select { max-width: 125px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 3px 5px; background: var(--surface); color: var(--ink); font-size: 9px; }
 .analysis-section select:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
-.turn-cost-chart-frame { display: flex; min-width: 0; }
-.turn-cost-chart-scroll { flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0 1px; scrollbar-width: thin; }
-.turn-cost-chart { display: block; max-width: none; height: 178px; color: var(--teal); }
+.token-usage-chart-block { border-top: 1px solid var(--line); padding-top: 9px; }
+.token-chart-legend { display: flex; flex-wrap: wrap; gap: 5px 12px; padding: 0 14px 5px; }
+.token-chart-legend span { display: inline-flex; align-items: center; gap: 4px; font-size: 8px; }
+.token-chart-legend i { width: 12px; height: 2px; background: currentcolor; }
+.turn-cost-chart-frame, .token-chart-frame { display: flex; min-width: 0; }
+.turn-cost-chart-scroll, .token-chart-scroll { flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0 1px; scrollbar-width: thin; }
+.turn-cost-chart, .token-chart { display: block; max-width: none; height: 178px; }
+.turn-cost-chart { color: var(--teal); }
 .chart-y-axis { position: relative; flex: 0 0 52px; height: 181px; }
 .chart-y-axis span { position: absolute; right: 8px; color: var(--muted); font: 8px ui-monospace, monospace; transform: translateY(-50%); white-space: nowrap; }
 .chart-grid { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
@@ -35,17 +40,24 @@
 .chart-x-label, .chart-axis-title { text-anchor: middle; }
 .chart-axis-title { fill: var(--subtle); font-size: 7px; }
 .chart-point { cursor: pointer; }
-.chart-point-hit { fill: transparent; stroke: transparent; stroke-width: 2; }
+.chart-point-hit, .chart-column-hit { fill: transparent; stroke: transparent; stroke-width: 2; }
 .chart-point-dot { fill: var(--surface); stroke: currentcolor; stroke-width: 2; transition: r 160ms ease-out, fill 160ms ease-out; vector-effect: non-scaling-stroke; }
 .chart-point:hover .chart-point-dot, .chart-point:focus-visible .chart-point-dot { r: 5px; fill: currentcolor; }
 .chart-point:focus { outline: none; }
-.chart-point:focus-visible .chart-point-hit { stroke: currentcolor; }
+.chart-point:focus-visible .chart-point-hit, .chart-point:focus-visible .chart-column-hit { stroke: var(--teal); }
 .chart-tooltip { opacity: 0; pointer-events: none; transition: opacity 160ms ease-out; }
 .chart-point:hover .chart-tooltip, .chart-point:focus-visible .chart-tooltip { opacity: 1; }
 .chart-tooltip rect { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .chart-tooltip text { fill: var(--ink); font: 9px ui-monospace, monospace; }
 .chart-tooltip-cost { font-weight: 700; }
 .chart-tooltip-tools { fill: var(--muted); font-size: 8px; }
+.token-series-miss { color: var(--teal); }
+.token-series-read { color: var(--violet); }
+.token-series-output { color: var(--warning-strong); }
+.token-tooltip-value { font-size: 8px; font-weight: 650; }
+.token-tooltip-value.token-series-miss { fill: var(--teal); }
+.token-tooltip-value.token-series-read { fill: var(--violet); }
+.token-tooltip-value.token-series-output { fill: var(--warning-strong); }
 .tool-usage-ranking { display: grid; gap: 10px; margin: 2px 0 0; padding: 0 6px; list-style: none; }
 .tool-usage-ranking li > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
 .tool-usage-ranking code { overflow: hidden; font-size: 10px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
