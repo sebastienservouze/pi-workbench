@@ -57,6 +57,13 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
     </section>
 
     <section className="analysis-section">
+      <header><h2>Usage cumulé par outil</h2><select aria-label="Classer l’usage cumulé des outils" onChange={(event) => setToolUsageRanking(event.target.value as ToolUsageRanking)} value={toolUsageRanking}><option value="output">sortie cumulée</option><option value="duration">durée cumulée</option></select></header>
+      {rankedTools.length > 0 ? <ol className="tool-usage-ranking">
+        {rankedTools.map((tool) => <ToolUsageRow key={tool.name} maxValue={maxToolUsage} metric={toolUsageRanking} tool={tool} />)}
+      </ol> : <EmptyState>{toolUsageRanking === 'duration' ? 'Les durées sont mesurées pendant cette ouverture du Workbench.' : 'Aucun appel d’outil dans cette session.'}</EmptyState>}
+    </section>
+
+    <section className="analysis-section">
       <header><h2>Appels consommateurs</h2><select aria-label="Classer les appels d’outils" onChange={(event) => setToolRanking(event.target.value as ToolRanking)} value={toolRanking}><option value="output">sortie</option><option value="duration">durée observée</option><option value="failure">échecs</option></select></header>
       {rankedCalls.length > 0 ? <ol className="analysis-ranking tool-ranking">
         {rankedCalls.map((call) => <ToolCallRow call={call} key={call.id} metric={toolRanking} onNavigate={onNavigate} />)}
@@ -69,13 +76,6 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
         {analysis.tools.map((tool) => <li key={tool.name}><code>{tool.name}</code><span>{tool.count}{tool.failed > 0 && <b> · {tool.failed}</b>}</span></li>)}
       </ul>
     </section>}
-
-    <section className="analysis-section">
-      <header><h2>Usage cumulé par outil</h2><select aria-label="Classer l’usage cumulé des outils" onChange={(event) => setToolUsageRanking(event.target.value as ToolUsageRanking)} value={toolUsageRanking}><option value="output">sortie cumulée</option><option value="duration">durée cumulée</option></select></header>
-      {rankedTools.length > 0 ? <ol className="tool-usage-ranking">
-        {rankedTools.map((tool) => <ToolUsageRow key={tool.name} maxValue={maxToolUsage} metric={toolUsageRanking} tool={tool} />)}
-      </ol> : <EmptyState>{toolUsageRanking === 'duration' ? 'Les durées sont mesurées pendant cette ouverture du Workbench.' : 'Aucun appel d’outil dans cette session.'}</EmptyState>}
-    </section>
 
     <section className="analysis-section">
       <header><h2>Tours utilisateur coûteux</h2><span>coût</span></header>
