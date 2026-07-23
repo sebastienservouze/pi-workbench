@@ -26,7 +26,7 @@ export function Markdown({ children }: { children: string }) {
   return <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
 }
 
-/** Affiche un appel d’outil, son aperçu et son résultat complet à la demande. */
+/** Affiche un appel d’outil dont le résultat complet remplace l’aperçu au dépliage. */
 export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, repositoryRoot, resultContent, resultError, workspacePath }: {
   args: unknown
   hasResult: boolean
@@ -107,22 +107,29 @@ export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, na
         {pending && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
       </small>
     </button>
-    {hasResult && <ToolCallPreview content={preview.text} htmlFile={htmlFile} onClick={activate} remainingLineCount={preview.remainingLineCount} />}
-    {hasResult && !htmlFile && expanded && <ToolCallContent call={{ name, args }} content={content} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} />}
+    {hasResult && (expanded && !htmlFile
+      ? <ToolCallContent call={{ name, args }} content={content} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} />
+      : <ToolCallPreview call={{ name, args }} content={preview.text} htmlFile={htmlFile} onClick={activate} remainingLineCount={preview.remainingLineCount} />
+    )}
   </article>
 })
 
-/** Affiche l'aperçu brut d'une sortie sans masquer son extension éventuelle. */
-function ToolCallPreview({ content, htmlFile, onClick, remainingLineCount }: { content: string; htmlFile: boolean; onClick: () => void; remainingLineCount: number }) {
+/** Affiche un aperçu cliquable, colorisé pour les fichiers de code pris en charge. */
+function ToolCallPreview({ call, content, htmlFile, onClick, remainingLineCount }: { call: { name: string; args: unknown }; content: string; htmlFile: boolean; onClick: () => void; remainingLineCount: number }) {
   const remainingLabel = `Cliquer pour voir ${remainingLineCount} ${remainingLineCount === 1 ? 'ligne' : 'lignes'} de plus`
+  const display = call.name === 'read' || call.name === 'write' ? readContentDisplay(call.args) : { kind: 'text' as const }
+  const highlightedCode = display.kind === 'code' && canHighlightFile(content)
+
   return <button className="tool-call-preview" onClick={onClick} type="button">
-    <pre>{content}</pre>
+    {highlightedCode
+      ? <SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px 4px' }} language={display.language} PreTag="div" style={oneLight} wrapLongLines>{content}</SyntaxHighlighter>
+      : <pre>{content}</pre>}
     {remainingLineCount > 0 && <span>{remainingLabel}</span>}
     {htmlFile && <span>Cliquer pour ouvrir dans le navigateur</span>}
   </button>
 }
 
-/** Affiche la sortie complète dans son format adapté et la referme à son clic. */
+/** Affiche le résultat complet dans son format adapté à la place de l’aperçu. */
 function ToolCallContent({ call, content, onCollapse, renderingCode }: { call: { name: string; args: unknown }; content: string; onCollapse: () => void; renderingCode: boolean }) {
   if (renderingCode) return <section className="tool-call-content tool-call-loading" role="status" onClick={onCollapse}><span aria-hidden="true" className="spinner" />Colorisation du fichier…</section>
 
