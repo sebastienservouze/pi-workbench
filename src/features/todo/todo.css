@@ -1,7 +1,10 @@
 .todo-content { display: flex; flex-direction: column; }
 .todo-list { display: grid; gap: 2px; margin: 0; padding: 8px; list-style: none; }
-.todo-list li { display: grid; grid-template-columns: 22px minmax(0, 1fr) 30px 30px; align-items: center; gap: 5px; min-height: 38px; border-radius: 7px; padding: 3px 4px; }
+.todo-list li { display: grid; grid-template-columns: 18px 22px minmax(0, 1fr) 30px 30px; align-items: center; gap: 5px; min-height: 38px; border-radius: 7px; padding: 3px 4px; }
 .todo-list li:hover { background: color-mix(in srgb, var(--teal) 7%, transparent); }
+.todo-list li.dragging { background: color-mix(in srgb, var(--teal) 12%, transparent); opacity: .72; }
+.todo-drag { display: grid; place-items: center; width: 18px; height: 30px; color: var(--subtle); cursor: grab; font-size: 15px; line-height: 1; touch-action: none; user-select: none; }
+.todo-drag:active { cursor: grabbing; }
 .todo-list input[type='checkbox'] { width: 16px; height: 16px; margin: 0; accent-color: var(--teal); }
 .todo-text { min-width: 0; border: 0; padding: 5px 2px; background: transparent; color: var(--ink); font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; text-align: left; }
 .todo-text:focus-visible, .todo-start:focus-visible, .todo-delete:focus-visible, .todo-add button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }

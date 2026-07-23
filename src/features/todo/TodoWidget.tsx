@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import type { TodoItem } from '../../../shared/types.ts'
 import { getTodos, updateTodos } from '../../api.ts'
+import { reorderTodoItems } from './todo-order.ts'
 
 /** Affiche et modifie la liste de tâches persistante du workspace courant. */
 export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }: {
@@ -16,7 +17,11 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [startingId, setStartingId] = useState<string | null>(null)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const dragOriginalTodos = useRef<TodoItem[] | null>(null)
+  const dragTodos = useRef<TodoItem[] | null>(null)
+  const dragMoved = useRef(false)
 
   /** Recharge la liste lorsque le workspace change et ignore les réponses devenues obsolètes. */
   useEffect(() => {
@@ -85,10 +90,58 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
     }
   }
 
-  /** Supprime définitivement une tâche après confirmation explicite. */
+  /** Supprime définitivement une tâche sans interrompre le flux par une confirmation. */
   async function removeTodo(todo: TodoItem): Promise<void> {
-    if (!window.confirm(`Supprimer « ${todo.text} » ?`)) return
     await save(todos.filter((item) => item.id !== todo.id))
+  }
+
+  /** Initialise un déplacement tout en conservant l’ordre à restaurer en cas d’échec. */
+  function beginDrag(event: ReactPointerEvent<HTMLSpanElement>, todoId: string): void {
+    if (busy || editingId !== null || startingId !== null) return
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    dragOriginalTodos.current = todos
+    dragTodos.current = todos
+    dragMoved.current = false
+    setDraggedId(todoId)
+  }
+
+  /** Réordonne visuellement la liste selon la tâche survolée par le pointeur capturé. */
+  function moveDraggedTodo(event: ReactPointerEvent<HTMLSpanElement>): void {
+    if (!draggedId || !dragTodos.current) return
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-todo-id]')
+    const targetId = target?.dataset.todoId
+    if (!targetId || targetId === draggedId) return
+
+    const nextTodos = reorderTodoItems(dragTodos.current, draggedId, targetId, event.clientY > target.getBoundingClientRect().top + target.offsetHeight / 2)
+    if (nextTodos === dragTodos.current) return
+    dragTodos.current = nextTodos
+    dragMoved.current = true
+    setTodos(nextTodos)
+  }
+
+  /** Persiste l’ordre déposé et rétablit l’ordre précédent si l’écriture échoue. */
+  async function finishDrag(event: ReactPointerEvent<HTMLSpanElement>): Promise<void> {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
+    const nextTodos = dragTodos.current
+    const previousTodos = dragOriginalTodos.current
+    const shouldSave = dragMoved.current
+    setDraggedId(null)
+    dragTodos.current = null
+    dragOriginalTodos.current = null
+    dragMoved.current = false
+    if (!shouldSave || !nextTodos || !previousTodos || await save(nextTodos)) return
+    setTodos(previousTodos)
+    onOpenCountChange(openCount(previousTodos))
+  }
+
+  /** Annule le déplacement en cours et restaure l’ordre initial sans le persister. */
+  function cancelDrag(): void {
+    if (dragOriginalTodos.current) setTodos(dragOriginalTodos.current)
+    setDraggedId(null)
+    dragTodos.current = null
+    dragOriginalTodos.current = null
+    dragMoved.current = false
   }
 
   /** Lance une nouvelle session avec le texte de la tâche comme premier message. */
@@ -101,7 +154,8 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
     }
   }
 
-  const remaining = openCount(todos)
+  const visibleTodos = todos.filter((todo) => !todo.completed)
+  const remaining = visibleTodos.length
 
   return <>
     <header className="widget-header">
@@ -110,9 +164,18 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
     <div className="widget-content todo-content">
       {loading ? <div aria-label="Chargement des tâches" className="todo-skeleton" role="status"><i /><i /><i /></div> : <>
         {error && <div className="todo-error" role="alert"><span>{error}</span><button onClick={() => setReloadRequest((current) => current + 1)} type="button">Réessayer</button></div>}
-        {todos.length === 0 && !error ? <div className="todo-empty"><strong>Aucune tâche</strong><span>Notez ici une idée à reprendre dans ce workspace.</span></div> : <ul className="todo-list">
-          {todos.map((todo) => <li className={todo.completed ? 'completed' : undefined} key={todo.id}>
-            <input aria-label={`Marquer « ${todo.text} » comme ${todo.completed ? 'à faire' : 'terminée'}`} checked={todo.completed} disabled={busy} onChange={() => void save(todos.map((item) => item.id === todo.id ? { ...item, completed: !item.completed } : item))} type="checkbox" />
+        {visibleTodos.length === 0 && !error ? <div className="todo-empty"><strong>Aucune tâche</strong><span>Notez ici une idée à reprendre dans ce workspace.</span></div> : <ul className="todo-list">
+          {visibleTodos.map((todo) => <li className={draggedId === todo.id ? 'dragging' : undefined} data-todo-id={todo.id} key={todo.id}>
+            <span
+              aria-hidden="true"
+              className="todo-drag"
+              onPointerCancel={cancelDrag}
+              onPointerDown={(event) => beginDrag(event, todo.id)}
+              onPointerMove={moveDraggedTodo}
+              onPointerUp={(event) => void finishDrag(event)}
+              title="Déplacer"
+            >⠿</span>
+            <input aria-label={`Marquer « ${todo.text} » comme terminée`} checked={false} disabled={busy} onChange={() => void save(todos.map((item) => item.id === todo.id ? { ...item, completed: true } : item))} type="checkbox" />
             {editingId === todo.id ? <input
               aria-label={`Modifier « ${todo.text} »`}
               autoFocus
