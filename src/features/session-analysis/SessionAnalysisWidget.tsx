@@ -86,8 +86,8 @@ function Metric({ danger = false, label, value }: { danger?: boolean; label: str
 function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnalysisTarget) => void; turns: AnalyzedTurn[] }) {
   const chartScrollRef = useRef<HTMLDivElement>(null)
   const height = 178
-  const padding = { top: 14, right: 16, bottom: 30, left: 52 }
-  const width = Math.max(300, padding.left + padding.right + (turns.length - 1) * 30)
+  const padding = { top: 14, right: 16, bottom: 30, left: 12 }
+  const width = Math.max(248, padding.left + padding.right + (turns.length - 1) * 30)
   const plotWidth = width - padding.left - padding.right
   const plotHeight = height - padding.top - padding.bottom
   const maxCost = Math.max(...turns.map((turn) => turn.cost))
@@ -98,17 +98,22 @@ function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnal
   }))
   const linePoints = points.map(({ x, y }) => `${x},${y}`).join(' ')
   const areaPoints = `${padding.left},${padding.top + plotHeight} ${linePoints} ${width - padding.right},${padding.top + plotHeight}`
+  const yTicks = (maxCost > 0 ? [0, 0.5, 1] : [1]).map((ratio) => ({
+    label: formatTurnCost(maxCost * (1 - ratio)),
+    y: padding.top + plotHeight * ratio,
+  }))
 
   useLayoutEffect(() => {
     if (chartScrollRef.current) chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth
   }, [turns.length])
 
-  return <div className="turn-cost-chart-scroll" ref={chartScrollRef}>
-    <svg aria-label="Coût de chaque tour assistant, dans l’ordre chronologique" className="turn-cost-chart" role="group" style={{ width }} viewBox={`0 0 ${width} ${height}`}>
-      {(maxCost > 0 ? [0, 0.5, 1] : [1]).map((ratio) => {
-        const y = padding.top + plotHeight * ratio
-        return <g key={ratio}><line className="chart-grid" x1={padding.left} x2={width - padding.right} y1={y} y2={y} /><text className="chart-y-label" x={padding.left - 8} y={y + 3}>{formatTurnCost(maxCost * (1 - ratio))}</text></g>
-      })}
+  return <div className="turn-cost-chart-frame">
+    <div aria-hidden="true" className="chart-y-axis">
+      {yTicks.map((tick) => <span key={tick.y} style={{ top: tick.y + 2 }}>{tick.label}</span>)}
+    </div>
+    <div className="turn-cost-chart-scroll" ref={chartScrollRef}>
+      <svg aria-label="Coût de chaque tour assistant, dans l’ordre chronologique" className="turn-cost-chart" role="group" style={{ width }} viewBox={`0 0 ${width} ${height}`}>
+      {yTicks.map((tick) => <line className="chart-grid" key={tick.y} x1={padding.left} x2={width - padding.right} y1={tick.y} y2={tick.y} />)}
       {points.length > 1 && <polygon className="chart-area" points={areaPoints} />}
       {points.length > 1 && <polyline className="chart-line" points={linePoints} />}
       {points.map(({ turn, x, y }) => {
@@ -137,8 +142,9 @@ function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnal
           </g>
         </g>
       })}
-      <text className="chart-axis-title" x={padding.left + plotWidth / 2} y={height - 1}>Tour</text>
-    </svg>
+        <text className="chart-axis-title" x={padding.left + plotWidth / 2} y={height - 1}>Tour</text>
+      </svg>
+    </div>
   </div>
 }
 

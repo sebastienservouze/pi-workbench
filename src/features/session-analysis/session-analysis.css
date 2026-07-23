@@ -23,13 +23,15 @@
 .analysis-section header > span { color: var(--subtle); font-size: 9px; }
 .analysis-section select { max-width: 125px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 3px 5px; background: var(--surface); color: var(--ink); font-size: 9px; }
 .analysis-section select:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
-.turn-cost-chart-scroll { overflow-x: auto; overflow-y: hidden; padding: 2px 0 1px; scrollbar-width: thin; }
+.turn-cost-chart-frame { display: flex; min-width: 0; }
+.turn-cost-chart-scroll { flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0 1px; scrollbar-width: thin; }
 .turn-cost-chart { display: block; max-width: none; height: 178px; color: var(--teal); }
+.chart-y-axis { position: relative; flex: 0 0 52px; height: 181px; }
+.chart-y-axis span { position: absolute; right: 8px; color: var(--muted); font: 8px ui-monospace, monospace; transform: translateY(-50%); white-space: nowrap; }
 .chart-grid { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .chart-area { fill: var(--teal-soft); }
 .chart-line { fill: none; stroke: currentcolor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; vector-effect: non-scaling-stroke; }
-.chart-y-label, .chart-x-label, .chart-axis-title { fill: var(--muted); font: 8px ui-monospace, monospace; }
-.chart-y-label { text-anchor: end; }
+.chart-x-label, .chart-axis-title { fill: var(--muted); font: 8px ui-monospace, monospace; }
 .chart-x-label, .chart-axis-title { text-anchor: middle; }
 .chart-axis-title { fill: var(--subtle); font-size: 7px; }
 .chart-point { cursor: pointer; }
