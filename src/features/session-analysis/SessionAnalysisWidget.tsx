@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { formatTokens, formatTurnCost } from '../conversation/message-usage.ts'
-import type { AnalyzedToolCall, SessionAnalysis, SessionAnalysisTarget } from './session-analysis.ts'
+import type { AnalyzedToolCall, AnalyzedTurn, SessionAnalysis, SessionAnalysisTarget } from './session-analysis.ts'
 
 type ToolRanking = 'duration' | 'failure' | 'output'
 
@@ -11,6 +11,7 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
     .filter((request) => request.modelCallCount > 0)
     .sort((a, b) => b.cost - a.cost)
     .slice(0, 5), [analysis.requests])
+  const costlyTurns = useMemo(() => [...analysis.turns].sort((a, b) => b.cost - a.cost).slice(0, 5), [analysis.turns])
   const rankedCalls = useMemo(() => [...analysis.toolCalls]
     .filter((call) => toolRanking === 'duration' ? call.durationMs !== undefined : toolRanking === 'failure' ? call.isError : true)
     .sort((a, b) => toolValue(b, toolRanking) - toolValue(a, toolRanking))
@@ -21,9 +22,9 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
   return <div className="session-analysis">
     <dl className="analysis-summary">
       <Metric label="Coût total" value={analysis.costAvailable ? formatTurnCost(analysis.totalCost) : '—'} />
-      <Metric label="Coût moyen" value={turnCostAvailable ? formatTurnCost(analysis.averageTurnCost) : '—'} />
+      <Metric label="Coût moyen / tour" value={turnCostAvailable ? formatTurnCost(analysis.averageTurnCost) : '—'} />
       <Metric label="Tours" value={String(analysis.turnCount)} />
-      <Metric label="Outils / tour" value={turnCostAvailable ? formatAverage(analysis.averageToolCallsPerTurn) : '—'} />
+      <Metric label="Outils moyens / tour" value={turnCostAvailable ? formatAverage(analysis.averageToolCallsPerTurn) : '—'} />
       <Metric label="Appels outils" value={String(analysis.totalToolCalls)} />
       <Metric label="Échecs" value={`${analysis.failedToolCalls} · ${formatPercent(failureRate)}`} danger={analysis.failedToolCalls > 0} />
     </dl>
@@ -44,7 +45,14 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
     {analysis.unattributedCost > 0.000001 && <p className="analysis-note"><strong>{formatTurnCost(analysis.unattributedCost)}</strong> non attribué aux requêtes visibles.</p>}
 
     <section className="analysis-section">
-      <header><h2>Requêtes coûteuses</h2><span>coût</span></header>
+      <header><h2>Tours assistant coûteux</h2><span>coût</span></header>
+      {costlyTurns.length > 0 ? <ol className="analysis-ranking">
+        {costlyTurns.map((turn) => <TurnRow key={turn.messageIndex} onNavigate={onNavigate} turn={turn} />)}
+      </ol> : <EmptyState>Les coûts apparaîtront après la première réponse.</EmptyState>}
+    </section>
+
+    <section className="analysis-section">
+      <header><h2>Tours utilisateur coûteux</h2><span>coût</span></header>
       {costlyRequests.length > 0 ? <ol className="analysis-ranking">
         {costlyRequests.map((request) => <li key={request.messageIndex}>
           <button disabled={request.messageIndex < 0} onClick={() => onNavigate({ kind: 'message', index: request.messageIndex })} type="button">
@@ -73,6 +81,14 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
 
 function Metric({ danger = false, label, value }: { danger?: boolean; label: string; value: string }) {
   return <div className={danger ? 'danger' : undefined}><dt>{label}</dt><dd>{value}</dd></div>
+}
+
+/** Rend un tour assistant classé et ouvre sa réponse, y compris lorsqu’elle ne contient que des outils. */
+function TurnRow({ onNavigate, turn }: { onNavigate: (target: SessionAnalysisTarget) => void; turn: AnalyzedTurn }) {
+  return <li><button onClick={() => onNavigate({ kind: 'turn', index: turn.messageIndex })} type="button">
+    <span><strong>Tour assistant {turn.number}</strong><small>{turn.toolCallCount} outil{turn.toolCallCount !== 1 ? 's' : ''}</small></span>
+    <b>{formatTurnCost(turn.cost)}</b>
+  </button></li>
 }
 
 /** Rend un appel classé et conserve sa cible de navigation dans la conversation. */

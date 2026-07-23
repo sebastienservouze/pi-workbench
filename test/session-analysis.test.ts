@@ -40,6 +40,11 @@ test('reconstruit les requêtes multi-appels et calcule les statistiques par ré
   assert.equal(analysis.medianTurnCost, 0.02)
   assert.equal(analysis.turnCount, 3)
   assert.equal(analysis.averageToolCallsPerTurn, 1 / 3)
+  assert.deepEqual(analysis.turns, [
+    { messageIndex: 1, number: 1, cost: 0.01, toolCallCount: 1 },
+    { messageIndex: 3, number: 2, cost: 0.02, toolCallCount: 0 },
+    { messageIndex: 5, number: 3, cost: 0.03, toolCallCount: 0 },
+  ])
   assert.ok(Math.abs(analysis.unattributedCost - 0.01) < Number.EPSILON)
   assert.deepEqual(analysis.tokens, { cacheMiss: 600, cacheRead: 6_000, cacheWrite: 90, cost: 0.07, output: 60 })
   assert.equal(analysis.costAvailable, true)

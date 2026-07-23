@@ -54,9 +54,9 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
   useEffect(() => {
     if (!navigationRequest) return
     const targetKey = navigationTargetKey(navigationRequest.target)
-    const selector = navigationRequest.target.kind === 'message'
-      ? `[data-message-index="${navigationRequest.target.index}"]`
-      : `[data-tool-call-id="${CSS.escape(navigationRequest.target.id)}"]`
+    const selector = navigationRequest.target.kind === 'tool'
+      ? `[data-tool-call-id="${CSS.escape(navigationRequest.target.id)}"]`
+      : `[data-message-index="${navigationRequest.target.index}"]`
     const target = conversationRef.current?.querySelector<HTMLElement>(selector)
     if (!target) return
     autoScrollRef.current = false
@@ -218,7 +218,7 @@ function isImageContent(value: unknown): value is JsonObject & { data: string; m
 }
 
 function navigationTargetKey(target: SessionAnalysisTarget): string {
-  return target.kind === 'message' ? `message:${target.index}` : `tool:${target.id}`
+  return target.kind === 'tool' ? `tool:${target.id}` : `message:${target.index}`
 }
 
 function isObject(value: unknown): value is JsonObject {

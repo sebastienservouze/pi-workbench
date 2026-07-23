@@ -414,7 +414,7 @@ function App() {
 
   /** Positionne la conversation sur l’élément choisi depuis l’analyse de session. */
   const navigateToAnalysisTarget = useCallback((target: SessionAnalysisTarget): void => {
-    if (target.kind === 'tool') {
+    if (target.kind === 'tool' || target.kind === 'turn') {
       setConversationView('detailed')
       window.localStorage.setItem('pi-workbench.conversation-view', 'detailed')
     }

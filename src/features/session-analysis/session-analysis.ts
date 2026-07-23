@@ -2,7 +2,14 @@ import type { JsonObject, SessionStats } from '../../../shared/types.ts'
 import { messageUsage, turnUsageByMessage, type MessageUsage } from '../conversation/message-usage.ts'
 import { toolCallsInMessage, toolContentText, toolDataLength, toolResultInMessage, type ToolExecution } from '../conversation/tool-calls.ts'
 
-export type SessionAnalysisTarget = { kind: 'message'; index: number } | { kind: 'tool'; id: string }
+export type SessionAnalysisTarget = { kind: 'message' | 'turn'; index: number } | { kind: 'tool'; id: string }
+
+export interface AnalyzedTurn {
+  messageIndex: number
+  number: number
+  cost: number
+  toolCallCount: number
+}
 
 export interface AnalyzedToolCall {
   id: string
@@ -38,6 +45,7 @@ export interface ToolSummary {
 
 export interface SessionAnalysis {
   requests: AnalyzedRequest[]
+  turns: AnalyzedTurn[]
   toolCalls: AnalyzedToolCall[]
   tools: ToolSummary[]
   totalCost: number
@@ -68,7 +76,7 @@ interface MutableRequest extends AnalyzedRequest {
 
 const emptyUsage = (): MessageUsage => ({ cacheMiss: 0, cacheRead: 0, cacheWrite: 0, cost: 0, output: 0 })
 
-/** Reconstruit les requêtes et leurs appels à partir du contrat de messages public de Pi. */
+/** Reconstruit les tours assistant, les cycles utilisateur et leurs appels à partir du contrat public de Pi. */
 export function analyzeSession(messages: JsonObject[], stats: SessionStats | null, running: boolean, telemetry: AnalysisTelemetry = {}): SessionAnalysis {
   const resultsByCallId = new Map(messages.flatMap((message) => {
     const result = toolResultInMessage(message)
@@ -157,7 +165,13 @@ export function analyzeSession(messages: JsonObject[], stats: SessionStats | nul
   const statsCost = finiteNumber(stats?.cost)
   const attributionAvailable = requests.some((request) => request.modelCallCount > 0)
   const totalCost = statsCost ?? attributedCost
-  const turnCosts = [...turnUsageByMessage(messages).values()].map((usage) => usage.cost).sort((a, b) => a - b)
+  const turns = [...turnUsageByMessage(messages)].map(([messageIndex, usage], index) => ({
+    messageIndex,
+    number: index + 1,
+    cost: usage.cost,
+    toolCallCount: toolCallsInMessage(messages[messageIndex] ?? {}).length,
+  }))
+  const turnCosts = turns.map((turn) => turn.cost).sort((a, b) => a - b)
   const parsedUsage = requests.reduce((total, request) => addUsage(total, request.usage), emptyUsage())
   const statsTokens = statsUsage(stats)
   const tokens = statsTokens ?? parsedUsage
@@ -165,6 +179,7 @@ export function analyzeSession(messages: JsonObject[], stats: SessionStats | nul
 
   return {
     requests,
+    turns,
     toolCalls,
     tools: summarizeTools(toolCalls),
     totalCost,
