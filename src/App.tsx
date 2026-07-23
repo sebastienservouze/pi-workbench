@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import './App.css'
 import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getQuotas, getSnapshot, getVsCodeStatus, listRecentSessions, listSessions, openExplorer, openSession, openVsCode, refreshQuotas, revertGitCommit, sendPiCommand } from './api.ts'
+import { quotaRefreshAllowed } from '../shared/quota-refresh.ts'
 import type { GitSnapshot, JsonObject, ManagerEvent, QuotaSnapshot, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 import { Composer } from './features/composer/Composer.tsx'
 import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
@@ -11,6 +12,7 @@ import { AskUserQuestionDialog, ExtensionDialog } from './features/dialogs/Dialo
 import { isAgentSelector, isAskUserQuestionDialog, isBlockingDialog, type UiDialog } from './features/dialogs/dialog-protocol.ts'
 import { clampGitSidebarWidth, readGitSidebarWidth } from './features/git/git-sidebar.ts'
 import { RightSidebar, type RightWidget } from './features/git/RightSidebar.tsx'
+import { quotaProviderForModel } from './features/quotas/quota-display.ts'
 import { DirectoryPicker } from './features/workspace/DirectoryPicker.tsx'
 import { recentWorkspaces } from './features/workspace/recent-workspaces.ts'
 import { WorkspaceSidebar } from './features/workspace/WorkspaceSidebar.tsx'
@@ -77,7 +79,14 @@ function App() {
   const agentIntentsRef = useRef(new Map<string, AgentIntent>())
   const toolStartedAtRef = useRef(new Map<string, number>())
   const requestStartedAtRef = useRef<number | undefined>(undefined)
+  const quotaAutoRefreshAtRef = useRef(new Map<string, number>())
+  const quotasRef = useRef(quotas)
+  const model = isObject(snapshot.state?.model) ? snapshot.state.model : undefined
+  const currentQuotaProvider = quotaProviderForModel(model?.provider)
+  const currentQuotaProviderRef = useRef(currentQuotaProvider)
   selectedIdRef.current = selectedId
+  quotasRef.current = quotas
+  currentQuotaProviderRef.current = currentQuotaProvider
 
   const showToast = useCallback((kind: Toast['kind'], message: string, sessionId = selectedIdRef.current) => {
     const toast = { id: crypto.randomUUID(), kind, message, sessionId }
@@ -155,6 +164,26 @@ function App() {
       return nextSnapshot
     } catch (cause) {
       showToast('error', messageOf(cause))
+    }
+  }, [showToast])
+
+  /** Actualise les quotas en laissant les clics manuels contourner la temporisation automatique. */
+  const refreshSessionQuotas = useCallback(async (sessionId: string, automatic: boolean): Promise<void> => {
+    if (!sessionId) throw new Error('Une session Pi ouverte est nécessaire pour actualiser les quotas.')
+    if (automatic) {
+      const provider = currentQuotaProviderRef.current
+      if (!provider) return
+      const lastRefreshAt = Math.max(quotasRef.current?.[provider].updatedAt ?? 0, quotaAutoRefreshAtRef.current.get(sessionId) ?? 0)
+      const now = Date.now()
+      if (!quotaRefreshAllowed(lastRefreshAt, true, now)) return
+      quotaAutoRefreshAtRef.current.set(sessionId, now)
+    }
+    try {
+      setQuotas((current) => current && { ...current, refreshing: true })
+      setQuotas(await refreshQuotas(sessionId, automatic))
+    } catch (cause) {
+      if (!automatic) showToast('error', messageOf(cause))
+      setQuotas(await getQuotas().catch(() => quotasRef.current))
     }
   }, [showToast])
 
@@ -291,7 +320,10 @@ function App() {
       const settledRequestDuration = event.type === 'agent_settled' && requestStartedAtRef.current !== undefined
         ? performance.now() - requestStartedAtRef.current
         : undefined
-      if (event.type === 'agent_settled') requestStartedAtRef.current = undefined
+      if (event.type === 'agent_settled') {
+        requestStartedAtRef.current = undefined
+        void refreshSessionQuotas(sessionId, true)
+      }
       if (event.type === 'message_end' || event.type === 'agent_settled') {
         setToolExecutions(interruptToolCallGeneration)
         void refreshSnapshot(sessionId, true).then((nextSnapshot) => {
@@ -312,7 +344,7 @@ function App() {
         ])
       }
     }
-  }, [refreshGit, refreshSessions, refreshSnapshot, showToast])
+  }, [refreshGit, refreshSessionQuotas, refreshSessions, refreshSnapshot, showToast])
 
   useEffect(() => {
     const exposesAgentCommand = snapshot.commands.some((command) => command.name === 'agent')
@@ -540,6 +572,7 @@ function App() {
       <RightSidebar
         activeWidget={activeRightWidget}
         analysis={sessionAnalysis}
+        currentQuotaProvider={currentQuotaProvider}
         onAnalysisNavigate={navigateToAnalysisTarget}
         onResize={updateGitSidebarWidth}
         snapshot={gitSnapshot?.repository ? gitSnapshot : null}
@@ -556,16 +589,7 @@ function App() {
         }}
         onError={(cause) => showToast('error', messageOf(cause))}
         onFileSelect={(path, commitHash) => getGitFileDiff(workspacePath, path, commitHash)}
-        onQuotaRefresh={async () => {
-          if (!selectedId) throw new Error('Une session Pi ouverte est nécessaire pour actualiser les quotas.')
-          try {
-            setQuotas((current) => current && { ...current, refreshing: true })
-            setQuotas(await refreshQuotas(selectedId))
-          } catch (cause) {
-            showToast('error', messageOf(cause))
-            setQuotas(await getQuotas().catch(() => quotas))
-          }
-        }}
+        onQuotaRefresh={() => refreshSessionQuotas(selectedId, false)}
         onRefresh={() => void refreshGit(workspacePath, true)}
         onRevert={async (hash) => {
           const result = await revertGitCommit(workspacePath, hash)

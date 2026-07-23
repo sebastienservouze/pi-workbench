@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { parseCopilotUsage, parseOpenAiUsage } from '../shared/quota-parsers.ts'
+import { quotaRefreshAllowed } from '../shared/quota-refresh.ts'
 import { QuotaCache } from '../server/quota-cache.ts'
+import { quotaProviderForModel, railQuota } from '../src/features/quotas/quota-display.ts'
 
 test('normalizes the Codex five-hour and weekly windows', () => {
   assert.deepEqual(parseOpenAiUsage({
@@ -23,6 +25,27 @@ test('keeps only finite monthly Copilot quotas', () => {
       chat: { entitlement: 0, remaining: 0, unlimited: true },
     },
   }), [{ name: 'Interactions premium', used: 175, limit: 300, resetsAt: Date.parse('2030-01-01T00:00:00Z') }])
+})
+
+test('throttles automatic quota refreshes for 30 seconds but never manual ones', () => {
+  assert.equal(quotaRefreshAllowed(10_000, true, 39_999), false)
+  assert.equal(quotaRefreshAllowed(10_000, true, 40_000), true)
+  assert.equal(quotaRefreshAllowed(39_999, false, 40_000), true)
+})
+
+test('shows the primary quota for the provider selected by the model', () => {
+  const quotas = {
+    openai: { data: [{ period: '7d' as const, remainingPercent: 20 }, { period: '5h' as const, remainingPercent: 74.6 }], stale: false },
+    copilot: { data: [{ name: 'Interactions premium', used: 75, limit: 300 }], stale: true },
+    refreshing: false,
+    sessionRequired: false,
+  }
+
+  assert.equal(quotaProviderForModel('openai-codex'), 'openai')
+  assert.equal(quotaProviderForModel('github-copilot'), 'copilot')
+  assert.equal(quotaProviderForModel('anthropic'), undefined)
+  assert.deepEqual(railQuota(quotas, 'openai'), { label: 'Quota OpenAI Codex : 74,6 % restant', stale: false, value: '75%' })
+  assert.deepEqual(railQuota(quotas, 'copilot'), { label: 'Quota GitHub Copilot : 75 % restant', stale: true, value: '75%' })
 })
 
 test('retains a stale provider snapshot when its next refresh fails', () => {

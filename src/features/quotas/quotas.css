@@ -1,4 +1,5 @@
 .quota-header .git-refresh:disabled { opacity: .45; }
+.quota-rail-value { font: 700 10px/1 ui-monospace, monospace; letter-spacing: -.5px; }
 .quota-content { padding: 2px 14px 20px; }
 .quota-provider { padding: 16px 0 18px; border-bottom: 1px solid var(--line); }
 .quota-provider:last-child { border-bottom: 0; }

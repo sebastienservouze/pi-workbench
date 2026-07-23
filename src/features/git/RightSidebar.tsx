@@ -1,6 +1,7 @@
 import { useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, QuotaSnapshot } from '../../../shared/types.ts'
 import { QuotaWidget } from '../quotas/QuotaWidget.tsx'
+import { railQuota, type QuotaProvider } from '../quotas/quota-display.ts'
 import { SessionAnalysisWidget } from '../session-analysis/SessionAnalysisWidget.tsx'
 import type { SessionAnalysis, SessionAnalysisTarget } from '../session-analysis/session-analysis.ts'
 import { TodoWidget } from '../todo/TodoWidget.tsx'
@@ -17,9 +18,10 @@ export interface RailAction {
 }
 
 /** Coordonne les panneaux latéraux, leur rail commun et le redimensionnement. */
-export function RightSidebar({ activeWidget, analysis, onAnalysisNavigate, onResize, snapshot, quotas, width, workspacePath, railActions, onAction, onError, onFileSelect, onQuotaRefresh, onRefresh, onRevert, onTodoStartSession, onWidgetSelect }: {
+export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onAnalysisNavigate, onResize, snapshot, quotas, width, workspacePath, railActions, onAction, onError, onFileSelect, onQuotaRefresh, onRefresh, onRevert, onTodoStartSession, onWidgetSelect }: {
   activeWidget: RightWidget | null
   analysis: SessionAnalysis | null
+  currentQuotaProvider: QuotaProvider | undefined
   onAnalysisNavigate: (target: SessionAnalysisTarget) => void
   onResize: (width: number) => void
   snapshot: GitSnapshot | null
@@ -43,6 +45,7 @@ export function RightSidebar({ activeWidget, analysis, onAnalysisNavigate, onRes
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const hasChanges = snapshot?.files.length ? snapshot.files.length > 0 : false
   const collapsed = activeWidget === null || (activeWidget === 'analysis' && !analysis) || (activeWidget === 'git' && !snapshot)
+  const quotaSummary = railQuota(quotas, currentQuotaProvider)
 
   /** Charge le diff demandé avant de remplacer la liste de fichiers du widget. */
   async function selectFile(path: string, commitHash?: string): Promise<void> {
@@ -195,14 +198,14 @@ export function RightSidebar({ activeWidget, analysis, onAnalysisNavigate, onRes
       <button
         aria-controls={activeWidget === 'quotas' ? 'quotas-panel' : undefined}
         aria-expanded={activeWidget === 'quotas'}
-        aria-label={activeWidget === 'quotas' ? 'Réduire le panneau des quotas' : 'Développer le panneau des quotas'}
+        aria-label={`${activeWidget === 'quotas' ? 'Réduire' : 'Développer'} le panneau des quotas${quotaSummary ? `. ${quotaSummary.label}` : ''}`}
         className="rail-tab"
         onClick={() => onWidgetSelect('quotas')}
-        title="Quotas"
+        title={quotaSummary?.label ?? 'Quotas'}
         type="button"
       >
-        <span aria-hidden="true">%</span>
-        {(quotas?.openai.stale || quotas?.copilot.stale) && <small>!</small>}
+        <span aria-hidden="true" className="quota-rail-value">{quotaSummary?.value ?? '%'}</span>
+        {quotaSummary?.stale && <small>!</small>}
       </button>
       <button
         aria-controls={activeWidget === 'todo' ? 'todo-panel' : undefined}

@@ -1,5 +1,6 @@
 import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent'
 import { parseCopilotUsage, parseOpenAiUsage } from '../shared/quota-parsers.ts'
+import { quotaRefreshAllowed } from '../shared/quota-refresh.ts'
 import type { CopilotQuotaWindow, OpenAiQuotaWindow, QuotaProviderReport, QuotaReport } from '../shared/types.ts'
 
 const statusKey = 'pi-workbench.quotas'
@@ -7,22 +8,30 @@ const timeoutMs = 15_000
 
 /** Enregistre une commande RPC silencieuse qui publie uniquement des quotas normalisés au Workbench. */
 export default function registerQuotas(pi: ExtensionAPI): void {
+  let lastRefreshAt = 0
+  let lastReport: QuotaReport | undefined
   let pendingRefresh: Promise<void> | undefined
 
-  /** Déduplique les demandes d'une même session et publie le relevé sans message de conversation. */
-  function refresh(ctx: ExtensionContext): Promise<void> {
-    pendingRefresh ??= publishQuotaReport(ctx).finally(() => { pendingRefresh = undefined })
+  /** Déduplique les demandes et espace les relevés automatiques sans limiter les clics manuels. */
+  function refresh(ctx: ExtensionContext, automatic: boolean): Promise<void> {
+    const now = Date.now()
+    if (!quotaRefreshAllowed(lastRefreshAt, automatic, now)) {
+      if (lastReport) ctx.ui.setStatus(statusKey, JSON.stringify(lastReport))
+      return Promise.resolve()
+    }
+    lastRefreshAt = now
+    pendingRefresh ??= publishQuotaReport(ctx).then((report) => { lastReport = report }).finally(() => { pendingRefresh = undefined })
     return pendingRefresh
   }
 
-  pi.on('session_start', (_event, ctx) => { void refresh(ctx) })
+  pi.on('session_start', (_event, ctx) => { void refresh(ctx, true) })
   pi.registerCommand('workbench-quotas', {
     description: 'Actualiser les quotas du Workbench',
-    handler: async (_args, ctx) => refresh(ctx),
+    handler: async (args, ctx) => refresh(ctx, args.trim() === 'auto'),
   })
 }
 
-async function publishQuotaReport(ctx: ExtensionContext): Promise<void> {
+async function publishQuotaReport(ctx: ExtensionContext): Promise<QuotaReport> {
   const [openai, copilot] = await Promise.all([fetchOpenAiQuotas(ctx), fetchCopilotQuotas(ctx)])
   const report: QuotaReport = {
     protocol: 'pi-workbench.quotas',
@@ -32,6 +41,7 @@ async function publishQuotaReport(ctx: ExtensionContext): Promise<void> {
     copilot,
   }
   ctx.ui.setStatus(statusKey, JSON.stringify(report))
+  return report
 }
 
 /** Résout l'OAuth via Pi avant d'appeler l'endpoint de consommation Codex. */

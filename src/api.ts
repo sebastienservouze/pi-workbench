@@ -94,10 +94,10 @@ export async function getQuotas(): Promise<QuotaSnapshot> {
   return request<QuotaSnapshot>('/api/quotas')
 }
 
-export async function refreshQuotas(sessionId: string): Promise<QuotaSnapshot> {
+export async function refreshQuotas(sessionId: string, automatic = false): Promise<QuotaSnapshot> {
   return request<QuotaSnapshot>('/api/quotas/refresh', {
     method: 'POST',
-    body: JSON.stringify({ sessionId }),
+    body: JSON.stringify({ automatic, sessionId }),
   })
 }
 

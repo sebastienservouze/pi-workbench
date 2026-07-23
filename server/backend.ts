@@ -80,7 +80,7 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
   if (method === 'POST' && url.pathname === '/api/quotas/refresh') {
     const body = await readJsonBody(request)
     if (typeof body.sessionId !== 'string' || !body.sessionId) throw new HttpError(409, 'Une session Pi ouverte est nécessaire pour actualiser les quotas.')
-    sendJson(response, 200, await refreshQuotas(body.sessionId))
+    sendJson(response, 200, await refreshQuotas(body.sessionId, body.automatic === true))
     return
   }
 
@@ -244,12 +244,12 @@ async function piCommand(sessionId: string, command: JsonObject): Promise<JsonOb
   return response
 }
 
-/** Déduplique les clics concurrents et laisse l'extension publier le relevé hors conversation. */
-function refreshQuotas(sessionId: string): Promise<QuotaSnapshot> {
+/** Déduplique les demandes concurrentes et laisse l'extension appliquer la temporisation automatique. */
+function refreshQuotas(sessionId: string, automatic = false): Promise<QuotaSnapshot> {
   quotaRefresh ??= (async () => {
     quotaCache.setRefreshing(true)
     try {
-      await manager.request({ action: 'command', sessionId, command: { type: 'prompt', message: '/workbench-quotas' } }, 60_000)
+      await manager.request({ action: 'command', sessionId, command: { type: 'prompt', message: `/workbench-quotas${automatic ? ' auto' : ''}` } }, 60_000)
     } finally {
       quotaCache.setRefreshing(false)
     }
@@ -264,7 +264,7 @@ async function restoreQuotasFromIdleSession(): Promise<void> {
     const sessions = await manager.request({ action: 'list' })
     if (!Array.isArray(sessions)) return
     const idleSession = sessions.find((session) => isObject(session) && session.status === 'idle' && typeof session.id === 'string')
-    if (isObject(idleSession) && typeof idleSession.id === 'string') await refreshQuotas(idleSession.id)
+    if (isObject(idleSession) && typeof idleSession.id === 'string') await refreshQuotas(idleSession.id, true)
   } catch {
     // Un relevé manuel restera possible une fois le manager disponible.
   }
