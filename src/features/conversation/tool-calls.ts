@@ -13,6 +13,20 @@ export interface ToolResult {
   isError: boolean
 }
 
+export interface ToolCallUpdate {
+  call: ToolCall
+  contentIndex: number
+  delta: string
+  phase: 'start' | 'delta' | 'end'
+}
+
+export interface ToolExecution extends ToolCall {
+  contentIndex?: number
+  rawArgs?: string
+  result?: ToolResult
+  status: 'generating' | 'running' | 'interrupted'
+}
+
 export interface ToolCallPresentation {
   headerDetail?: { text: string; title: string; suffix?: string }
   pendingDetail?: string
@@ -37,10 +51,69 @@ export function toolCallsInMessage(message: JsonObject): ToolCall[] {
   })
 }
 
-export function toolCallInUpdate(event: JsonObject): ToolCall | null {
+/** Extrait chaque étape d’un appel d’outil afin de suivre ses paramètres bruts pendant leur génération. */
+export function toolCallInUpdate(event: JsonObject): ToolCallUpdate | null {
   if (event.type !== 'message_update' || !isObject(event.assistantMessageEvent)) return null
   const update = event.assistantMessageEvent
-  return update.type === 'toolcall_end' ? toolCallFromValue(update.toolCall) : null
+  if (update.type !== 'toolcall_start' && update.type !== 'toolcall_delta' && update.type !== 'toolcall_end') return null
+  if (!Number.isSafeInteger(update.contentIndex) || (update.contentIndex as number) < 0) return null
+
+  const call = update.type === 'toolcall_end'
+    ? toolCallFromValue(update.toolCall)
+    : toolCallFromPartial(update.partial, update.contentIndex as number)
+  if (!call) return null
+
+  return {
+    call,
+    contentIndex: update.contentIndex as number,
+    delta: update.type === 'toolcall_delta' && typeof update.delta === 'string' ? update.delta : '',
+    phase: update.type === 'toolcall_start' ? 'start' : update.type === 'toolcall_delta' ? 'delta' : 'end',
+  }
+}
+
+/** Applique une étape de streaming en conservant le JSON brut et l’identité finale de l’appel. */
+export function applyToolCallUpdate(executions: ToolExecution[], update: ToolCallUpdate, draftId: string): ToolExecution[] {
+  if (update.phase === 'start') {
+    const previousInterrupted = executions.map((execution) => execution.status === 'generating' && execution.contentIndex === update.contentIndex
+      ? { ...execution, status: 'interrupted' as const }
+      : execution)
+    return [...previousInterrupted, {
+      ...update.call,
+      contentIndex: update.contentIndex,
+      id: update.call.id || draftId,
+      rawArgs: '',
+      status: 'generating',
+    }]
+  }
+
+  let matched = false
+  const updated = executions.map((execution) => {
+    if (matched || execution.status !== 'generating' || execution.contentIndex !== update.contentIndex) return execution
+    matched = true
+    return {
+      ...execution,
+      ...update.call,
+      id: update.call.id || execution.id,
+      rawArgs: update.phase === 'delta' ? `${execution.rawArgs ?? ''}${update.delta}` : undefined,
+      status: update.phase === 'end' ? 'running' as const : 'generating' as const,
+    }
+  })
+  if (matched) return updated
+
+  return [...executions, {
+    ...update.call,
+    contentIndex: update.contentIndex,
+    id: update.call.id || draftId,
+    rawArgs: update.phase === 'delta' ? update.delta : undefined,
+    status: update.phase === 'end' ? 'running' : 'generating',
+  }]
+}
+
+/** Fige les appels dont la génération n’a pas produit d’événement de fin. */
+export function interruptToolCallGeneration(executions: ToolExecution[]): ToolExecution[] {
+  return executions.map((execution) => execution.status === 'generating'
+    ? { ...execution, status: 'interrupted' }
+    : execution)
 }
 
 export function toolResultInMessage(message: JsonObject): ToolResult | null {
@@ -213,6 +286,11 @@ function pathFromRepositoryRoot(path: string, repositoryRoot?: string | null): s
 function toolCallFromValue(value: unknown): ToolCall | null {
   if (!isObject(value) || value.type !== 'toolCall' || typeof value.id !== 'string' || typeof value.name !== 'string') return null
   return { id: value.id, name: value.name, args: value.arguments }
+}
+
+function toolCallFromPartial(value: unknown, contentIndex: number): ToolCall | null {
+  if (!isObject(value) || !Array.isArray(value.content)) return null
+  return toolCallFromValue(value.content[contentIndex])
 }
 
 function isObject(value: unknown): value is JsonObject {

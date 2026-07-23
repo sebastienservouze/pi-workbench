@@ -2,15 +2,8 @@ import { memo, useEffect, useRef, useState, type KeyboardEvent, type ReactNode, 
 import type { JsonObject } from '../../../shared/types.ts'
 import { activityText, type Activity } from './activity.ts'
 import { formatTurnCost, turnUsageByMessage, type MessageUsage } from './message-usage.ts'
-import { toolCallsInMessage, toolResultInMessage, type ToolResult } from './tool-calls.ts'
+import { toolCallsInMessage, toolResultInMessage, type ToolExecution } from './tool-calls.ts'
 import { Markdown, ToolCallCard } from './ToolCallCard.tsx'
-
-export interface ToolExecution {
-  id: string
-  name: string
-  args: unknown
-  result?: ToolResult
-}
 
 /** Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi. */
 export function Conversation({ activity, agentName, messages, liveText, liveThinking, detailedView, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath }: {
@@ -107,12 +100,13 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
         return <div key={`${String(message.timestamp ?? '')}-${index}`}>
           {isVisibleConversationMessage(message) && <MessageCard message={message} usage={usagesByMessage.get(index)} />}
           {calls.map((call) => {
-            const result = resultsByCallId.get(call.id) ?? executionsByCallId.get(call.id)?.result
-            return <ToolCallCard args={call.args} hasResult={result !== undefined} id={call.id} key={call.id} name={call.name} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} workspacePath={workspacePath} />
+            const execution = executionsByCallId.get(call.id)
+            const result = resultsByCallId.get(call.id) ?? execution?.result
+            return <ToolCallCard args={call.args} hasResult={result !== undefined} id={call.id} interrupted={execution?.status === 'interrupted'} key={call.id} name={call.name} rawArgs={execution?.rawArgs} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} streaming={execution?.status === 'generating'} workspacePath={workspacePath} />
           })}
         </div>
       })}
-      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard args={execution.args} hasResult={execution.result !== undefined} id={execution.id} key={execution.id} name={execution.name} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} workspacePath={workspacePath} />)}
+      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard args={execution.args} hasResult={execution.result !== undefined} id={execution.id} interrupted={execution.status === 'interrupted'} key={execution.id} name={execution.name} rawArgs={execution.rawArgs} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} streaming={execution.status === 'generating'} workspacePath={workspacePath} />)}
       {liveThinking && <ReasoningBlock>{liveThinking}</ReasoningBlock>}
       {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {visibleMessages.length === 0 && !liveText && !liveThinking && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}

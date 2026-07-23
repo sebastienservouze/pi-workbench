@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { formatToolCallTooltip, formatToolData, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolEditChanges, toolFilePath, toolResultInMessage, toolTextPreview, truncateToolText, windowsFileUrl } from '../src/features/conversation/tool-calls.ts'
+import { applyToolCallUpdate, formatToolCallTooltip, formatToolData, interruptToolCallGeneration, isToolCallPending, readContentDisplay, toolCallInUpdate, toolCallPresentation, toolCallsInMessage, toolContentText, toolEditChanges, toolFilePath, toolResultInMessage, toolTextPreview, truncateToolText, windowsFileUrl } from '../src/features/conversation/tool-calls.ts'
 
 test('extracts tool calls and their resolved result from Pi messages', () => {
   const calls = toolCallsInMessage({
@@ -28,15 +28,55 @@ test('extracts tool calls and their resolved result from Pi messages', () => {
   assert.equal(toolContentText(result?.content), 'import App')
 })
 
-test('extracts a tool call before its execution starts', () => {
-  assert.deepEqual(toolCallInUpdate({
+test('tracks raw tool arguments from generation start to completion', () => {
+  const partialCall = { type: 'toolCall', id: 'call_1', name: 'read', arguments: { path: 'src/App' } }
+  const start = toolCallInUpdate({
+    type: 'message_update',
+    assistantMessageEvent: { type: 'toolcall_start', contentIndex: 1, partial: { content: [{ type: 'text' }, partialCall] } },
+  })
+  const delta = toolCallInUpdate({
+    type: 'message_update',
+    assistantMessageEvent: { type: 'toolcall_delta', contentIndex: 1, delta: '{"path":"src/App', partial: { content: [{ type: 'text' }, partialCall] } },
+  })
+  const end = toolCallInUpdate({
     type: 'message_update',
     assistantMessageEvent: {
       type: 'toolcall_end',
+      contentIndex: 1,
       toolCall: { type: 'toolCall', id: 'call_1', name: 'read', arguments: { path: 'src/App.tsx' } },
     },
-  }), { id: 'call_1', name: 'read', args: { path: 'src/App.tsx' } })
+  })
+
+  assert.deepEqual(start, { call: { id: 'call_1', name: 'read', args: { path: 'src/App' } }, contentIndex: 1, delta: '', phase: 'start' })
+  assert.deepEqual(delta, { call: { id: 'call_1', name: 'read', args: { path: 'src/App' } }, contentIndex: 1, delta: '{"path":"src/App', phase: 'delta' })
+  assert.deepEqual(end, { call: { id: 'call_1', name: 'read', args: { path: 'src/App.tsx' } }, contentIndex: 1, delta: '', phase: 'end' })
   assert.equal(toolCallInUpdate({ type: 'message_update', assistantMessageEvent: { type: 'text_delta' } }), null)
+})
+
+test('accumulates raw arguments and preserves interrupted generations', () => {
+  const start = { call: { id: '', name: 'write', args: {} }, contentIndex: 0, delta: '', phase: 'start' as const }
+  const delta = { call: { id: 'call_1', name: 'write', args: { path: 'note' } }, contentIndex: 0, delta: '{"path":"note', phase: 'delta' as const }
+  const executions = applyToolCallUpdate(applyToolCallUpdate([], start, 'draft_1'), delta, 'unused')
+
+  assert.deepEqual(executions, [{
+    id: 'call_1',
+    name: 'write',
+    args: { path: 'note' },
+    contentIndex: 0,
+    rawArgs: '{"path":"note',
+    status: 'generating',
+  }])
+  assert.equal(interruptToolCallGeneration(executions)[0]?.status, 'interrupted')
+
+  const completed = applyToolCallUpdate(executions, {
+    call: { id: 'call_1', name: 'write', args: { path: 'note.md' } },
+    contentIndex: 0,
+    delta: '',
+    phase: 'end',
+  }, 'unused')
+  assert.equal(completed[0]?.status, 'running')
+  assert.equal(completed[0]?.rawArgs, undefined)
+  assert.deepEqual(completed[0]?.args, { path: 'note.md' })
 })
 
 test('marks a tool call as pending until its result arrives', () => {

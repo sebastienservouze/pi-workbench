@@ -27,17 +27,21 @@ export function Markdown({ children }: { children: string }) {
 }
 
 /** Affiche un appel d’outil dont le résultat complet remplace l’aperçu au dépliage. */
-export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, name, repositoryRoot, resultContent, resultError, workspacePath }: {
+export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, interrupted = false, name, rawArgs, repositoryRoot, resultContent, resultError, streaming = false, workspacePath }: {
   args: unknown
   hasResult: boolean
   id: string
+  interrupted?: boolean
   name: string
+  rawArgs?: string
   repositoryRoot?: string | null
   resultContent?: unknown
   resultError?: boolean
+  streaming?: boolean
   workspacePath: string
 }) {
   const pending = !hasResult
+  const active = pending && !interrupted
   const filePath = name === 'read' || name === 'write' ? toolFilePath(args) : null
   const display = filePath ? readContentDisplay({ path: filePath }) : { kind: 'text' as const }
   const htmlFile = display.kind === 'html'
@@ -47,7 +51,7 @@ export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, na
   const [loadingWrittenContent, setLoadingWrittenContent] = useState(false)
   const [htmlOpenError, setHtmlOpenError] = useState<string>()
   const [codeRendered, setCodeRendered] = useState(false)
-  const input = formatToolData(args)
+  const input = streaming || interrupted ? rawArgs ?? '' : formatToolData(args)
   const output = hasResult ? toolContentText(resultContent) : ''
   const displayedOutput = output || 'Aucune sortie.'
   const presentation = toolCallPresentation({ id, name, args }, repositoryRoot)
@@ -95,18 +99,19 @@ export const ToolCallCard = memo(function ToolCallCard({ args, hasResult, id, na
     setExpanded((isExpanded) => !isExpanded)
   }
 
-  return <article className={`tool-call${contentError ? ' error' : ''}`}>
+  return <article className={`tool-call${contentError ? ' error' : ''}${interrupted ? ' interrupted' : ''}`}>
     <button aria-expanded={htmlFile ? undefined : hasResult ? expanded : undefined} className="tool-call-heading tool-call-tooltip" data-tooltip={tooltip} disabled={!hasResult} onClick={activate} type="button">
       <span aria-hidden="true">⌘</span>
-      <span><strong aria-label={tooltip}>{name}</strong></span>
+      <span><strong aria-label={tooltip}>{name || 'Outil'}</strong></span>
       {presentation.headerDetail && <span className="tool-call-command"><code aria-label={`Commande complète : ${presentation.headerDetail.title}`}>{presentation.headerDetail.text}</code></span>}
       {presentation.headerDetail?.suffix && <span className="tool-call-range"><code aria-label={`Plage lue : ${presentation.headerDetail.suffix}`}>{presentation.headerDetail.suffix}</code></span>}
       <small>
-        {pending && <span aria-label="Outil en cours" className="spinner tool-call-spinner" role="status" />}
-        {hasResult ? contentError ? 'Échec' : 'Terminé' : 'En cours…'}
-        {pending && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
+        {active && <span aria-label={streaming ? 'Paramètres en cours de génération' : 'Outil en cours'} className="spinner tool-call-spinner" role="status" />}
+        {hasResult ? contentError ? 'Échec' : 'Terminé' : interrupted ? 'Génération interrompue' : streaming ? 'Génération…' : 'En cours…'}
+        {active && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
       </small>
     </button>
+    {(streaming || interrupted) && <pre aria-label={interrupted ? 'Paramètres JSON interrompus' : 'Paramètres JSON en cours'} className="tool-call-raw-args">{rawArgs || 'Paramètres en attente…'}</pre>}
     {hasResult && (expanded && !htmlFile
       ? <ToolCallContent call={{ name, args }} content={content} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} showEditDiff={!contentError} />
       : <ToolCallPreview call={{ name, args }} content={preview.text} htmlFile={htmlFile} onClick={activate} remainingLineCount={preview.remainingLineCount} />

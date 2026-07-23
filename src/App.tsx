@@ -5,8 +5,8 @@ import type { GitSnapshot, JsonObject, ManagerEvent, RecentSession, SessionSnaps
 import { Composer } from './features/composer/Composer.tsx'
 import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
 import { activityForPiEvent, waitingActivity, type Activity } from './features/conversation/activity.ts'
-import { Conversation, type ToolExecution } from './features/conversation/Conversation.tsx'
-import { toolCallInUpdate, type ToolResult } from './features/conversation/tool-calls.ts'
+import { Conversation } from './features/conversation/Conversation.tsx'
+import { applyToolCallUpdate, interruptToolCallGeneration, toolCallInUpdate, type ToolExecution, type ToolResult } from './features/conversation/tool-calls.ts'
 import { AskUserQuestionDialog, ExtensionDialog } from './features/dialogs/Dialogs.tsx'
 import { isAgentSelector, isAskUserQuestionDialog, isBlockingDialog, type UiDialog } from './features/dialogs/dialog-protocol.ts'
 import { clampGitSidebarWidth, readGitSidebarWidth } from './features/git/git-sidebar.ts'
@@ -231,7 +231,9 @@ function App() {
 
       if (sessionId !== selectedIdRef.current) return
       const streamedToolCall = toolCallInUpdate(event)
-      if (streamedToolCall) startToolExecution(streamedToolCall)
+      if (streamedToolCall) {
+        setToolExecutions((current) => applyToolCallUpdate(current, streamedToolCall, crypto.randomUUID()))
+      }
       if (event.type === 'tool_execution_start' && typeof event.toolCallId === 'string' && typeof event.toolName === 'string') {
         startToolExecution({ id: event.toolCallId, name: event.toolName, args: event.args })
       }
@@ -248,6 +250,7 @@ function App() {
       }
       setActivity((current) => activityForPiEvent(current, event))
       if (event.type === 'message_start') {
+        setToolExecutions(interruptToolCallGeneration)
         setLiveText('')
         setLiveThinking('')
       }
@@ -255,8 +258,10 @@ function App() {
         const update = event.assistantMessageEvent
         if (update.type === 'thinking_delta' && typeof update.delta === 'string') setLiveThinking((current) => current + update.delta)
         if (update.type === 'text_delta' && typeof update.delta === 'string') setLiveText((current) => current + update.delta)
+        if (update.type === 'error') setToolExecutions(interruptToolCallGeneration)
       }
       if (event.type === 'message_end' || event.type === 'agent_settled') {
+        setToolExecutions(interruptToolCallGeneration)
         void refreshSnapshot(sessionId, true).finally(() => {
           if (sessionId === selectedIdRef.current) setLiveThinking('')
         })
@@ -267,7 +272,7 @@ function App() {
       function startToolExecution(call: { id: string; name: string; args: unknown }): void {
         setToolExecutions((current) => [
           ...current.filter((execution) => execution.id !== call.id),
-          call,
+          { ...call, status: 'running' },
         ])
       }
     }
