@@ -106,8 +106,8 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
           })}
         </div>
       })}
-      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard args={execution.args} hasResult={execution.result !== undefined} id={execution.id} interrupted={execution.status === 'interrupted'} key={execution.id} name={execution.name} rawArgs={execution.rawArgs} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} streaming={execution.status === 'generating'} workspacePath={workspacePath} />)}
       {liveThinking && <ReasoningBlock>{liveThinking}</ReasoningBlock>}
+      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard args={execution.args} hasResult={execution.result !== undefined} id={execution.id} interrupted={execution.status === 'interrupted'} key={execution.id} name={execution.name} rawArgs={execution.rawArgs} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} streaming={execution.status === 'generating'} workspacePath={workspacePath} />)}
       {liveText && <article className="message assistant streaming"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {visibleMessages.length === 0 && !liveText && !liveThinking && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
       {activity && <div className="conversation-activity"><ActivityIndicator activity={activity} agentName={agentName} /></div>}
