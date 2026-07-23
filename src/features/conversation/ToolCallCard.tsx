@@ -112,9 +112,9 @@ export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = fa
       {presentation.headerDetail && <span className="tool-call-command"><code aria-label={`Commande complète : ${presentation.headerDetail.title}`}>{presentation.headerDetail.text}</code></span>}
       {presentation.headerDetail?.suffix && <span className="tool-call-range"><code aria-label={`Plage lue : ${presentation.headerDetail.suffix}`}>{presentation.headerDetail.suffix}</code></span>}
       <small aria-label={hasResult && !contentError ? resolvedSizeLabel : undefined}>
-        {active && <span aria-label={streaming ? 'Paramètres en cours de génération' : 'Outil en cours'} className="spinner tool-call-spinner" role="status" />}
+        {active && presentation.pendingDetail && `${presentation.pendingDetail} · `}
         {hasResult ? contentError ? 'Échec' : <span aria-hidden="true">↘ {inputLength} car. · ↗ {outputLength} car.</span> : interrupted ? 'Génération interrompue' : streaming ? 'Génération…' : 'En cours…'}
-        {active && presentation.pendingDetail && ` · ${presentation.pendingDetail}`}
+        {active && <span aria-label={streaming ? 'Paramètres en cours de génération' : 'Outil en cours'} className="spinner tool-call-spinner" role="status" />}
       </small>
     </button>
     <div className={`tool-call-body${hasBody ? ' visible' : ''}`}>
