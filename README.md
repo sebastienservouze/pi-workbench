@@ -72,8 +72,10 @@ That is the intended way to run it: `npm run dev` keeps the frontend, backend, a
 
 - **Session workspace** — create, switch, and reopen parallel Pi sessions without tying them to the browser lifecycle.
 - **Live execution** — inspect responses, activity, usage, rich tool calls, file previews, and extension dialogs as they happen.
+- **Session analysis** — track context, tokens, costs per turn, tool activity, and failures, then jump back to the relevant message or call.
+- **Provider quotas** — monitor OpenAI Codex windows and GitHub Copilot usage from the right rail.
 - **Git workspace** — review status, diffs, touched files, and unpushed commits; commit, push, or revert without changing context.
-- **Focused side tools** — keep todos, provider quotas, session analysis, and bounded workspace commands one click away.
+- **Focused side tools** — keep todos and bounded workspace commands one click away.
 - **Pi-native controls** — use the models, thinking levels, agents, and commands exposed by Pi.
 - **Personal controls** — command palette, editable shortcuts, persistent drafts, resizable panels, and light or dark themes.
 
