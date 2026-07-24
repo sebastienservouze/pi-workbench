@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light;
   --canvas: #f4f6f4;
   --surface: #ffffff;
   --surface-raised: #fbfcfb;
@@ -25,6 +26,7 @@
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
   --canvas: #171c1a;
   --surface: #1e2422;
   --surface-raised: #252b29;
@@ -50,7 +52,11 @@
   --shadow-soft: 0 3px 12px rgb(0 0 0 / 30%);
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; scrollbar-color: var(--subtle) transparent; scrollbar-width: thin; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track, *::-webkit-scrollbar-corner { background: transparent; }
+*::-webkit-scrollbar-thumb { border: 2px solid transparent; border-radius: 999px; background: var(--subtle) content-box; }
+*::-webkit-scrollbar-thumb:hover { background-color: var(--muted); }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
 button:disabled, select:disabled { cursor: not-allowed; }
