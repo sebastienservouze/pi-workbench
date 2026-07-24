@@ -1,6 +1,7 @@
 import type { JsonObject, SessionSummary } from '../../../shared/types.ts'
 
 export type PiConnection = 'connecting' | 'connected' | 'disconnected'
+export type SessionIndicator = 'connected' | 'reconnecting' | 'working' | 'disconnected'
 
 export interface Activity {
   kind: 'connecting' | 'connected' | 'disconnected' | 'exited' | 'working' | 'thinking' | 'tool-preparing' | 'tool-waiting' | 'writing' | 'retrying' | 'compacting'
@@ -67,6 +68,22 @@ export function activityActionText(activity: Activity): string {
   if (activity.kind === 'tool-waiting') return 'is waiting for the tool…'
   if (activity.kind === 'writing') return 'is writing…'
   return 'is getting things moving…'
+}
+
+/** Maps the conversation activity to the persistent session status dot. */
+export function sessionIndicator(activity: Activity | null): SessionIndicator {
+  if (!activity || activity.kind === 'connected') return 'connected'
+  if (activity.kind === 'connecting' || activity.kind === 'retrying') return 'reconnecting'
+  if (activity.kind === 'disconnected' || activity.kind === 'exited') return 'disconnected'
+  return 'working'
+}
+
+/** Returns the accessible label for the persistent session status dot. */
+export function sessionIndicatorLabel(indicator: SessionIndicator): string {
+  if (indicator === 'connected') return 'Pi is connected'
+  if (indicator === 'reconnecting') return 'Reconnecting to Pi'
+  if (indicator === 'working') return 'Pi is working'
+  return 'Pi is disconnected'
 }
 
 export function activityAgentName(agentName: string | undefined): string {

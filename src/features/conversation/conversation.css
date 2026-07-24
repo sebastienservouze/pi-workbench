@@ -226,10 +226,7 @@
 .activity-signal i:nth-child(2) { animation-delay: 120ms; }
 .activity-signal i:nth-child(3) { animation-delay: 240ms; }
 .pi-activity.is-connected .activity-signal i, .pi-activity.is-exited .activity-signal i, .pi-activity.is-disconnected .activity-signal i { animation: none; }
-.pi-activity.is-connected { color: #2f8f5b; }
 .pi-activity.is-connected .activity-signal i { opacity: .72; }
-.pi-activity.is-connecting, .pi-activity.is-retrying { color: #c77a1a; }
-.pi-activity.is-working, .pi-activity.is-thinking, .pi-activity.is-tool-preparing, .pi-activity.is-tool-waiting, .pi-activity.is-writing, .pi-activity.is-compacting { color: #2f77b5; }
 .pi-activity.is-exited, .pi-activity.is-disconnected { color: var(--muted); }
 @keyframes activity-wave { 0%, 60%, 100% { opacity: .45; transform: translateY(2px) scale(.8); } 30% { opacity: 1; transform: translateY(-3px) scale(1.15); } }
 .empty-conversation, .welcome { align-self: center; margin: auto; color: var(--muted); text-align: center; }

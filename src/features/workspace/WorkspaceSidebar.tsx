@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { sessionIndicatorLabel, type SessionIndicator } from '../conversation/activity.ts'
 import type { RecentSession, SessionSummary } from '../../../shared/types.ts'
 import { sidebarSessions } from './sidebar-sessions.ts'
 
@@ -6,6 +7,7 @@ interface WorkspaceSidebarProps {
   recentSessions: RecentSession[]
   sessions: SessionSummary[]
   selectedId: string
+  selectedIndicator?: SessionIndicator
   workspacePath: string
   theme: string
   onChooseWorkspace: () => void
@@ -18,7 +20,7 @@ interface WorkspaceSidebarProps {
 }
 
 /** Displays the current workspace and opens or selects its recent Pi sessions. */
-export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspacePath, theme, onChooseWorkspace, onCreate, onOpenSession, onSelectSession, onToggleTheme, onOpenSettings, onError }: WorkspaceSidebarProps) {
+export function WorkspaceSidebar({ recentSessions, sessions, selectedId, selectedIndicator, workspacePath, theme, onChooseWorkspace, onCreate, onOpenSession, onSelectSession, onToggleTheme, onOpenSettings, onError }: WorkspaceSidebarProps) {
   const [openingSessionPath, setOpeningSessionPath] = useState('')
   const visibleSessions = useMemo(() => sidebarSessions(recentSessions, sessions, workspacePath), [recentSessions, sessions, workspacePath])
 
@@ -57,7 +59,10 @@ export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspa
             }}
             type="button"
           >
-            {activeSession?.status === 'running' && <span className="status-dot" aria-label="Agent is working" role="img" />}
+            {activeSession && (activeSession.id === selectedId ? selectedIndicator : activeSession.status === 'running' ? 'working' : activeSession.status === 'starting' ? 'reconnecting' : activeSession.status === 'idle' ? 'connected' : undefined) && (() => {
+              const indicator = activeSession.id === selectedId ? selectedIndicator! : activeSession.status === 'running' ? 'working' : activeSession.status === 'starting' ? 'reconnecting' : 'connected'
+              return <span aria-label={sessionIndicatorLabel(indicator)} className={`status-dot ${indicator}`} role="img" />
+            })()}
             <span><strong>{openingSessionPath === recentSession.sessionPath ? 'Opening…' : recentSession.name}</strong><small>{new Date(recentSession.updatedAt).toLocaleString('en-US')}</small></span>
           </button>
         )
