@@ -145,8 +145,9 @@ npm test -- test/pi-rpc.integration.test.ts
 - `src/features/` — components, logic, and styles grouped by feature;
 - `src/styles/` — global and responsive styles;
 - `server/manager.ts` — owner of Pi processes;
-- `server/backend.ts` — local API and event broadcasting;
+- `server/backend.ts` — local API validation, routing, and event broadcasting;
+- `server/features/` — local backend capabilities grouped by domain;
 - `shared/` — contracts exchanged between layers;
 - `test/` — automated tests.
 
-See [`docs/architecture.md`](docs/architecture.md) for boundaries, flows, and recommended locations for changes.
+See the [`docs/README.md`](docs/README.md) index for architecture, boundaries, and focused implementation guides.

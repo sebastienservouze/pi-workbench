@@ -55,13 +55,13 @@ The integration test expects a configured `pi` command and the `/agent` extensio
 
 Pi documentation is available locally at `$(npm root -g)/@earendil-works/pi-coding-agent/docs/`.
 
-## Tool call presentations
+## Focused documentation
 
-Read [`docs/tool-call-presentations.md`](docs/tool-call-presentations.md) before creating or changing a tool call display.
+Use [`docs/README.md`](docs/README.md) as the documentation index.
 
-## Right sidebar widgets
-
-Read [`docs/right-sidebar-widgets.md`](docs/right-sidebar-widgets.md) before creating or changing a right sidebar widget.
+- Read [`docs/tool-call-presentations.md`](docs/tool-call-presentations.md) before creating or changing a tool call display.
+- Read [`src/features/right-sidebar/README.md`](src/features/right-sidebar/README.md) before creating or changing a right sidebar widget.
+- Read [`server/features/README.md`](server/features/README.md) before moving or changing a backend capability.
 
 ## Conventions
 

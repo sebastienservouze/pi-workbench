@@ -22,8 +22,11 @@ pi --mode rpc process
 - `composer/` — input, commands, and image preparation;
 - `conversation/` — history, activity, usage, and tool calls;
 - `dialogs/` — extension questionnaires and dialogs;
-- `git/` — right rail, Git state, and diffs;
+- `git/` — Git widget state and diffs;
+- `right-sidebar/` — integrated widgets, rail actions, collapse state, and resizing;
 - `workspace/` — directory selection and recent sessions.
+
+Each substantial feature contains a README describing its boundary, data flow, constraints, and focused tests.
 
 `src/api.ts` is the frontend's only HTTP boundary. A component does not communicate directly with the manager or a Pi process.
 
@@ -31,11 +34,9 @@ pi --mode rpc process
 
 ## Backend and manager
 
-`server/backend.ts` exposes the web API, serves the build, and broadcasts SSE events. Neighboring modules provide specialized local capabilities: Git, workspace files, recent sessions, and system integrations.
+`server/backend.ts` exposes the web API, validates HTTP requests, serves the build, and broadcasts SSE events. Domain behavior for Git, quotas, terminal commands, and todos lives in `server/features/`; route definitions remain in the backend. Other neighboring modules provide workspace files, recent sessions, and system integrations.
 
-`server/manager.ts` is the sole owner of `pi --mode rpc` processes. `server/manager-client.ts` connects the backend to the manager through a local JSON Lines protocol. This responsibility must not move to the backend: the manager must survive its restart.
-
-Files in `server/` intentionally remain flat. Each module already has an explicit boundary; adding layers would lengthen imports without reducing responsibilities.
+`server/manager.ts` is the sole owner of `pi --mode rpc` processes. `server/manager-client.ts` connects the backend to the manager through a local JSON Lines protocol. This responsibility must not move to the backend: the manager must survive its restart. Backend capabilities that need Pi communicate through this client rather than owning a process.
 
 ## Shared contracts
 
@@ -53,6 +54,7 @@ Files in `server/` intentionally remain flat. Each module already has an explici
 
 - New tool presentation: `src/features/conversation/tool-calls.ts`, then its focused test.
 - New conversation or composer behavior: the relevant feature, without growing `App` when the state is not cross-cutting.
-- New right widget: read [`right-sidebar-widgets.md`](right-sidebar-widgets.md).
+- New right widget: read [`../src/features/right-sidebar/README.md`](../src/features/right-sidebar/README.md).
+- Existing local capability: its module under `server/features/`, after reading [`../server/features/README.md`](../server/features/README.md).
 - New local route: `server/backend.ts`, then `src/api.ts` if the frontend uses it.
 - Pi process lifecycle: `server/manager.ts` or `server/pi-process.ts`, after explicit approval because of the interruption risk.
