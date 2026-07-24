@@ -64,7 +64,7 @@ async function writeFakePi(directory: string, emitStartupEvent = false): Promise
   await writeFile(path, `#!/usr/bin/env node
 import readline from 'node:readline'
 const sessionPath = process.argv[process.argv.indexOf('--session') + 1]
-const expectedExtension = ${JSON.stringify(join(process.cwd(), 'extensions/ask-user-question.ts'))}
+const expectedExtension = ${JSON.stringify(join(process.cwd(), 'pi-extensions/ask-user-question.ts'))}
 const extensionIndex = process.argv.indexOf('--extension')
 if (extensionIndex === -1 || process.argv[extensionIndex + 1] !== expectedExtension) throw new Error('Missing ask-user-question extension')
 const emitStartupEvent = ${emitStartupEvent}

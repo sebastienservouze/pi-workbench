@@ -147,6 +147,7 @@ npm test -- test/pi-rpc.integration.test.ts
 - `server/manager.ts` — owner of Pi processes;
 - `server/backend.ts` — local API validation, routing, and event broadcasting;
 - `server/features/` — local backend capabilities grouped by domain;
+- `pi-extensions/` — Pi extensions loaded into every Workbench session;
 - `shared/` — contracts exchanged between layers;
 - `test/` — automated tests.
 
