@@ -7,7 +7,7 @@
 [![Version](https://img.shields.io/github/package-json/v/sebastienservouze/pi-livecraft?style=flat-square&label=version)](package.json)
 [![License](https://img.shields.io/github/license/sebastienservouze/pi-livecraft?style=flat-square)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/sebastienservouze/pi-livecraft?style=flat-square&logo=github)](https://github.com/sebastienservouze/pi-livecraft/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/sebastienservouze/pi-livecraft?style=flat-square&logo=github)](https://github.com/sebastienservouze/pi-livecraft/network/members)
+[![Use this template](https://img.shields.io/badge/Use_this_template-2ea44f?style=flat-square&logo=github)](https://github.com/new?template_name=pi-livecraft&template_owner=sebastienservouze)
 
 [Why Pi Livecraft?](#why-pi-livecraft) · [Quick start](#quick-start) · [Make it yours](#make-it-yours)
 
@@ -32,7 +32,7 @@ Pi is already powerful in a terminal. But a conversation does not have to remain
 - **Build on Pi instead of rebuilding it.** Keep Pi's sessions, models, tools, history, and extension system, then combine them with a React frontend and local backend to shape a focused application.
 - **Let the program evolve while you use it.** Ask Pi to modify the interface or workflow from an active session; frontend changes appear immediately and backend changes restart without closing the Pi process.
 
-Pi Livecraft starts as a capable client, not a finished product you must accept as-is. Fork it. Delete half of it. Add the oddly specific workflow only you need. The source code is the customization surface.
+Pi Livecraft starts as a capable client, not a finished product you must accept as-is. Create your own repository from the template. Delete half of it. Add the oddly specific workflow only you need. The source code is the customization surface.
 
 ## Quick start
 
@@ -49,16 +49,20 @@ pi
 
 Use `/login` inside Pi, or follow the [Pi quickstart guide](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/quickstart.md) for API keys and alternative authentication modes. If `pi --version` already works and a provider is configured, you are ready.
 
-### 2. Install Pi Livecraft
+### 2. Create your repository
+
+Click **[Use this template](https://github.com/new?template_name=pi-livecraft&template_owner=sebastienservouze)**, choose a name and visibility, then clone the repository GitHub creates for you. Unlike a fork, your repository starts with its own history and is yours to reshape.
+
+### 3. Install and run
 
 ```bash
-git clone https://github.com/sebastienservouze/pi-livecraft.git
-cd pi-livecraft
+git clone https://github.com/YOUR-USERNAME/YOUR-REPOSITORY.git
+cd YOUR-REPOSITORY
 npm install
 npm run dev
 ```
 
-That is the intended way to run it: `npm run dev` keeps the frontend, backend, and manager watched while you reshape them. Open [http://127.0.0.1:5173](http://127.0.0.1:5173); `Ctrl+C` stops all three processes.
+`npm run dev` keeps the frontend, backend, and manager watched while you reshape them. Open [http://127.0.0.1:5173](http://127.0.0.1:5173); `Ctrl+C` stops all three processes.
 
 > [!WARNING]
 > **Pi is not sandboxed.** It runs with your user permissions and can read files, modify code, and execute commands. Keep important work under version control and review Git actions before confirming them. Pi Livecraft limits network exposure by listening only on `127.0.0.1`.
@@ -76,11 +80,11 @@ That is the intended way to run it: `npm run dev` keeps the frontend, backend, a
 
 ## Make it yours
 
-Forking is not a fallback. **It is the intended product model**. There is no canonical setup to converge on and no prize for keeping every feature.
+The template is a starting point, not an upstream your application must follow. **Creating an independent repository is the intended product model.** There is no canonical setup to converge on and no prize for keeping every feature.
 
-1. Fork the repository.
-2. Start it with `npm run dev`.
-3. Select the fork itself as the current workspace.
+1. Create a repository with **Use this template**.
+2. Clone it and start it with `npm run dev`.
+3. Select that repository as the current workspace.
 4. Ask Pi to reshape one part of the interface.
 5. Keep the useful bits. Gleefully remove the rest.
 
@@ -147,7 +151,7 @@ The Pi RPC integration test additionally requires a configured Pi installation.
 
 ## Contributing
 
-Personal forks are the point. Focused bug fixes and improvements that preserve the project's small, adaptable core are also welcome upstream.
+Applications built from the template belong in their own repositories and do not need to stay synchronized with Pi Livecraft. Focused bug fixes and improvements to the reusable starting point are welcome here.
 
 ## License
 
