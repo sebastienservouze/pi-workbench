@@ -35,7 +35,7 @@ export interface ToolCallPresentation {
 }
 
 export interface ReadContentDisplay {
-  kind: 'code' | 'html' | 'markdown' | 'svg' | 'text'
+  kind: 'code' | 'html' | 'markdown' | 'text'
   language?: string
 }
 
@@ -212,7 +212,6 @@ export function readContentDisplay(args: unknown): ReadContentDisplay {
   const extension = path.match(/\.([^./]+)$/)?.[1]?.toLowerCase()
   if (extension === 'md' || extension === 'markdown') return { kind: 'markdown' }
   if (extension === 'htm' || extension === 'html') return { kind: 'html' }
-  if (extension === 'svg') return { kind: 'svg' }
 
   const language = extension ? languageByExtension[extension] : undefined
   return language ? { kind: 'code', language } : { kind: 'text' }

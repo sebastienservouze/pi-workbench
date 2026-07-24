@@ -178,8 +178,6 @@ function ToolCallPreview({ call, content, darkMode, htmlFile, onClick, remaining
   const display = call.name === 'read' || call.name === 'write' ? readContentDisplay(call.args) : { kind: 'text' as const }
   const highlightedCode = display.kind === 'code' && canHighlightFile(content)
 
-  if (display.kind === 'svg') return <button className="tool-call-preview tool-call-preview-svg" onClick={onClick} type="button" aria-label="Click to expand"><img alt="SVG preview" className="tool-call-svg-preview" src={`data:image/svg+xml,${encodeURIComponent(content)}`} />{remainingLineCount > 0 && <span>{remainingLabel}</span>}</button>
-
   return <button className="tool-call-preview" onClick={onClick} type="button">
     {highlightedCode
       ? <SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px 4px' }} language={display.language} PreTag="div" style={darkMode ? oneDark : oneLight} wrapLongLines>{content}</SyntaxHighlighter>
@@ -200,7 +198,6 @@ function ToolCallContent({ call, content, darkMode, onCollapse, renderingCode, s
   if (display.kind === 'markdown') return <section className="tool-call-content tool-call-markdown" onClick={onCollapse}><Markdown>{content}</Markdown></section>
   if (display.kind === 'code' && canHighlightFile(content)) return <section className="tool-call-content" onClick={onCollapse}><SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px' }} language={display.language} PreTag="div" style={darkMode ? oneDark : oneLight} wrapLongLines>{content}</SyntaxHighlighter></section>
   if (display.kind === 'code') return <section className="tool-call-content" onClick={onCollapse}><p className="tool-call-notice">Highlighting disabled beyond 50,000 characters.</p><pre>{content}</pre></section>
-  if (display.kind === 'svg') return <section className="tool-call-content" onClick={onCollapse}><img alt="SVG" className="tool-call-svg-preview" src={`data:image/svg+xml,${encodeURIComponent(content)}`} /></section>
   return <section className="tool-call-content" onClick={onCollapse}><pre>{content}</pre></section>
 }
 
