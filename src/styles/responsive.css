@@ -45,9 +45,9 @@
   .composer-info { align-items: flex-start; flex-direction: column; gap: 7px; }
   .composer-session { width: 100%; }
   .composer-stats { width: 100%; justify-content: space-between; }
-  .composer-actions { align-items: flex-end; }
-  .composer-tools { width: 100%; }
-  .composer-tools > * { flex: 1 1 auto; }
-  .composer-select { max-width: none; }
+  .composer-tools { flex: 1; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .composer-tools::-webkit-scrollbar { display: none; }
+  .composer-tools > * { flex: 0 0 auto; }
+  .composer-select { max-width: 160px; }
 
 }

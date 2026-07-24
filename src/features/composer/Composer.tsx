@@ -147,7 +147,8 @@ export const Composer = memo(function Composer({ session, snapshot, agentBusy, a
 
   const stats = snapshot.stats
   const contextUsage = stats?.contextUsage
-  const contextPercent = typeof contextUsage?.percent === 'number' ? `${Math.round(contextUsage.percent)}%` : '—'
+  const contextPercentValue = typeof contextUsage?.percent === 'number' ? Math.round(contextUsage.percent) : null
+  const contextPercent = contextPercentValue === null ? '—' : `${contextPercentValue}%`
   const contextTokens = typeof contextUsage?.tokens === 'number' && typeof contextUsage.contextWindow === 'number'
     ? `${formatTokens(contextUsage.tokens)} / ${formatTokens(contextUsage.contextWindow)}`
     : 'Unavailable'
@@ -204,7 +205,7 @@ export const Composer = memo(function Composer({ session, snapshot, agentBusy, a
           return
         }
         if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit() }
-      }} placeholder="Ask Pi something…" rows={3} />
+      }} placeholder="Ask Pi…  / for commands" rows={3} />
       <div className="composer-footer">
         <div className="composer-actions">
           <div className="composer-tools">
@@ -252,17 +253,19 @@ export const Composer = memo(function Composer({ session, snapshot, agentBusy, a
               tone="behavior"
               value={behavior}
             />}
-            {running && <button aria-label="Stop generation" className="icon-button danger" onClick={() => void onAbort().catch(onError)} title="Stop generation" type="button">
-              <svg aria-hidden="true" viewBox="0 0 16 16"><rect height="8" rx="1.5" width="8" x="4" y="4" /></svg>
-            </button>}
           </div>
-          <button aria-label="Send message" className="icon-button send" disabled={submitting || preparingImages} title="Send message (Enter)" type="submit">
-            <svg aria-hidden="true" viewBox="0 0 16 16"><path d="m2.5 2.5 11 5.5-11 5.5 1.8-5.1L9 8 4.3 7.6z" /></svg>
-          </button>
+          <div className="composer-primary-actions">
+            <span className="composer-stop-slot">{running && <button aria-label="Stop generation" className="icon-button danger" onClick={() => void onAbort().catch(onError)} title="Stop generation" type="button">
+              <svg aria-hidden="true" viewBox="0 0 16 16"><rect height="8" rx="1.5" width="8" x="4" y="4" /></svg>
+            </button>}</span>
+            <button aria-label="Send message" className="icon-button send" disabled={submitting || preparingImages || (!message.trim() && images.length === 0)} title="Send message (Enter)" type="submit">
+              <svg aria-hidden="true" viewBox="0 0 16 16"><path d="m2.5 2.5 11 5.5-11 5.5 1.8-5.1L9 8 4.3 7.6z" /></svg>
+            </button>
+          </div>
         </div>
         <div className="composer-info" aria-label="Session information">
           <div className="composer-session">{running && <span aria-label="Pi is active" className="status-dot" role="img" />}<strong>{session.name}</strong><span title={session.cwd}>{session.cwd}</span></div>
-          <div className="composer-stats"><span><b>Cost</b>{cost}</span><span className={contextClass}><b>Context</b>{contextPercent}<small>{contextTokens}</small></span></div>
+          <div className="composer-stats"><span><b>Cost</b>{cost}</span><span className={contextClass} title={contextTokens}><b>Context</b>{contextPercent}{contextPercentValue !== null && <progress aria-label={`Context usage: ${contextPercent}`} max={100} value={contextPercentValue} />}</span></div>
         </div>
       </div>
     </form>
