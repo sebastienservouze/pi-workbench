@@ -43,7 +43,6 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
   const conversationContentRef = useRef<HTMLDivElement>(null)
   const conversationBottomRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef(true)
-  const userScrollIntentRef = useRef(false)
   const scrollFrameRef = useRef<number | undefined>(undefined)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   const [highlightedTarget, setHighlightedTarget] = useState<string>()
@@ -91,38 +90,30 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
     return () => window.clearTimeout(timeout)
   }, [navigationRequest])
 
-  /** Detects whether the user is at the bottom to enable or suspend automatic scrolling. */
+  /** Resumes automatic scrolling once the user returns near the bottom. */
   function handleConversationScroll(): void {
     const el = conversationRef.current
-    if (!el) return
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50
-    if (nearBottom) {
-      userScrollIntentRef.current = false
-      autoScrollRef.current = true
-      setShowScrollToBottom(false)
-      return
-    }
-    if (!userScrollIntentRef.current) return
-    userScrollIntentRef.current = false
+    if (!el || el.scrollHeight - el.scrollTop - el.clientHeight >= 50) return
+    autoScrollRef.current = true
+    setShowScrollToBottom(false)
+  }
+
+  /** Suspends following only for input that can move the viewport away from the response. */
+  function suspendAutoScroll(): void {
     autoScrollRef.current = false
     setShowScrollToBottom(true)
   }
 
-  function markUserScrollIntent(): void {
-    userScrollIntentRef.current = true
-  }
-
   function handleConversationWheel(event: WheelEvent<HTMLDivElement>): void {
-    if (event.deltaY !== 0) markUserScrollIntent()
+    if (event.deltaY < 0) suspendAutoScroll()
   }
 
   function handleConversationKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
-    if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key)) markUserScrollIntent()
+    if (['ArrowUp', 'PageUp', 'Home'].includes(event.key) || (event.key === ' ' && event.shiftKey)) suspendAutoScroll()
   }
 
   /** Resumes automatic scrolling and returns to the bottom of the conversation. */
   function resumeAutoScroll(): void {
-    userScrollIntentRef.current = false
     autoScrollRef.current = true
     setShowScrollToBottom(false)
     const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
@@ -134,9 +125,9 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
       aria-live="polite"
       className="conversation"
       onKeyDown={handleConversationKeyDown}
-      onPointerMove={(event) => { if (event.buttons > 0) markUserScrollIntent() }}
+      onPointerMove={(event) => { if (event.buttons > 0) suspendAutoScroll() }}
       onScroll={handleConversationScroll}
-      onTouchMove={markUserScrollIntent}
+      onTouchMove={suspendAutoScroll}
       onWheel={handleConversationWheel}
       ref={conversationRef}
       tabIndex={0}
