@@ -172,16 +172,20 @@ export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = fa
   </article>
 })
 
-/** Displays a clickable, highlighted preview for supported code files. */
+/** Displays a clickable preview for code files and resolved SVGs. */
 function ToolCallPreview({ call, content, darkMode, htmlFile, onClick, remainingLineCount }: { call: { name: string; args: unknown }; content: string; darkMode: boolean; htmlFile: boolean; onClick: () => void; remainingLineCount: number }) {
   const remainingLabel = `Click to view ${remainingLineCount} more ${remainingLineCount === 1 ? 'line' : 'lines'}`
   const display = call.name === 'read' || call.name === 'write' ? readContentDisplay(call.args) : { kind: 'text' as const }
   const highlightedCode = display.kind === 'code' && canHighlightFile(content)
+  const svgPreview = display.kind === 'svg' && content.trim().length > 0
+  const filePath = toolFilePath(call.args)
 
   return <button className="tool-call-preview" onClick={onClick} type="button">
-    {highlightedCode
-      ? <SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px 4px' }} language={display.language} PreTag="div" style={darkMode ? oneDark : oneLight} wrapLongLines>{content}</SyntaxHighlighter>
-      : <pre>{content}</pre>}
+    {svgPreview
+      ? <img alt={`SVG preview of ${filePath ?? 'file'}`} className="tool-call-svg-preview" src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(content)}`} />
+      : highlightedCode
+        ? <SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px 4px' }} language={display.language} PreTag="div" style={darkMode ? oneDark : oneLight} wrapLongLines>{content}</SyntaxHighlighter>
+        : <pre>{content}</pre>}
     {remainingLineCount > 0 && <span>{remainingLabel}</span>}
     {htmlFile && <span>Click to open in browser</span>}
   </button>
