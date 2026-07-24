@@ -45,8 +45,6 @@
 }
 .brand-mark.large { width: 64px; height: 64px; margin: auto; border-radius: 18px; font-size: 38px; }
 
-.code-symbol { font: 700 15px/1 ui-monospace, monospace; letter-spacing: -2px; }
-
 .workspace-group { display: flex; flex-direction: column; gap: 4px; }
 .sidebar-actions { display: flex; gap: 4px; padding: 2px 0 0; }
 .sidebar-action {

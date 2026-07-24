@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import './App.css'
-import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getQuotas, getSnapshot, getVsCodeStatus, listRecentSessions, listSessions, openExplorer, openSession, openVsCode, refreshQuotas, revertGitCommit, sendPiCommand } from './api.ts'
+import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getQuotas, getSnapshot, listRecentSessions, listSessions, openExplorer, openSession, refreshQuotas, revertGitCommit, sendPiCommand } from './api.ts'
 import { quotaRefreshAllowed } from '../shared/quota-refresh.ts'
 import type { GitSnapshot, JsonObject, ManagerEvent, QuotaSnapshot, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 import { Composer } from './features/composer/Composer.tsx'
@@ -561,19 +561,6 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [commandPaletteOpen, dialog, executeCommand, settingsOpen, shortcuts])
 
-  const [vsCodeAvailable, setVsCodeAvailable] = useState<boolean | null>(null)
-  useEffect(() => {
-    let cancelled = false
-    void getVsCodeStatus()
-      .then(({ available }) => {
-        if (!cancelled) setVsCodeAvailable(available)
-      })
-      .catch(() => {
-        if (!cancelled) setVsCodeAvailable(false)
-      })
-    return () => { cancelled = true }
-  }, [])
-
   /** Positions the conversation on the element chosen from session analysis. */
   const navigateToAnalysisTarget = useCallback((target: SessionAnalysisTarget): void => {
     if (target.kind === 'tool' || target.kind === 'turn') {
@@ -591,14 +578,7 @@ function App() {
       label: 'Open folder in Explorer',
       onClick: () => { void openExplorer(workspacePath).catch((cause) => showToast('error', messageOf(cause))) },
     },
-    {
-      key: 'vscode',
-      icon: <span aria-hidden="true" className="code-symbol code-symbol-rail">{'<>'}</span>,
-      label: vsCodeAvailable === null ? 'Checking VS Code…' : vsCodeAvailable ? 'Open folder in VS Code' : 'VS Code unavailable',
-      disabled: vsCodeAvailable !== true,
-      onClick: () => { void openVsCode(workspacePath).catch((cause) => { setVsCodeAvailable(false); showToast('error', messageOf(cause)) }) },
-    },
-  ], [showToast, vsCodeAvailable, workspacePath])
+  ], [showToast, workspacePath])
 
   const rightPanelVisible = activeRightWidget === 'terminal' || activeRightWidget === 'todo' || activeRightWidget === 'quotas'
     || (activeRightWidget === 'analysis' && sessionAnalysis !== null)

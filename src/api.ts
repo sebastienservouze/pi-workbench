@@ -1,4 +1,4 @@
-import type { DirectoryListing, GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, QuotaSnapshot, RecentSession, SessionSnapshot, SessionSummary, TerminalCommandResult, TodoItem, VsCodeStatus, WorkspaceFile } from '../shared/types.ts'
+import type { DirectoryListing, GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, QuotaSnapshot, RecentSession, SessionSnapshot, SessionSummary, TerminalCommandResult, TodoItem, WorkspaceFile } from '../shared/types.ts'
 
 export async function listSessions(): Promise<SessionSummary[]> {
   return request<SessionSummary[]>('/api/sessions')
@@ -14,17 +14,6 @@ export async function listDirectories(path: string): Promise<DirectoryListing> {
 
 export async function openExplorer(cwd: string): Promise<void> {
   await request<void>('/api/explorer', {
-    method: 'POST',
-    body: JSON.stringify({ cwd }),
-  })
-}
-
-export async function getVsCodeStatus(): Promise<VsCodeStatus> {
-  return request<VsCodeStatus>('/api/vscode')
-}
-
-export async function openVsCode(cwd: string): Promise<VsCodeStatus> {
-  return request<VsCodeStatus>('/api/vscode', {
     method: 'POST',
     body: JSON.stringify({ cwd }),
   })

@@ -17,6 +17,5 @@
 .rail-tab:focus-visible { z-index: 1; outline: 2px solid var(--teal); outline-offset: -2px; }
 .rail-tab[aria-expanded='true'] { background: var(--teal-soft); color: var(--teal); box-shadow: inset 0 -2px 0 var(--teal); }
 .rail-tab:disabled { color: var(--subtle); cursor: not-allowed; }
-.code-symbol-rail { display: grid; place-items: center; font: 600 14px/1 ui-monospace, monospace; letter-spacing: -1px; }
 .rail-tab small { position: absolute; top: 5px; right: 4px; display: grid; place-items: center; min-width: 14px; height: 14px; border-radius: 9px; padding: 0 3px; background: var(--teal-soft); color: #18584f; font: 8px ui-sans-serif, system-ui, sans-serif; }
 .rail-tab[aria-expanded='true'] small { background: var(--surface); box-shadow: 0 1px 3px rgb(29 41 36 / 12%); }
