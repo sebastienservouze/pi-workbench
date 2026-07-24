@@ -1,15 +1,15 @@
 <div align="center">
 
-# Pi Workbench
+# Pi Livecraft
 
-**A local Pi client you can rewrite while it runs.**
+**Craft your own Pi client while it runs.**
 
-[![Version](https://img.shields.io/github/package-json/v/sebastienservouze/pi-workbench?style=flat-square&label=version)](package.json)
-[![License](https://img.shields.io/github/license/sebastienservouze/pi-workbench?style=flat-square)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/sebastienservouze/pi-workbench?style=flat-square&logo=github)](https://github.com/sebastienservouze/pi-workbench/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/sebastienservouze/pi-workbench?style=flat-square&logo=github)](https://github.com/sebastienservouze/pi-workbench/network/members)
+[![Version](https://img.shields.io/github/package-json/v/sebastienservouze/pi-livecraft?style=flat-square&label=version)](package.json)
+[![License](https://img.shields.io/github/license/sebastienservouze/pi-livecraft?style=flat-square)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/sebastienservouze/pi-livecraft?style=flat-square&logo=github)](https://github.com/sebastienservouze/pi-livecraft/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/sebastienservouze/pi-livecraft?style=flat-square&logo=github)](https://github.com/sebastienservouze/pi-livecraft/network/members)
 
-[Why Pi Workbench?](#why-pi-workbench) · [Quick start](#quick-start) · [Make it yours](#make-it-yours)
+[Why Pi Livecraft?](#why-pi-livecraft) · [Quick start](#quick-start) · [Make it yours](#make-it-yours)
 
 </div>
 
@@ -17,13 +17,13 @@
   HERO MEDIA — keep one strong visual, not both.
 
   Screenshot:
-  <p align="center"><img src="./docs/assets/pi-workbench.png" alt="Pi Workbench interface" width="1200" /></p>
+  <p align="center"><img src="./docs/assets/pi-livecraft.png" alt="Pi Livecraft interface" width="1200" /></p>
 
   Demo GIF:
-  <p align="center"><img src="./docs/assets/pi-workbench-demo.gif" alt="Editing Pi Workbench from a live Pi session" width="1200" /></p>
+  <p align="center"><img src="./docs/assets/pi-livecraft-demo.gif" alt="Editing Pi Livecraft from a live Pi session" width="1200" /></p>
 -->
 
-## Why Pi Workbench?
+## Why Pi Livecraft?
 
 Open a project and get to work as you would with any Pi client. The difference starts when the client itself no longer fits.
 
@@ -36,7 +36,7 @@ Fork it. Delete half of it. Add the oddly specific button only you need. Paint i
 
 ## Quick start
 
-Pi Workbench is designed to run in development mode. You need **Node.js 24 or newer**, **npm**, and **Pi**.
+Pi Livecraft is designed to run in development mode. You need **Node.js 24 or newer**, **npm**, and **Pi**.
 
 ### 1. Install Pi
 
@@ -49,11 +49,11 @@ pi
 
 Use `/login` inside Pi, or follow the [Pi quickstart guide](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/quickstart.md) for API keys and alternative authentication modes. If `pi --version` already works and a provider is configured, you are ready.
 
-### 2. Install Pi Workbench
+### 2. Install Pi Livecraft
 
 ```bash
-git clone https://github.com/sebastienservouze/pi-workbench.git
-cd pi-workbench
+git clone https://github.com/sebastienservouze/pi-livecraft.git
+cd pi-livecraft
 npm install
 npm run dev
 ```
@@ -61,7 +61,7 @@ npm run dev
 That is the intended way to run it: `npm run dev` keeps the frontend, backend, and manager watched while you reshape them. Open [http://127.0.0.1:5173](http://127.0.0.1:5173); `Ctrl+C` stops all three processes.
 
 > [!IMPORTANT]
-> Pi Workbench listens only on `127.0.0.1`. Pi can read files, modify code, and execute commands in the selected workspace. Keep important work under version control and review Git actions before confirming them.
+> Pi Livecraft listens only on `127.0.0.1`. Pi can read files, modify code, and execute commands in the selected workspace. Keep important work under version control and review Git actions before confirming them.
 
 ## What is already on the bench
 
@@ -127,7 +127,7 @@ src/api.ts           Browser-to-backend boundary
 server/backend.ts    Local HTTP API and SSE stream
 server/manager.ts    Sole owner of Pi RPC processes
 server/features/     Git, quotas, terminal, and todo capabilities
-pi-extensions/       Extensions loaded ONLY into Workbench sessions
+pi-extensions/       Extensions loaded ONLY into Livecraft sessions
 shared/              Contracts exchanged between layers
 test/                Focused automated checks
 ```
@@ -151,4 +151,4 @@ Personal forks are the point. Focused bug fixes and improvements that preserve t
 
 ## License
 
-Pi Workbench is available under the [MIT License](LICENSE).
+Pi Livecraft is available under the [MIT License](LICENSE).

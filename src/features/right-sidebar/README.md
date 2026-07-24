@@ -11,6 +11,6 @@ The right sidebar keeps workspace tools close without mixing their behavior. `Ri
 
 The shared definition automatically gives every widget an **Open…** command in the palette and an assignable shortcut in Settings. Rendering remains explicit: do not introduce a component registry.
 
-Width and active widget are stored in `pi-workbench.right-sidebar-width` and `pi-workbench.right-sidebar-widget`. Legacy Git sidebar keys are read only as migration fallbacks. Width stays between 240 and 720 px.
+Width and active widget are stored in `pi-livecraft.right-sidebar-width` and `pi-livecraft.right-sidebar-widget`. Legacy Git sidebar keys are read only as migration fallbacks. Width stays between 240 and 720 px.
 
 Widget contracts: [Git](../git/README.md), [quotas](../quotas/README.md), [terminal](../terminal/README.md), [todo](../todo/README.md), and [session analysis](../session-analysis/README.md). Registry and width behavior are covered by `test/shortcuts.test.ts` and `test/git-sidebar.test.ts`.

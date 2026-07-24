@@ -1,6 +1,6 @@
 # Project architecture
 
-Pi Workbench separates the interface, local HTTP API, and Pi processes so that restarting the frontend or backend does not close active sessions.
+Pi Livecraft separates the interface, local HTTP API, and Pi processes so that restarting the frontend or backend does not close active sessions.
 
 ```text
 React browser

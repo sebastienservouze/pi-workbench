@@ -1,8 +1,8 @@
 import type { ExtensionAPI, ExtensionContext } from '@earendil-works/pi-coding-agent'
 import { Type } from 'typebox'
-const askUserQuestionProtocol = 'pi-workbench.ask-user-question'
+const askUserQuestionProtocol = 'pi-livecraft.ask-user-question'
 const askUserQuestionVersion = 1
-const rpcTitle = 'Pi Workbench questionnaire'
+const rpcTitle = 'Pi Livecraft questionnaire'
 
 type AskUserQuestionOption = { label: string; description: string }
 type AskUserQuestion = { question: string; header: string; multiSelect: boolean; options: AskUserQuestionOption[] }

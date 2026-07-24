@@ -13,6 +13,6 @@ All values stay in browser `localStorage`; never store secrets there. Readers mu
 
 ## Add a preference
 
-Keep the value with its narrowest owner, expose it in `SettingsPanel` only when users should configure it, and persist it under the `pi-workbench.` prefix. Add a focused test when parsing, migration, or validation is non-trivial.
+Keep the value with its narrowest owner, expose it in `SettingsPanel` only when users should configure it, and persist it under the `pi-livecraft.` prefix. Add a focused test when parsing, migration, or validation is non-trivial.
 
 Read [commands](../commands/README.md) for palette entries and shortcuts, or [right sidebar](../right-sidebar/README.md) for widget state.

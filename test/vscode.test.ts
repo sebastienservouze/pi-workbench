@@ -5,7 +5,7 @@ import { isVsCodeAvailable, windowsWorkspacePath } from '../server/vscode.ts'
 
 test('detects an available and an unavailable command without executing either', async () => {
   assert.equal(await isVsCodeAvailable(process.execPath), true)
-  assert.equal(await isVsCodeAvailable('pi-workbench-command-that-does-not-exist'), false)
+  assert.equal(await isVsCodeAvailable('pi-livecraft-command-that-does-not-exist'), false)
 })
 
 test('converts a WSL workspace into a Windows path', async () => {

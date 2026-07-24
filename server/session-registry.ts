@@ -9,8 +9,9 @@ export interface StoredSession {
   name: string
 }
 
-const defaultRegistryPath = process.env.PI_WORKBENCH_SESSION_REGISTRY
-  ?? join(homedir(), '.pi-workbench', 'sessions.json')
+const defaultRegistryPath = process.env.PI_LIVECRAFT_SESSION_REGISTRY
+  ?? process.env.PI_WORKBENCH_SESSION_REGISTRY
+  ?? join(homedir(), '.pi-livecraft', 'sessions.json')
 
 export async function loadSessionRegistry(path = defaultRegistryPath): Promise<StoredSession[]> {
   try {
@@ -31,8 +32,8 @@ export async function saveSessionRegistry(sessions: SessionSummary[], path = def
 
 export function parseSessionRegistry(content: string): StoredSession[] {
   const value: unknown = JSON.parse(content)
-  if (!Array.isArray(value) || !value.every(isStoredSession)) throw new Error('Invalid Pi Workbench session registry')
-  if (new Set(value.map(({ id }) => id)).size !== value.length) throw new Error('Duplicate session in Pi Workbench registry')
+  if (!Array.isArray(value) || !value.every(isStoredSession)) throw new Error('Invalid Pi Livecraft session registry')
+  if (new Set(value.map(({ id }) => id)).size !== value.length) throw new Error('Duplicate session in Pi Livecraft registry')
   return value
 }
 

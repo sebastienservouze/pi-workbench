@@ -28,7 +28,7 @@ export function WorkspaceSidebar({ completedSessionIds, recentSessions, sessions
   return <aside className="sidebar">
     <div className="brand">
       <span className="brand-mark">π</span>
-      <div><strong>Pi Workbench</strong><small>Local workspace</small></div>
+      <div><strong>Pi Livecraft</strong><small>Local workspace</small></div>
       <Tooltip label={theme === 'dark' ? 'Light theme' : 'Dark theme'}><button aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} className="theme-toggle" onClick={onToggleTheme} type="button">
         {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
       </button></Tooltip>

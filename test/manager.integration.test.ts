@@ -12,7 +12,7 @@ test('accepts commands after an event emitted before Pi finishes starting', { ti
   await writeFakePi(directory, true)
   const manager = spawn(process.execPath, ['server/manager.ts'], {
     cwd: process.cwd(),
-    env: { ...process.env, PATH: `${directory}:${process.env.PATH}`, PI_WORKBENCH_MANAGER_PORT: String(port) },
+    env: { ...process.env, PATH: `${directory}:${process.env.PATH}`, PI_LIVECRAFT_MANAGER_PORT: String(port) },
     stdio: 'ignore',
   })
   const client = await connectManager(port)
@@ -37,7 +37,7 @@ test('restarts an exited Pi session when reopening it', { timeout: 10_000 }, asy
   await writeFakePi(directory)
   const manager = spawn(process.execPath, ['server/manager.ts'], {
     cwd: process.cwd(),
-    env: { ...process.env, PATH: `${directory}:${process.env.PATH}`, PI_WORKBENCH_MANAGER_PORT: String(port) },
+    env: { ...process.env, PATH: `${directory}:${process.env.PATH}`, PI_LIVECRAFT_MANAGER_PORT: String(port) },
     stdio: 'ignore',
   })
   const client = await connectManager(port)

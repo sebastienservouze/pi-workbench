@@ -19,7 +19,7 @@ export class QuotaCache {
   /** Accepts only the private, versioned status emitted by the quota extension. */
   receiveManagerEvent(event: unknown): boolean {
     const data = object(object(event)?.data)
-    if (object(event)?.event !== 'pi' || data?.type !== 'extension_ui_request' || data.method !== 'setStatus' || data.statusKey !== 'pi-workbench.quotas' || typeof data.statusText !== 'string') return false
+    if (object(event)?.event !== 'pi' || data?.type !== 'extension_ui_request' || data.method !== 'setStatus' || data.statusKey !== 'pi-livecraft.quotas' || typeof data.statusText !== 'string') return false
     let parsed: unknown
     try {
       parsed = JSON.parse(data.statusText)
@@ -42,11 +42,11 @@ function mergeProvider<T>(current: QuotaProviderSnapshot<T>, report: QuotaProvid
 
 function parseQuotaReport(value: unknown): QuotaReport | undefined {
   const report = object(value)
-  if (report?.protocol !== 'pi-workbench.quotas' || report.version !== 1 || !finiteNumber(report.refreshedAt)) return undefined
+  if (report?.protocol !== 'pi-livecraft.quotas' || report.version !== 1 || !finiteNumber(report.refreshedAt)) return undefined
   const openai = parseProvider(report.openai, parseOpenAiWindow)
   const copilot = parseProvider(report.copilot, parseCopilotWindow)
   if (!openai || !copilot) return undefined
-  return { protocol: 'pi-workbench.quotas', version: 1, refreshedAt: report.refreshedAt, openai, copilot }
+  return { protocol: 'pi-livecraft.quotas', version: 1, refreshedAt: report.refreshedAt, openai, copilot }
 }
 
 function parseProvider<T>(value: unknown, parseItem: (value: unknown) => T | undefined): QuotaProviderReport<T> | undefined {

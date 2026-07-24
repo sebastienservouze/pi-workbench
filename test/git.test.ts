@@ -29,7 +29,7 @@ test('uses the destination path for renamed numstat records and preserves binary
 })
 
 test('reports untracked files and their line additions from a worktree', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'pi-workbench-git-'))
+  const directory = await mkdtemp(join(tmpdir(), 'pi-livecraft-git-'))
   try {
     await execFile('git', ['init', '--quiet'], { cwd: directory })
     await writeFile(join(directory, 'new-file.ts'), 'first line\nsecond line\n')
@@ -46,7 +46,7 @@ test('reports untracked files and their line additions from a worktree', async (
 })
 
 test('returns diffs for modified and untracked files', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'pi-workbench-git-'))
+  const directory = await mkdtemp(join(tmpdir(), 'pi-livecraft-git-'))
   try {
     await execFile('git', ['init', '--quiet'], { cwd: directory })
     await execFile('git', ['config', 'user.email', 'test@example.com'], { cwd: directory })
@@ -68,8 +68,8 @@ test('returns diffs for modified and untracked files', async () => {
 })
 
 test('reports and reverts unpushed commits', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'pi-workbench-git-'))
-  const remote = await mkdtemp(join(tmpdir(), 'pi-workbench-git-remote-'))
+  const directory = await mkdtemp(join(tmpdir(), 'pi-livecraft-git-'))
+  const remote = await mkdtemp(join(tmpdir(), 'pi-livecraft-git-remote-'))
   try {
     await execFile('git', ['init', '--bare', '--quiet'], { cwd: remote })
     await execFile('git', ['init', '--quiet'], { cwd: directory })

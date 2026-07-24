@@ -177,7 +177,7 @@ export type QuotaProviderReport<T> =
   | { ok: false; error: string }
 
 export interface QuotaReport {
-  protocol: 'pi-workbench.quotas'
+  protocol: 'pi-livecraft.quotas'
   version: 1
   refreshedAt: number
   openai: QuotaProviderReport<OpenAiQuotaWindow>

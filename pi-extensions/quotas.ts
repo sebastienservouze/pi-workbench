@@ -3,7 +3,7 @@ import { parseCopilotUsage, parseOpenAiUsage } from '../shared/quota-parsers.ts'
 import { quotaRefreshAllowed } from '../shared/quota-refresh.ts'
 import type { CopilotQuotaWindow, OpenAiQuotaWindow, QuotaProviderReport, QuotaReport } from '../shared/types.ts'
 
-const statusKey = 'pi-workbench.quotas'
+const statusKey = 'pi-livecraft.quotas'
 const timeoutMs = 15_000
 
 /** Registers a silent RPC command that publishes only normalized quotas to Workbench. */
@@ -34,7 +34,7 @@ export default function registerQuotas(pi: ExtensionAPI): void {
 async function publishQuotaReport(ctx: ExtensionContext): Promise<QuotaReport> {
   const [openai, copilot] = await Promise.all([fetchOpenAiQuotas(ctx), fetchCopilotQuotas(ctx)])
   const report: QuotaReport = {
-    protocol: 'pi-workbench.quotas',
+    protocol: 'pi-livecraft.quotas',
     version: 1,
     refreshedAt: Date.now(),
     openai,

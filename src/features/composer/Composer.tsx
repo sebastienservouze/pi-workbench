@@ -27,7 +27,7 @@ export const Composer = memo(function Composer({ session, snapshot, agentBusy, a
   draftRequest?: { id: string; message: string }
   onDraftApplied?: (id: string) => void
 }) {
-  const draftStorageKey = `pi-workbench.composer-draft.${session.id}`
+  const draftStorageKey = `pi-livecraft.composer-draft.${session.id}`
   const [message, setMessage] = useState(() => readComposerDraft(draftStorageKey))
   const [images, setImages] = useState<ComposerImage[]>([])
   const [preparingImages, setPreparingImages] = useState(false)
@@ -331,10 +331,10 @@ function formatTokens(value: number): string {
   return value >= 1000 ? `${Math.round(value / 1000)}k` : String(value)
 }
 
-/** Restores the draft for one session without making storage availability a prerequisite. */
+/** Restores the draft for one session, falling back to the legacy key for migration. */
 function readComposerDraft(storageKey: string): string {
   try {
-    return window.localStorage.getItem(storageKey) ?? ''
+    return window.localStorage.getItem(storageKey) ?? window.localStorage.getItem(storageKey.replace('pi-livecraft.composer-draft.', 'pi-workbench.composer-draft.')) ?? ''
   } catch {
     return ''
   }

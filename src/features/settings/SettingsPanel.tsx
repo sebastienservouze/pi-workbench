@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { CommandDefinition, CommandId } from '../commands/command-registry.ts'
 import { shortcutFromEvent, shortcutConflicts } from '../commands/command-registry.ts'
 
-/** Configures Pi Workbench local shortcuts and restores their initial values. */
+/** Configures Pi Livecraft local shortcuts and restores their initial values. */
 export function SettingsPanel({ definitions, shortcuts, onChange, onReset, onClose }: { definitions: CommandDefinition[]; shortcuts: Partial<Record<CommandId, string>>; onChange: (id: CommandId, shortcut: string) => void; onReset: () => void; onClose: () => void }) {
   const [capturing, setCapturing] = useState<CommandId | null>(null)
   const conflicts = shortcutConflicts(shortcuts)

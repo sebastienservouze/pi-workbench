@@ -11,7 +11,7 @@ const todos = [
 ]
 
 test('persists todo lists independently for each workspace', async () => {
-  const directory = await mkdtemp(join(tmpdir(), 'pi-workbench-todos-'))
+  const directory = await mkdtemp(join(tmpdir(), 'pi-livecraft-todos-'))
   const path = join(directory, 'todos.json')
   try {
     await Promise.all([

@@ -34,15 +34,42 @@ const conversationViewDetails = {
   simple: { label: 'Simplified view', description: 'Messages only, without tool calls' },
   detailed: { label: 'Detailed view', description: 'Visible calls with expandable preview' },
 } as const
+/** Migrates legacy localStorage keys to the new namespace without losing user data. */
+function migrateLocalStorageKeys(): void {
+  const keyMap: Record<string, string> = {
+    'pi-workbench.workspace-path': 'pi-livecraft.workspace-path',
+    'pi-workbench.selected-session': 'pi-livecraft.selected-session',
+    'pi-workbench.conversation-view': 'pi-livecraft.conversation-view',
+    'pi-workbench.detailed-view': 'pi-livecraft.detailed-view',
+    'pi-workbench.right-sidebar-width': 'pi-livecraft.right-sidebar-width',
+    'pi-workbench.git-sidebar-width': 'pi-livecraft.git-sidebar-width',
+    'pi-workbench.theme': 'pi-livecraft.theme',
+    'pi-workbench.right-sidebar-widget': 'pi-livecraft.right-sidebar-widget',
+    'pi-workbench.git-sidebar-collapsed': 'pi-livecraft.git-sidebar-collapsed',
+    'pi-workbench.shortcuts': 'pi-livecraft.shortcuts',
+    'pi-workbench.recent-workspace-paths': 'pi-livecraft.recent-workspace-paths',
+  }
+  for (const [oldKey, newKey] of Object.entries(keyMap)) {
+    const value = window.localStorage.getItem(oldKey)
+    if (value !== null) {
+      if (window.localStorage.getItem(newKey) === null) {
+        window.localStorage.setItem(newKey, value)
+      }
+      window.localStorage.removeItem(oldKey)
+    }
+  }
+}
+
 /** Orchestrates workspace state, Pi events, and UI panels. */
 function App() {
+  migrateLocalStorageKeys()
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
   const [completedSessionIds, setCompletedSessionIds] = useState<ReadonlySet<string>>(new Set())
-  const [workspacePath, setWorkspacePath] = useState(() => window.localStorage.getItem('pi-workbench.workspace-path') ?? '~/.pi')
-  const [recentWorkspacePaths, setRecentWorkspacePaths] = useState(() => recentWorkspaces(window.localStorage.getItem('pi-workbench.workspace-path') ?? '~/.pi', readRecentWorkspaces()))
+  const [workspacePath, setWorkspacePath] = useState(() => window.localStorage.getItem('pi-livecraft.workspace-path') ?? '~/.pi')
+  const [recentWorkspacePaths, setRecentWorkspacePaths] = useState(() => recentWorkspaces(window.localStorage.getItem('pi-livecraft.workspace-path') ?? '~/.pi', readRecentWorkspaces()))
   const [directoryPickerOpen, setDirectoryPickerOpen] = useState(false)
-  const [selectedId, setSelectedId] = useState(() => window.localStorage.getItem('pi-workbench.selected-session') ?? '')
+  const [selectedId, setSelectedId] = useState(() => window.localStorage.getItem('pi-livecraft.selected-session') ?? '')
   const [snapshot, setSnapshot] = useState<SessionSnapshot>(emptySnapshot)
   const [snapshotSessionId, setSnapshotSessionId] = useState('')
   const [liveText, setLiveText] = useState('')
@@ -52,9 +79,9 @@ function App() {
   const [piConnection, setPiConnection] = useState<PiConnection>('connecting')
   const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([])
   const [conversationView, setConversationView] = useState<'detailed' | 'simple'>(() => {
-    const stored = window.localStorage.getItem('pi-workbench.conversation-view')
+    const stored = window.localStorage.getItem('pi-livecraft.conversation-view')
     if (stored === 'detailed' || stored === 'simple-expanded') return 'detailed'
-    return window.localStorage.getItem('pi-workbench.detailed-view') === 'true' ? 'detailed' : 'simple'
+    return window.localStorage.getItem('pi-livecraft.detailed-view') === 'true' ? 'detailed' : 'simple'
   })
   const conversationViewDetail = conversationViewDetails[conversationView]
   const [agentOptions, setAgentOptions] = useState<Record<string, string[]>>({})
@@ -64,8 +91,8 @@ function App() {
   const [gitSnapshot, setGitSnapshot] = useState<GitSnapshot | null>(null)
   const [quotas, setQuotas] = useState<QuotaSnapshot | null>(null)
   const [activeRightWidget, setActiveRightWidget] = useState<RightWidget | null>(readActiveRightWidget)
-  const [rightSidebarWidth, setRightSidebarWidth] = useState(() => readRightSidebarWidth(window.localStorage.getItem('pi-workbench.right-sidebar-width') ?? window.localStorage.getItem('pi-workbench.git-sidebar-width')))
-  const [theme, setTheme] = useState(() => window.localStorage.getItem('pi-workbench.theme') ?? 'light')
+  const [rightSidebarWidth, setRightSidebarWidth] = useState(() => readRightSidebarWidth(window.localStorage.getItem('pi-livecraft.right-sidebar-width') ?? window.localStorage.getItem('pi-livecraft.git-sidebar-width')))
+  const [theme, setTheme] = useState(() => window.localStorage.getItem('pi-livecraft.theme') ?? 'light')
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [creatingSession, setCreatingSession] = useState(false)
@@ -136,12 +163,12 @@ function App() {
 
   const updateRightSidebarWidth = useCallback((width: number) => {
     const nextWidth = clampRightSidebarWidth(width)
-    window.localStorage.setItem('pi-workbench.right-sidebar-width', String(nextWidth))
+    window.localStorage.setItem('pi-livecraft.right-sidebar-width', String(nextWidth))
     setRightSidebarWidth(nextWidth)
   }, [])
 
   const openRightWidget = useCallback((widget: RightWidget) => {
-    window.localStorage.setItem('pi-workbench.right-sidebar-widget', widget)
+    window.localStorage.setItem('pi-livecraft.right-sidebar-widget', widget)
     setActiveRightWidget(widget)
   }, [])
 
@@ -149,7 +176,7 @@ function App() {
   const toggleTheme = useCallback(() => {
     setTheme((current) => {
       const next = current === 'dark' ? 'light' : 'dark'
-      window.localStorage.setItem('pi-workbench.theme', next)
+      window.localStorage.setItem('pi-livecraft.theme', next)
       return next
     })
   }, [])
@@ -159,8 +186,8 @@ function App() {
   }, [theme])
 
   useEffect(() => {
-    if (selectedId) window.localStorage.setItem('pi-workbench.selected-session', selectedId)
-    else window.localStorage.removeItem('pi-workbench.selected-session')
+    if (selectedId) window.localStorage.setItem('pi-livecraft.selected-session', selectedId)
+    else window.localStorage.removeItem('pi-livecraft.selected-session')
     setCompletedSessionIds((current) => {
       if (!current.has(selectedId)) return current
       const next = new Set(current)
@@ -322,7 +349,7 @@ function App() {
       if (event.type === 'extension_ui_request' && event.method === 'setStatus' && event.statusKey === 'agent') {
         updateSessionAgent(sessionId, typeof event.activeAgent === 'string' ? event.activeAgent : undefined)
       }
-      if (event.type === 'extension_ui_request' && event.method === 'setStatus' && event.statusKey === 'pi-workbench.quotas') {
+      if (event.type === 'extension_ui_request' && event.method === 'setStatus' && event.statusKey === 'pi-livecraft.quotas') {
         void getQuotas().then(setQuotas).catch(() => undefined)
       }
 
@@ -583,7 +610,7 @@ function App() {
   const navigateToAnalysisTarget = useCallback((target: SessionAnalysisTarget): void => {
     if (target.kind === 'tool' || target.kind === 'turn') {
       setConversationView('detailed')
-      window.localStorage.setItem('pi-workbench.conversation-view', 'detailed')
+      window.localStorage.setItem('pi-livecraft.conversation-view', 'detailed')
     }
     setConversationNavigation((current) => ({ id: (current?.id ?? 0) + 1, target }))
   }, [])
@@ -639,7 +666,7 @@ function App() {
             <Conversation activity={displayedActivity} agentName={selectedSession.activeAgent} darkMode={theme === 'dark'} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} navigationRequest={conversationNavigation} onError={handleConversationError} onStartSession={handleContextSessionStart} pendingSteering={pendingSteering} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <Tooltip label={`${conversationViewDetail.label} — ${conversationViewDetail.description}`}><button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Click to toggle view.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
                 const next = current === 'simple' ? 'detailed' : 'simple'
-                window.localStorage.setItem('pi-workbench.conversation-view', next)
+                window.localStorage.setItem('pi-livecraft.conversation-view', next)
                 return next
               })} type="button">
               <span aria-hidden="true" className="chat-detail-toggle-icon">⌘</span>
@@ -726,7 +753,7 @@ function App() {
         onTodoStartSession={(message) => startAndSelectSession(() => createSession(workspacePath), undefined, message)}
         onWidgetSelect={(widget) => setActiveRightWidget((current) => {
           const next = current === widget ? null : widget
-          window.localStorage.setItem('pi-workbench.right-sidebar-widget', next ?? 'none')
+          window.localStorage.setItem('pi-livecraft.right-sidebar-widget', next ?? 'none')
           return next
         })}
       />
@@ -737,9 +764,9 @@ function App() {
         onClose={() => setDirectoryPickerOpen(false)}
         onError={(cause) => showToast('error', messageOf(cause))}
         onSelect={(path) => {
-          window.localStorage.setItem('pi-workbench.workspace-path', path)
+          window.localStorage.setItem('pi-livecraft.workspace-path', path)
           const nextRecentWorkspacePaths = recentWorkspaces(path, recentWorkspacePaths)
-          window.localStorage.setItem('pi-workbench.recent-workspace-paths', JSON.stringify(nextRecentWorkspacePaths))
+          window.localStorage.setItem('pi-livecraft.recent-workspace-paths', JSON.stringify(nextRecentWorkspacePaths))
           setRecentWorkspacePaths(nextRecentWorkspacePaths)
           setGitSnapshot(null)
           setActiveRightWidget(null)
@@ -752,7 +779,7 @@ function App() {
       {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} sessionName={sessions.find((session) => session.id === questionnaire.sessionId)?.name} onClose={() => closeDialog(questionnaire)} onError={(cause) => showToast('error', messageOf(cause))} />}
       {dialog && !questionnaire && <ExtensionDialog dialog={dialog} onClose={() => closeDialog(dialog)} onError={(cause) => showToast('error', messageOf(cause))} />}
       {commandPaletteOpen && <CommandPalette commands={paletteCommands} onClose={() => setCommandPaletteOpen(false)} />}
-      {settingsOpen && <SettingsPanel definitions={commandDefinitions} shortcuts={shortcuts} onChange={(id, shortcut) => { const next = { ...shortcuts, [id]: shortcut }; setShortcuts(next); window.localStorage.setItem('pi-workbench.shortcuts', JSON.stringify(next)) }} onReset={() => { setShortcuts(defaultShortcuts); window.localStorage.setItem('pi-workbench.shortcuts', JSON.stringify(defaultShortcuts)) }} onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsPanel definitions={commandDefinitions} shortcuts={shortcuts} onChange={(id, shortcut) => { const next = { ...shortcuts, [id]: shortcut }; setShortcuts(next); window.localStorage.setItem('pi-livecraft.shortcuts', JSON.stringify(next)) }} onReset={() => { setShortcuts(defaultShortcuts); window.localStorage.setItem('pi-livecraft.shortcuts', JSON.stringify(defaultShortcuts)) }} onClose={() => setSettingsOpen(false)} />}
     </div>
   )
 }
@@ -760,14 +787,14 @@ function App() {
 /** Lit une éventuelle ancienne liste invalide sans empêcher l'ouverture de l'application. */
 function readShortcuts(): Partial<Record<CommandId, string>> {
   try {
-    const value: unknown = JSON.parse(window.localStorage.getItem('pi-workbench.shortcuts') ?? 'null')
+    const value: unknown = JSON.parse(window.localStorage.getItem('pi-livecraft.shortcuts') ?? 'null')
     return isObject(value) ? { ...defaultShortcuts, ...Object.fromEntries(Object.entries(value).filter(([key, shortcut]) => commandDefinitions.some((definition) => definition.id === key) && typeof shortcut === 'string')) as Partial<Record<CommandId, string>> } : defaultShortcuts
   } catch { return defaultShortcuts }
 }
 
 function readRecentWorkspaces(): string[] {
   try {
-    const value: unknown = JSON.parse(window.localStorage.getItem('pi-workbench.recent-workspace-paths') ?? '[]')
+    const value: unknown = JSON.parse(window.localStorage.getItem('pi-livecraft.recent-workspace-paths') ?? '[]')
     return Array.isArray(value) ? value.filter((path): path is string => typeof path === 'string') : []
   } catch {
     return []
@@ -775,10 +802,10 @@ function readRecentWorkspaces(): string[] {
 }
 
 function readActiveRightWidget(): RightWidget | null {
-  const stored = window.localStorage.getItem('pi-workbench.right-sidebar-widget')
+  const stored = window.localStorage.getItem('pi-livecraft.right-sidebar-widget')
   if (isRightWidget(stored)) return stored
   if (stored === 'none') return null
-  return window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git'
+  return window.localStorage.getItem('pi-livecraft.git-sidebar-collapsed') === 'true' ? null : 'git'
 }
 
 function isManagerEvent(value: unknown): value is ManagerEvent {

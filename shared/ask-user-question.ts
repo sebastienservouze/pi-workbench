@@ -1,4 +1,4 @@
-export const askUserQuestionProtocol = 'pi-workbench.ask-user-question'
+export const askUserQuestionProtocol = 'pi-livecraft.ask-user-question'
 export const askUserQuestionVersion = 1
 
 export interface AskUserQuestionOption {

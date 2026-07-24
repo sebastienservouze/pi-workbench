@@ -7,8 +7,9 @@ interface TodoStore {
   workspaces: Record<string, TodoItem[]>
 }
 
-const defaultTodoStorePath = process.env.PI_WORKBENCH_TODO_STORE
-  ?? join(homedir(), '.pi-workbench', 'todos.json')
+const defaultTodoStorePath = process.env.PI_LIVECRAFT_TODO_STORE
+  ?? process.env.PI_WORKBENCH_TODO_STORE
+  ?? join(homedir(), '.pi-livecraft', 'todos.json')
 const maxTodoCount = 500
 const maxTodoTextLength = 500
 let saveQueue = Promise.resolve()
@@ -53,7 +54,7 @@ export function parseTodoItems(value: unknown): TodoItem[] {
 
 export function parseTodoStore(content: string): TodoStore {
   const value: unknown = JSON.parse(content)
-  if (!isObject(value) || !isObject(value.workspaces)) throw new Error('Invalid Pi Workbench todo store')
+  if (!isObject(value) || !isObject(value.workspaces)) throw new Error('Invalid Pi Livecraft todo store')
   return {
     workspaces: Object.fromEntries(Object.entries(value.workspaces).map(([workspacePath, todos]) => [workspacePath, parseTodoItems(todos)])),
   }

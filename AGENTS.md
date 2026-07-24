@@ -14,7 +14,7 @@
 
 ## Working rules
 
-Pi Workbench is designed to be modified by the agents using it. Trace the existing flow and callers, then make the smallest compatible change at the owning boundary.
+Pi Livecraft is designed to be modified by the agents using it. Trace the existing flow and callers, then make the smallest compatible change at the owning boundary.
 
 - Reuse repository patterns and preserve observable APIs, protocols, and data formats.
 - Keep validation at trust boundaries and avoid speculative dependencies or abstractions.

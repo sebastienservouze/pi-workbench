@@ -52,12 +52,12 @@ test('shows the primary quota for the provider selected by the model', () => {
 test('retains a stale provider snapshot when its next refresh fails', () => {
   const cache = new QuotaCache()
   cache.receiveManagerEvent(statusEvent({
-    protocol: 'pi-workbench.quotas', version: 1, refreshedAt: 100,
+    protocol: 'pi-livecraft.quotas', version: 1, refreshedAt: 100,
     openai: { ok: true, data: [{ period: '5h', remainingPercent: 80 }] },
     copilot: { ok: true, data: [] },
   }))
   cache.receiveManagerEvent(statusEvent({
-    protocol: 'pi-workbench.quotas', version: 1, refreshedAt: 200,
+    protocol: 'pi-livecraft.quotas', version: 1, refreshedAt: 200,
     openai: { ok: false, error: 'OpenAI indisponible' },
     copilot: { ok: true, data: [] },
   }))
@@ -76,7 +76,7 @@ function statusEvent(report: unknown): unknown {
     data: {
       type: 'extension_ui_request',
       method: 'setStatus',
-      statusKey: 'pi-workbench.quotas',
+      statusKey: 'pi-livecraft.quotas',
       statusText: JSON.stringify(report),
     },
   }

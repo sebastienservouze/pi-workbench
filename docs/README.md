@@ -1,6 +1,6 @@
 # Documentation
 
-Pi Workbench is documented in layers: begin with the guide closest to your goal, then follow a deeper link only when the change crosses a boundary.
+Pi Livecraft is documented in layers: begin with the guide closest to your goal, then follow a deeper link only when the change crosses a boundary.
 
 ## Find the right place
 
