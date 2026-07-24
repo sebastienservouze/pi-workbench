@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import './App.css'
 import { Tooltip } from './components/Tooltip.tsx'
 import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getQuotas, getSnapshot, listRecentSessions, listSessions, openExplorer, openSession, refreshQuotas, revertGitCommit, sendPiCommand } from './api.ts'
@@ -21,6 +21,7 @@ import { WorkspaceSidebar } from './features/workspace/WorkspaceSidebar.tsx'
 import { CommandPalette, type PaletteCommand } from './features/commands/CommandPalette.tsx'
 import { commandDefinitions, defaultShortcuts, lastAssistantText, rightWidgetFromCommand, shortcutFromEvent, type CommandId } from './features/commands/command-registry.ts'
 import { SettingsPanel } from './features/settings/SettingsPanel.tsx'
+import { readInterfaceScale, type InterfaceScale } from './features/settings/interface-scale.ts'
 import { analyzeSession, type SessionAnalysisTarget } from './features/session-analysis/session-analysis.ts'
 import './features/commands/commands.css'
 
@@ -93,6 +94,7 @@ function App() {
   const [activeRightWidget, setActiveRightWidget] = useState<RightWidget | null>(readActiveRightWidget)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(() => readRightSidebarWidth(window.localStorage.getItem('pi-livecraft.right-sidebar-width') ?? window.localStorage.getItem('pi-livecraft.git-sidebar-width')))
   const [theme, setTheme] = useState(() => window.localStorage.getItem('pi-livecraft.theme') ?? 'light')
+  const [interfaceScale, setInterfaceScale] = useState(() => readInterfaceScale(window.localStorage.getItem('pi-livecraft.interface-scale')))
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [creatingSession, setCreatingSession] = useState(false)
@@ -184,6 +186,16 @@ function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme
   }, [theme])
+
+  useLayoutEffect(() => {
+    document.documentElement.style.setProperty('zoom', interfaceScale)
+  }, [interfaceScale])
+
+  /** Applies and persists the interface scale selected in settings. */
+  const updateInterfaceScale = useCallback((scale: InterfaceScale) => {
+    window.localStorage.setItem('pi-livecraft.interface-scale', scale)
+    setInterfaceScale(scale)
+  }, [])
 
   useEffect(() => {
     if (selectedId) window.localStorage.setItem('pi-livecraft.selected-session', selectedId)
@@ -779,7 +791,7 @@ function App() {
       {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} sessionName={sessions.find((session) => session.id === questionnaire.sessionId)?.name} onClose={() => closeDialog(questionnaire)} onError={(cause) => showToast('error', messageOf(cause))} />}
       {dialog && !questionnaire && <ExtensionDialog dialog={dialog} onClose={() => closeDialog(dialog)} onError={(cause) => showToast('error', messageOf(cause))} />}
       {commandPaletteOpen && <CommandPalette commands={paletteCommands} onClose={() => setCommandPaletteOpen(false)} />}
-      {settingsOpen && <SettingsPanel definitions={commandDefinitions} shortcuts={shortcuts} onChange={(id, shortcut) => { const next = { ...shortcuts, [id]: shortcut }; setShortcuts(next); window.localStorage.setItem('pi-livecraft.shortcuts', JSON.stringify(next)) }} onReset={() => { setShortcuts(defaultShortcuts); window.localStorage.setItem('pi-livecraft.shortcuts', JSON.stringify(defaultShortcuts)) }} onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsPanel definitions={commandDefinitions} interfaceScale={interfaceScale} shortcuts={shortcuts} onChange={(id, shortcut) => { const next = { ...shortcuts, [id]: shortcut }; setShortcuts(next); window.localStorage.setItem('pi-livecraft.shortcuts', JSON.stringify(next)) }} onInterfaceScaleChange={updateInterfaceScale} onReset={() => { setShortcuts(defaultShortcuts); window.localStorage.setItem('pi-livecraft.shortcuts', JSON.stringify(defaultShortcuts)) }} onClose={() => setSettingsOpen(false)} />}
     </div>
   )
 }
