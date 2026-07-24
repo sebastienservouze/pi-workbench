@@ -8,10 +8,9 @@ import { outputContextDraft } from './context-session.ts'
 import { ContextSessionButton, Markdown, ToolCallCard } from './ToolCallCard.tsx'
 
 /** Assembles history, the live stream, and tool executions according to the selected detail level. */
-export function Conversation({ activity, agentName, completionCelebration, messages, liveText, liveThinking, darkMode, detailedView, navigationRequest, pendingSteering, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath, onError, onStartSession }: {
+export function Conversation({ activity, agentName, messages, liveText, liveThinking, darkMode, detailedView, navigationRequest, pendingSteering, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath, onError, onStartSession }: {
   activity: Activity | null
   agentName?: string
-  completionCelebration: number
   messages: JsonObject[]
   liveText: string
   liveThinking: string
@@ -140,7 +139,6 @@ export function Conversation({ activity, agentName, completionCelebration, messa
       ref={conversationRef}
       tabIndex={0}
     >
-      {completionCelebration > 0 && <ConfettiCelebration key={completionCelebration} />}
       <div className="conversation-content" ref={conversationContentRef}>
       {allMessages.map((message, index) => {
         const calls = detailedView ? toolCallsInMessage(message) : []
@@ -218,11 +216,6 @@ function TurnUsage({ usage }: { usage: MessageUsage }) {
 /** Displays Pi's current work state in the conversation thread. */
 export function ActivityIndicator({ activity, agentName }: { activity: Activity; agentName?: string }) {
   return <div className={`pi-activity is-${activity.kind}`} role="status"><span aria-hidden="true" className="activity-signal"><i /><i /><i /></span><span className="activity-text"><span>{activityAgentName(agentName)}</span>{' '}<span className="activity-action" key={activity.kind}>{activityActionText(activity)}</span></span></div>
-}
-
-/** Adds a short, non-interactive visual acknowledgement for a settled agent run. */
-function ConfettiCelebration() {
-  return <div aria-hidden="true" className="conversation-confetti">{Array.from({ length: 64 }, (_, index) => <i className={`confetti-drift-${index % 5}`} key={index} style={{ left: `${(index * 47) % 101}%`, animationDelay: `${(index * 83) % 700}ms`, animationDuration: `${2200 + ((index * 29) % 1000)}ms`, width: `${5 + (index % 4)}px`, height: `${9 + (index % 7)}px` }} />)}</div>
 }
 
 function isVisibleConversationMessage(message: JsonObject): boolean {

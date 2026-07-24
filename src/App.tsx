@@ -66,7 +66,6 @@ function App() {
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
   const [completedSessionIds, setCompletedSessionIds] = useState<ReadonlySet<string>>(new Set())
-  const [completionCelebration, setCompletionCelebration] = useState(0)
   const [workspacePath, setWorkspacePath] = useState(() => window.localStorage.getItem('pi-livecraft.workspace-path') ?? '.')
   const [recentWorkspacePaths, setRecentWorkspacePaths] = useState(() => recentWorkspaces(window.localStorage.getItem('pi-livecraft.workspace-path') ?? '.', readRecentWorkspaces()))
   const [directoryPickerOpen, setDirectoryPickerOpen] = useState(false)
@@ -206,7 +205,6 @@ function App() {
       next.delete(selectedId)
       return next
     })
-    setCompletionCelebration(0)
   }, [selectedId])
 
   /** Reloads sessions and their UI requests while discarding stale responses. */
@@ -353,8 +351,7 @@ function App() {
       if (event.type === 'agent_start') updateSessionStatus(sessionId, 'running')
       if (event.type === 'agent_settled') {
         updateSessionStatus(sessionId, 'idle')
-        if (sessionId === selectedIdRef.current) setCompletionCelebration((current) => current + 1)
-        else setCompletedSessionIds((current) => new Set(current).add(sessionId))
+        if (sessionId !== selectedIdRef.current) setCompletedSessionIds((current) => new Set(current).add(sessionId))
       }
       if (event.type === 'auto_retry_end' && event.success === false && typeof event.finalError === 'string') {
         showToast('error', `Provider connection failed after retries: ${event.finalError}`, sessionId)
@@ -677,7 +674,7 @@ function App() {
           </>
         ) : selectedSession ? (
           <>
-            <Conversation activity={displayedActivity} agentName={selectedSession.activeAgent} completionCelebration={completionCelebration} darkMode={theme === 'dark'} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} navigationRequest={conversationNavigation} onError={handleConversationError} onStartSession={handleContextSessionStart} pendingSteering={pendingSteering} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation activity={displayedActivity} agentName={selectedSession.activeAgent} darkMode={theme === 'dark'} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} navigationRequest={conversationNavigation} onError={handleConversationError} onStartSession={handleContextSessionStart} pendingSteering={pendingSteering} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <Tooltip label={`${conversationViewDetail.label} — ${conversationViewDetail.description}`}><button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Click to toggle view.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
                 const next = current === 'simple' ? 'detailed' : 'simple'
                 window.localStorage.setItem('pi-livecraft.conversation-view', next)
