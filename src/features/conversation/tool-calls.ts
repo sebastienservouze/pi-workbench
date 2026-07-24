@@ -23,6 +23,8 @@ export interface ToolCallUpdate {
 export interface ToolExecution extends ToolCall {
   contentIndex?: number
   rawArgs?: string
+  rawArgsLength?: number
+  rawArgsTruncated?: boolean
   result?: ToolResult
   status: 'generating' | 'running' | 'interrupted'
 }
@@ -90,12 +92,20 @@ export function applyToolCallUpdate(executions: ToolExecution[], update: ToolCal
   const updated = executions.map((execution) => {
     if (matched || execution.status !== 'generating' || execution.contentIndex !== update.contentIndex) return execution
     matched = true
+    if (update.phase === 'end') return { ...execution, ...update.call, rawArgs: undefined, rawArgsLength: undefined, rawArgsTruncated: undefined, status: 'running' as const }
+
+    const rawArgsLength = (execution.rawArgsLength ?? execution.rawArgs?.length ?? 0) + update.delta.length
+    if (execution.rawArgsTruncated) return { ...execution, rawArgsLength }
+
+    const completeRawArgs = `${execution.rawArgs ?? ''}${update.delta}`
+    const rawArgs = streamingArgumentsPreview(update.call.name, completeRawArgs)
     return {
       ...execution,
       ...update.call,
       id: update.call.id || execution.id,
-      rawArgs: update.phase === 'delta' ? `${execution.rawArgs ?? ''}${update.delta}` : undefined,
-      status: update.phase === 'end' ? 'running' as const : 'generating' as const,
+      rawArgs,
+      rawArgsLength,
+      ...(rawArgs === completeRawArgs ? {} : { rawArgsTruncated: true }),
     }
   })
   if (matched) return updated
@@ -104,9 +114,15 @@ export function applyToolCallUpdate(executions: ToolExecution[], update: ToolCal
     ...update.call,
     contentIndex: update.contentIndex,
     id: update.call.id || draftId,
-    rawArgs: update.phase === 'delta' ? update.delta : undefined,
+    rawArgs: update.phase === 'delta' ? streamingArgumentsPreview(update.call.name, update.delta) : undefined,
+    rawArgsLength: update.phase === 'delta' ? update.delta.length : undefined,
+    ...(update.phase === 'delta' && streamingArgumentsPreview(update.call.name, update.delta) !== update.delta ? { rawArgsTruncated: true } : {}),
     status: update.phase === 'end' ? 'running' : 'generating',
   }]
+}
+
+function streamingArgumentsPreview(name: string, rawArgs: string): string {
+  return name === 'write' || name === 'edit' ? toolTextPreview(rawArgs).text : rawArgs
 }
 
 /** Freezes calls whose generation produced no end event. */

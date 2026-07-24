@@ -57,6 +57,8 @@ interface ToolCallCardProps {
   onError: (cause: unknown) => void
   onStartSession: (draft: string) => Promise<void>
   rawArgs?: string
+  rawArgsLength?: number
+  rawArgsTruncated?: boolean
   repositoryRoot?: string | null
   resultContent?: unknown
   resultError?: boolean
@@ -67,7 +69,7 @@ interface ToolCallCardProps {
 }
 
 /** Displays the official card whose full result replaces the preview when expanded. */
-export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = false, args, hasResult, id, interrupted = false, name, onError, onStartSession, rawArgs, repositoryRoot, resultContent, resultError, revealRequest, streaming = false, targeted = false, workspacePath }: ToolCallCardProps) {
+export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = false, args, hasResult, id, interrupted = false, name, onError, onStartSession, rawArgs, rawArgsLength, rawArgsTruncated = false, repositoryRoot, resultContent, resultError, revealRequest, streaming = false, targeted = false, workspacePath }: ToolCallCardProps) {
   const pending = !hasResult
   const active = pending && !interrupted
   const filePath = name === 'read' || name === 'write' ? toolFilePath(args) : null
@@ -80,7 +82,7 @@ export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = fa
   const [htmlOpenError, setHtmlOpenError] = useState<string>()
   const [codeRendered, setCodeRendered] = useState(false)
   const input = streaming || interrupted ? rawArgs ?? '' : formatToolData(args)
-  const inputLength = toolDataLength(args)
+  const inputLength = streaming || interrupted ? rawArgsLength ?? input.length : toolDataLength(args)
   const output = hasResult ? toolContentText(resultContent) : ''
   const outputLength = output.length
   const displayedOutput = output || 'No output.'
@@ -154,7 +156,10 @@ export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = fa
     }} onError={onError} />}
     <div className={`tool-call-body${hasBody ? ' visible' : ''}`}>
       <div>
-        {(streaming || interrupted) && <pre aria-label={interrupted ? 'Interrupted JSON arguments' : 'JSON arguments in progress'} className="tool-call-raw-args">{rawArgs || 'Waiting for arguments…'}</pre>}
+        {(streaming || interrupted) && <>
+          <pre aria-label={interrupted ? 'Interrupted JSON arguments' : 'JSON arguments in progress'} className="tool-call-raw-args">{rawArgs || 'Waiting for arguments…'}</pre>
+          {streaming && rawArgsTruncated && <small className="tool-call-writing">Writing {rawArgsLength ?? 0} chars</small>}
+        </>}
         {hasResult && <div className={animateLiveChanges ? 'tool-call-result entering' : 'tool-call-result'}>
           {expanded && !htmlFile
             ? <ToolCallContent call={{ name, args }} content={content} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} showEditDiff={!contentError} />

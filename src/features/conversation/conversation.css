@@ -184,6 +184,7 @@
   .tool-call-body { transition: none; }
 }
 .tool-call-raw-args { margin: 0; border: 0; border-top: 1px solid rgb(33 68 61 / 14%); padding: 9px 10px; background: rgb(255 255 255 / 56%); color: inherit; font: 11px/1.5 ui-monospace, monospace; overflow-wrap: anywhere; white-space: pre-wrap; }
+.tool-call-writing { display: block; border-top: 1px solid rgb(33 68 61 / 10%); padding: 5px 10px; background: rgb(255 255 255 / 38%); color: var(--muted); font: 10px/1.5 ui-sans-serif, system-ui, sans-serif; }
 .tool-call-preview { display: block; width: 100%; border: 0; border-top: 1px solid rgb(33 68 61 / 14%); padding: 0; background: rgb(255 255 255 / 56%); color: inherit; text-align: left; cursor: pointer; }
 .tool-call-preview:hover { background: rgb(255 255 255 / 78%); }
 .tool-call-preview:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }

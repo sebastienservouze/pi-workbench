@@ -64,6 +64,7 @@ test('accumulates raw arguments and preserves interrupted generations', () => {
     args: { path: 'note' },
     contentIndex: 0,
     rawArgs: '{"path":"note',
+    rawArgsLength: delta.delta.length,
     status: 'generating',
   }])
   assert.equal(interruptToolCallGeneration(executions)[0]?.status, 'interrupted')
@@ -77,6 +78,37 @@ test('accumulates raw arguments and preserves interrupted generations', () => {
   assert.equal(completed[0]?.status, 'running')
   assert.equal(completed[0]?.rawArgs, undefined)
   assert.deepEqual(completed[0]?.args, { path: 'note.md' })
+})
+
+test('freezes streamed write and edit arguments after four lines while counting characters', () => {
+  const start = { call: { id: 'call_1', name: 'write', args: { path: 'note.md' } }, contentIndex: 0, delta: '', phase: 'start' as const }
+  const firstDelta = 'one\ntwo\nthree\nfour\nfive'
+  const executions = applyToolCallUpdate(applyToolCallUpdate([], start, 'unused'), {
+    call: { id: 'call_1', name: 'write', args: { path: 'note.md', content: firstDelta } },
+    contentIndex: 0,
+    delta: firstDelta,
+    phase: 'delta',
+  }, 'unused')
+  const continued = applyToolCallUpdate(executions, {
+    call: { id: 'call_1', name: 'write', args: { path: 'note.md', content: `${firstDelta}\nsix` } },
+    contentIndex: 0,
+    delta: '\nsix',
+    phase: 'delta',
+  }, 'unused')
+
+  assert.equal(continued[0]?.rawArgs, 'one\ntwo\nthree\nfour…')
+  assert.equal(continued[0]?.rawArgsLength, firstDelta.length + 4)
+  assert.equal(continued[0]?.rawArgsTruncated, true)
+  assert.deepEqual(continued[0]?.args, { path: 'note.md', content: firstDelta })
+
+  const edit = applyToolCallUpdate(applyToolCallUpdate([], { ...start, call: { id: 'call_2', name: 'edit', args: {} } }, 'unused'), {
+    call: { id: 'call_2', name: 'edit', args: { edits: [] } },
+    contentIndex: 0,
+    delta: firstDelta,
+    phase: 'delta',
+  }, 'unused')
+  assert.equal(edit[0]?.rawArgs, 'one\ntwo\nthree\nfour…')
+  assert.equal(edit[0]?.rawArgsTruncated, true)
 })
 
 test('marks a tool call as pending until its result arrives', () => {
