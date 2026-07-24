@@ -413,7 +413,9 @@ function App() {
     const command: JsonObject = { type: 'prompt', message, images }
     if (selectedSessionStatus === 'running') command.streamingBehavior = behavior
     if (selectedSession?.name === 'Nouvelle session' && !snapshot.messages.some((entry) => entry.role === 'user')) {
-      await sendPiCommand(selectedId, { type: 'set_session_name', name: promptSessionTitle(message) })
+      setSessions((current) => current.map((session) => session.id === selectedId
+        ? { ...session, name: promptSessionTitle(message) }
+        : session))
     }
     await sendPiCommand(selectedId, command)
     await refreshSessions()
@@ -441,7 +443,9 @@ function App() {
       setSelectedId(session.id)
       if (draftMessage) setComposerDraftRequest({ id: crypto.randomUUID(), message: draftMessage, sessionId: session.id })
       if (initialMessage) {
-        await sendPiCommand(session.id, { type: 'set_session_name', name: promptSessionTitle(initialMessage) })
+        setSessions((current) => current.map((currentSession) => currentSession.id === session.id
+          ? { ...currentSession, name: promptSessionTitle(initialMessage) }
+          : currentSession))
         await sendPiCommand(session.id, { type: 'prompt', message: initialMessage })
         await refreshSessions()
         setScrollToBottomRequest((current) => current + 1)
