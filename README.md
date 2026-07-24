@@ -145,7 +145,7 @@ npm run build
 
 The Pi RPC integration test additionally requires a configured Pi installation.
 
-## ❤️ Built for Pi
+## Built with Pi, for Pi ❤️
 
 Pi Livecraft is made specifically for the [Pi coding agent](https://pi.dev). It embraces Pi's extension system, live development workflow, and agent architecture instead of replacing or abstracting them away.
 
