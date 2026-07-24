@@ -500,7 +500,17 @@ function App() {
       />
 
       <main className="workspace">
-        {selectedSession ? (
+        {selectedSession && snapshotSessionId !== selectedSession.id ? (
+          <>
+            <section aria-busy="true" aria-live="polite" className="welcome session-loading">
+              <span className="brand-mark large">π</span>
+              <h1>Connecting to Pi…</h1>
+              <p>Loading the session and its capabilities.</p>
+              <span aria-hidden="true" className="session-loading-indicator" />
+            </section>
+            <ToastStack onDismiss={dismissToast} standalone toasts={visibleToasts} />
+          </>
+        ) : selectedSession ? (
           <>
             <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} navigationRequest={conversationNavigation} onError={(cause) => showToast('error', messageOf(cause))} onStartSession={(draft) => startAndSelectSession(() => createSession(workspacePath), undefined, draft)} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Click to toggle view.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
@@ -554,6 +564,7 @@ function App() {
               <span className="brand-mark large">π</span>
               <h1>Starting new session…</h1>
               <p>Initializing Pi and its agents.</p>
+              <span aria-hidden="true" className="session-loading-indicator" />
             </section>
             <ToastStack onDismiss={dismissToast} standalone toasts={visibleToasts} />
           </>
