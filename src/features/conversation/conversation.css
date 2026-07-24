@@ -1,5 +1,36 @@
 .conversation { position: relative; min-width: 0; min-height: 0; overflow-y: auto; padding: 42px max(28px, calc((100% - 900px) / 2)) 30px; scrollbar-gutter: stable; }
-.conversation-content { min-width: 0; }
+.conversation-content { position: relative; z-index: 1; min-width: 0; }
+.conversation-confetti { position: fixed; z-index: 5; inset: 0; overflow: hidden; pointer-events: none; }
+.conversation-confetti i { position: absolute; top: -16px; border-radius: 2px; opacity: 0; animation: conversation-confetti-fall 2600ms ease-out forwards; will-change: transform, opacity; }
+.conversation-confetti i:nth-child(3n + 1) { background: #d96c5f; }
+.conversation-confetti i:nth-child(3n + 2) { background: #e2a93b; }
+.conversation-confetti i:nth-child(3n) { background: var(--teal); }
+.conversation-confetti .confetti-drift-0 { animation-name: conversation-confetti-fall-left; }
+.conversation-confetti .confetti-drift-1 { animation-name: conversation-confetti-fall-right; }
+.conversation-confetti .confetti-drift-2 { animation-name: conversation-confetti-fall-twist; }
+.conversation-confetti .confetti-drift-3 { animation-name: conversation-confetti-fall-left; }
+.conversation-confetti .confetti-drift-4 { animation-name: conversation-confetti-fall-right; }
+@keyframes conversation-confetti-fall {
+  0% { opacity: 0; transform: translate3d(0, -12px, 0) rotate(0deg); }
+  12% { opacity: .82; }
+  100% { opacity: 0; transform: translate3d(0, 110vh, 0) rotate(740deg); }
+}
+@keyframes conversation-confetti-fall-left {
+  0% { opacity: 0; transform: translate3d(0, -12px, 0) rotate(0deg); }
+  12% { opacity: .82; }
+  100% { opacity: 0; transform: translate3d(-18vw, 110vh, 0) rotate(-620deg); }
+}
+@keyframes conversation-confetti-fall-right {
+  0% { opacity: 0; transform: translate3d(0, -12px, 0) rotate(0deg); }
+  12% { opacity: .82; }
+  100% { opacity: 0; transform: translate3d(22vw, 110vh, 0) rotate(860deg); }
+}
+@keyframes conversation-confetti-fall-twist {
+  0% { opacity: 0; transform: translate3d(0, -12px, 0) rotate(0deg); }
+  12% { opacity: .82; transform: translate3d(-8vw, 18vh, 180deg); }
+  100% { opacity: 0; transform: translate3d(12vw, 110vh, 0) rotate(-980deg); }
+}
+@media (prefers-reduced-motion: reduce) { .conversation-confetti { display: none; } }
 .scroll-to-bottom {
   position: sticky;
   bottom: 0;
