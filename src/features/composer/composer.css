@@ -16,6 +16,7 @@
 .composer-stats { flex: 0 0 auto; gap: 12px; }
 .composer-stats span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .composer-stats b { color: var(--subtle); font: 650 9px ui-sans-serif, system-ui, sans-serif; }
+.composer-stats small { color: var(--ink); font: 10px ui-monospace, monospace; }
 .composer-stats progress { width: 48px; height: 4px; overflow: hidden; border: 0; border-radius: 999px; background: var(--line); accent-color: currentColor; }
 .composer-stats progress::-webkit-progress-bar { border-radius: inherit; background: var(--line); }
 .composer-stats progress::-webkit-progress-value { border-radius: inherit; background: currentColor; }

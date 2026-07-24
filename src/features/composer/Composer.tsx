@@ -265,7 +265,7 @@ export const Composer = memo(function Composer({ session, snapshot, agentBusy, a
         </div>
         <div className="composer-info" aria-label="Session information">
           <div className="composer-session">{running && <span aria-label="Pi is active" className="status-dot" role="img" />}<strong>{session.name}</strong><span title={session.cwd}>{session.cwd}</span></div>
-          <div className="composer-stats"><span><b>Cost</b>{cost}</span><span className={contextClass} title={contextTokens}><b>Context</b>{contextPercent}{contextPercentValue !== null && <progress aria-label={`Context usage: ${contextPercent}`} max={100} value={contextPercentValue} />}</span></div>
+          <div className="composer-stats"><span><b>Cost</b>{cost}</span><span className={contextClass}><b>Context</b><small>{contextTokens}</small>{contextPercentValue !== null && <>{contextPercent}<progress aria-label={`Context usage: ${contextTokens} (${contextPercent})`} max={100} value={contextPercentValue} /></>}</span></div>
         </div>
       </div>
     </form>
