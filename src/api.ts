@@ -1,5 +1,16 @@
 import type { DirectoryListing, GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, JsonObject, QuotaSnapshot, RecentSession, SessionSnapshot, SessionSummary, TerminalCommandResult, TodoItem, VsCodeStatus, WorkspaceFile } from '../shared/types.ts'
 
+export async function requestExtension<T>(extensionId: string, path: string, init?: RequestInit): Promise<T> {
+  if (path.includes('#')) throw new Error('Extension request paths cannot contain fragments')
+  const queryIndex = path.indexOf('?')
+  const pathname = queryIndex < 0 ? path : path.slice(0, queryIndex)
+  const query = queryIndex < 0 ? '' : path.slice(queryIndex)
+  const segments = pathname.split('/').filter(Boolean)
+  if (segments.some((segment) => segment === '.' || segment === '..')) throw new Error('Extension request paths cannot traverse namespaces')
+  const route = segments.map(encodeURIComponent).join('/')
+  return request<T>(`/api/extensions/${encodeURIComponent(extensionId)}${route ? `/${route}` : ''}${query}`, init)
+}
+
 export async function listSessions(): Promise<SessionSummary[]> {
   return request<SessionSummary[]>('/api/sessions')
 }
@@ -118,7 +129,7 @@ export async function sendPiCommand(sessionId: string, command: JsonObject): Pro
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
-    headers: init?.body ? { 'Content-Type': 'application/json', ...init.headers } : init?.headers,
+    headers: typeof init?.body === 'string' ? { 'Content-Type': 'application/json', ...init.headers } : init?.headers,
   })
   const value: unknown = await response.json()
   if (!response.ok) {

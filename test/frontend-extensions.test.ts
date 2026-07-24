@@ -47,6 +47,10 @@ test('registers frontend renderers without allowing ambiguous contributions', ()
     /Renderer du message notice fourni par first et second/,
   )
   assert.throws(
+    () => createFrontendExtensionRegistry([{ apiVersion: 1, id: '' }]),
+    /identifiant d’extension frontend est requis/,
+  )
+  assert.throws(
     () => createFrontendExtensionRegistry([
       { apiVersion: 1, id: 'duplicate' },
       { apiVersion: 1, id: 'duplicate' },

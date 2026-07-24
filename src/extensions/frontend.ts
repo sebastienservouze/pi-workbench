@@ -28,6 +28,7 @@ export interface CustomMessageRendererProps {
 export type CustomMessageRenderer = ComponentType<CustomMessageRendererProps>
 
 export interface RightSidebarWidgetProps {
+  request: <T>(path: string, init?: RequestInit) => Promise<T>
   workspacePath: string
 }
 
@@ -89,6 +90,7 @@ export function createFrontendExtensionRegistry(extensions: readonly WorkbenchEx
   const toolCalls = new Map<string, ToolCallRenderer>()
 
   for (const extension of extensions) {
+    if (!extension.id.trim()) throw new Error('Un identifiant d’extension frontend est requis')
     if (extensionIds.has(extension.id)) throw new Error(`Extension frontend dupliquée : ${extension.id}`)
     extensionIds.add(extension.id)
 
@@ -106,6 +108,7 @@ export function createFrontendExtensionRegistry(extensions: readonly WorkbenchEx
     }
 
     for (const widget of extension.rightSidebarWidgets ?? []) {
+      if (!widget.id.trim() || !widget.label.trim()) throw new Error(`Le widget de sidebar de ${extension.id} requiert un identifiant et un libellé`)
       const key = `extension:${encodeURIComponent(extension.id)}/${encodeURIComponent(widget.id)}` as const
       if (rightSidebarWidgets.has(key)) throw new Error(`Widget de sidebar dupliqué : ${extension.id}/${widget.id}`)
       rightSidebarWidgets.set(key, { ...widget, extensionId: extension.id, key })

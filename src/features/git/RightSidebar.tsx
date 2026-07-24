@@ -1,5 +1,6 @@
 import { useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, QuotaSnapshot } from '../../../shared/types.ts'
+import { requestExtension } from '../../api.ts'
 import { customExtensionRegistry } from '../../custom/extensions.ts'
 import { ExtensionRendererBoundary } from '../../extensions/ExtensionRendererBoundary.tsx'
 import { QuotaWidget } from '../quotas/QuotaWidget.tsx'
@@ -176,7 +177,7 @@ export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onA
         {activeWidget === 'terminal' && <TerminalWidget workspacePath={workspacePath} />}
         {activeWidget === 'todo' && <TodoWidget onOpenCountChange={setTodoOpenCount} onStartSession={onTodoStartSession} workspacePath={workspacePath} />}
         {ExtensionWidget && <ExtensionRendererBoundary fallback={<p className="git-empty" role="alert">Ce widget est indisponible.</p>} onError={onError}>
-          <ExtensionWidget workspacePath={workspacePath} />
+          <ExtensionWidget request={(path, init) => requestExtension(extensionWidget.extensionId, path, init)} workspacePath={workspacePath} />
         </ExtensionRendererBoundary>}
       </section>
     </div>}

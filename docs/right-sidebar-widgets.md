@@ -78,7 +78,10 @@ La structure CSS actuelle est volontairement minimale : `.git-sidebar` aligne `.
 Un widget officiel qui dépend fortement de l’état central peut encore étendre les rendus conditionnels existants. Un fork ajoute de préférence ses widgets isolés dans la zone réservée `src/custom/extensions.ts`, sans modifier `App.tsx` ni `RightSidebar.tsx` :
 
 ```tsx
-const StatusWidget = ({ workspacePath }: RightSidebarWidgetProps) => <p>{workspacePath}</p>
+const StatusWidget = ({ request, workspacePath }: RightSidebarWidgetProps) => {
+  // request('/status') cible toujours /api/extensions/my-workbench/status.
+  return <button onClick={() => void request('/status', { method: 'POST', body: JSON.stringify({ cwd: workspacePath }) })}>{workspacePath}</button>
+}
 
 export const customExtensions: readonly WorkbenchExtension[] = [{
   apiVersion: 1,
@@ -93,6 +96,25 @@ export const customExtensions: readonly WorkbenchExtension[] = [{
 ```
 
 La clé persistée est dérivée de l’identifiant de l’extension et de celui du widget. Deux widgets portant le même identifiant dans une extension provoquent une erreur explicite. Une erreur de rendu est isolée : le panneau affiche un repli et le reste du shell demeure utilisable.
+
+La prop `request()` appelle une réponse JSON dans le namespace backend de l’extension. Le chemin relatif ne peut pas sortir de ce namespace. Les valeurs de query string restent à encoder avec `URLSearchParams` ou `encodeURIComponent`. Pour une réponse non JSON, le widget peut utiliser `fetch` directement sur son namespace.
+
+La capacité Node.js correspondante se déclare séparément dans `server/custom/extensions.ts` :
+
+```ts
+export const customBackendExtensions: readonly WorkbenchBackendExtension[] = [{
+  apiVersion: 1,
+  id: 'my-workbench',
+  handleRequest: async ({ method, path, readJsonBody, resolveWorkingDirectory }) => {
+    if (method !== 'POST' || path !== 'status') throw new BackendExtensionHttpError(404, 'Not found')
+    const body = await readJsonBody()
+    const cwd = await resolveWorkingDirectory(String(body.cwd ?? ''))
+    return { cwd, ok: true }
+  },
+}]
+```
+
+Le même `id` relie les deux contributions sans coupler leurs modules. Le handler doit valider toutes les données reçues. Il peut retourner du JSON ou écrire directement dans la réponse HTTP Node.js pour les usages avancés.
 
 ### Widget à panneau
 

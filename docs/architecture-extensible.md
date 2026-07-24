@@ -169,7 +169,9 @@ Route backend namespacée
 API Node.js et système local
 ```
 
-Une route d’extension ne peut pas remplacer une route du cœur. Elle valide son corps, ses paramètres et son workspace comme toute autre frontière de confiance. Le backend continue d’écouter uniquement sur `127.0.0.1`.
+Une route d’extension ne peut pas remplacer une route du cœur. Chaque contribution déclarée dans `server/custom/extensions.ts` possède exclusivement `/api/extensions/<extension-id>/*`. Son `handleRequest` reçoit la méthode, le chemin relatif, l’URL, les objets HTTP Node.js et les helpers bornés `readJsonBody()` et `resolveWorkingDirectory()`. La valeur retournée est sérialisée en JSON avec un statut 200 ; un handler peut écrire directement dans `response` pour produire un autre statut, un fichier ou un flux.
+
+Le handler valide son corps, ses paramètres et son workspace comme toute autre frontière de confiance. Il peut lever `BackendExtensionHttpError` pour retourner explicitement une erreur 4xx ou 5xx. Le backend continue d’écouter uniquement sur `127.0.0.1`.
 
 Le code d’un fork est privilégié et peut importer la bibliothèque standard Node.js. Pi Workbench n’essaie pas de le sandboxer.
 
