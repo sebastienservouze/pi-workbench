@@ -1,17 +1,26 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createFrontendExtensionRegistry, type CustomMessageRenderer, type ToolCallRenderer } from '../src/extensions/frontend.ts'
+import { createFrontendExtensionRegistry, type ActivityRenderer, type CustomMessageRenderer, type ToolCallRenderer } from '../src/extensions/frontend.ts'
 
+const activityRenderer: ActivityRenderer = () => null
 const messageRenderer: CustomMessageRenderer = () => null
 const toolCallRenderer: ToolCallRenderer = () => null
 
 test('registers frontend renderers without allowing ambiguous contributions', () => {
   const registry = createFrontendExtensionRegistry([
-    { apiVersion: 1, id: 'custom-tools', messages: { notice: messageRenderer }, toolCalls: { inspect: toolCallRenderer } },
+    { apiVersion: 1, id: 'custom-tools', activity: activityRenderer, messages: { notice: messageRenderer }, toolCalls: { inspect: toolCallRenderer } },
   ])
 
+  assert.equal(registry.activity, activityRenderer)
   assert.equal(registry.messages.get('notice'), messageRenderer)
   assert.equal(registry.toolCalls.get('inspect'), toolCallRenderer)
+  assert.throws(
+    () => createFrontendExtensionRegistry([
+      { apiVersion: 1, id: 'first', activity: activityRenderer },
+      { apiVersion: 1, id: 'second', activity: activityRenderer },
+    ]),
+    /Renderer d’activité fourni par first et second/,
+  )
   assert.throws(
     () => createFrontendExtensionRegistry([
       { apiVersion: 1, id: 'first', toolCalls: { inspect: toolCallRenderer } },

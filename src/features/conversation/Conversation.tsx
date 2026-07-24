@@ -2,7 +2,7 @@ import { memo, useEffect, useRef, useState, type KeyboardEvent, type ReactNode, 
 import type { JsonObject } from '../../../shared/types.ts'
 import { customExtensionRegistry } from '../../custom/extensions.ts'
 import { ExtensionRendererBoundary } from '../../extensions/ExtensionRendererBoundary.tsx'
-import type { CustomMessageView } from '../../extensions/frontend.ts'
+import type { ActivityView, CustomMessageView } from '../../extensions/frontend.ts'
 import { activityActionText, activityAgentName, type Activity } from './activity.ts'
 import { formatTokens, formatTurnCost, turnUsageByMessage, type MessageUsage } from './message-usage.ts'
 import { toolCallsInMessage, toolResultInMessage, type ToolExecution } from './tool-calls.ts'
@@ -135,7 +135,7 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
       {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard animateLiveChanges args={execution.args} hasResult={execution.result !== undefined} id={execution.id} interrupted={execution.status === 'interrupted'} key={execution.id} name={execution.name} onError={onError} onStartSession={onStartSession} rawArgs={execution.rawArgs} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} revealRequest={navigationRequest?.target.kind === 'tool' && navigationRequest.target.id === execution.id ? navigationRequest.id : undefined} streaming={execution.status === 'generating'} targeted={highlightedTarget === `tool:${execution.id}`} workspacePath={workspacePath} />)}
       {liveText && <article className="message assistant streaming conversation-entry"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {visibleMessages.length === 0 && !liveText && !liveThinking && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
-      {activity && <div className="conversation-activity"><ActivityIndicator activity={activity} agentName={agentName} /></div>}
+      {activity && <div className="conversation-activity"><ActivityIndicator activity={activity} agentName={agentName} onError={onError} /></div>}
       <button
         aria-label="Reprendre le défilement automatique"
         className={`scroll-to-bottom${showScrollToBottom ? ' visible' : ''}`}
@@ -200,8 +200,20 @@ function TurnUsage({ usage }: { usage: MessageUsage }) {
   </dl>
 }
 
-/** Affiche l'état de travail courant de Pi dans le fil de conversation. */
-export function ActivityIndicator({ activity, agentName }: { activity: Activity; agentName?: string }) {
+/** Isole le renderer d’activité du fork et conserve l’indicateur officiel comme repli. */
+export function ActivityIndicator({ activity, agentName, onError }: { activity: Activity; agentName?: string; onError: (cause: unknown) => void }) {
+  const renderDefault = () => <DefaultActivityIndicator activity={activity} agentName={agentName} />
+  const Renderer = customExtensionRegistry.activity
+  if (!Renderer) return renderDefault()
+
+  const activityView: ActivityView = { ...activity, agentName }
+  return <ExtensionRendererBoundary fallback={renderDefault()} onError={onError}>
+    <Renderer activity={activityView} renderDefault={renderDefault} />
+  </ExtensionRendererBoundary>
+}
+
+/** Affiche l’état de travail courant de Pi dans le fil de conversation. */
+function DefaultActivityIndicator({ activity, agentName }: { activity: Activity; agentName?: string }) {
   return <div className="pi-activity" role="status"><span aria-hidden="true" className="activity-signal"><i /><i /><i /></span><span className="activity-text"><span>{activityAgentName(agentName)}</span>{' '}<span className="activity-action" key={activity.kind}>{activityActionText(activity)}</span></span></div>
 }
 

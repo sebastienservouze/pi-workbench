@@ -1,5 +1,18 @@
 import type { ComponentType, ReactNode } from 'react'
 
+export interface ActivityView {
+  agentName?: string
+  kind: 'thinking' | 'tool-preparing' | 'tool-waiting' | 'waiting' | 'working' | 'writing'
+  thinking?: string
+}
+
+export interface ActivityRendererProps {
+  activity: Readonly<ActivityView>
+  renderDefault: () => ReactNode
+}
+
+export type ActivityRenderer = ComponentType<ActivityRendererProps>
+
 export interface CustomMessageView {
   content: unknown
   customType: string
@@ -33,11 +46,13 @@ export type ToolCallRenderer = ComponentType<ToolCallRendererProps>
 export interface WorkbenchExtension {
   apiVersion: 1
   id: string
+  activity?: ActivityRenderer
   messages?: Record<string, CustomMessageRenderer>
   toolCalls?: Record<string, ToolCallRenderer>
 }
 
 export interface FrontendExtensionRegistry {
+  activity?: ActivityRenderer
   messages: ReadonlyMap<string, CustomMessageRenderer>
   toolCalls: ReadonlyMap<string, ToolCallRenderer>
 }
@@ -45,6 +60,8 @@ export interface FrontendExtensionRegistry {
 /** Valide les identifiants et assemble les contributions frontend sans remplacement implicite. */
 export function createFrontendExtensionRegistry(extensions: readonly WorkbenchExtension[]): FrontendExtensionRegistry {
   const extensionIds = new Set<string>()
+  let activity: ActivityRenderer | undefined
+  let activityOwner: string | undefined
   const messageOwners = new Map<string, string>()
   const messages = new Map<string, CustomMessageRenderer>()
   const toolCallOwners = new Map<string, string>()
@@ -53,6 +70,12 @@ export function createFrontendExtensionRegistry(extensions: readonly WorkbenchEx
   for (const extension of extensions) {
     if (extensionIds.has(extension.id)) throw new Error(`Extension frontend dupliquée : ${extension.id}`)
     extensionIds.add(extension.id)
+
+    if (extension.activity) {
+      if (activityOwner) throw new Error(`Renderer d’activité fourni par ${activityOwner} et ${extension.id}`)
+      activityOwner = extension.id
+      activity = extension.activity
+    }
 
     for (const [customType, renderer] of Object.entries(extension.messages ?? {})) {
       const owner = messageOwners.get(customType)
@@ -69,5 +92,5 @@ export function createFrontendExtensionRegistry(extensions: readonly WorkbenchEx
     }
   }
 
-  return { messages, toolCalls }
+  return { activity, messages, toolCalls }
 }

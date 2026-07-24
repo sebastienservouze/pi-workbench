@@ -117,6 +117,7 @@ interface ToolCallView {
 interface ActivityView {
   kind: 'working' | 'thinking' | 'tool-preparing' | 'tool-waiting' | 'writing' | 'waiting'
   agentName?: string
+  thinking?: string
 }
 ```
 
@@ -150,7 +151,7 @@ Les règles de composition sont déterministes :
 - une contribution inconnue ne remplace jamais silencieusement une autre ;
 - un renderer défaillant est isolé et laisse le renderer officiel servir de repli.
 
-Les composants officiels réutilisables font partie du contrat. Par exemple, un renderer d’outil peut fournir un affichage complet ou appeler `renderDefault()` pour conserver la carte officielle.
+Les composants officiels réutilisables font partie du contrat. Les renderers d’outil, de message et d’activité peuvent fournir un affichage complet ou appeler `renderDefault()` pour conserver le rendu officiel. Une seule extension peut remplacer l’indicateur d’activité ; un second remplacement provoque une erreur explicite au démarrage.
 
 Les messages Pi dont le rôle vaut `custom` et dont `display` vaut `true` sont transmis à l’interface. Une contribution `messages[customType]` peut remplacer leur rendu et dispose également de `renderDefault()`. Les messages personnalisés cachés restent exclus du snapshot : leur contenu destiné au contexte de Pi ne doit pas être exposé implicitement au navigateur.
 
