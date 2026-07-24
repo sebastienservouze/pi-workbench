@@ -25,14 +25,14 @@
 
 ## Why Pi Livecraft?
 
-Open a project and get to work as you would with any Pi client. The difference starts when the client itself no longer fits.
+Pi is already powerful in a terminal. But a conversation does not have to remain a stream of text: its messages, tool calls, state, and live events can become the building blocks of a real interactive program.
 
-- **Use Pi normally.** Run one or several sessions, reopen history, and follow responses, thinking, usage, and tool calls live.
-- **Build your workflow on top of Pi.** Quick action on a tool call, better tool presentation, session analytics, only limit is your imagination.
-- **Change absolutely everything.** Layout, styles, widgets, commands, persistence, backend, manager, Pi extensions, and docs are all fair game. The source code is the customization surface.
-- **Stay in flow.** Ask Pi to modify Pi Livecraft from an active session; frontend changes appear immediately and backend changes restart without closing the Pi process.
+- **Turn conversations into workflows.** Attach actions to messages and tool calls, carry context from one step to the next, automate recurring sequences, and surface the right controls at the right moment.
+- **Give Pi an interface built for the task.** Use buttons, forms, previews, dashboards, and visualizations instead of translating every intent back into another prompt or shell command.
+- **Build on Pi instead of rebuilding it.** Keep Pi's sessions, models, tools, history, and extension system, then combine them with a React frontend and local backend to shape a focused application.
+- **Let the program evolve while you use it.** Ask Pi to modify the interface or workflow from an active session; frontend changes appear immediately and backend changes restart without closing the Pi process.
 
-Fork it. Delete half of it. Add the oddly specific button only you need. Paint it purple. It is yours now.
+Pi Livecraft starts as a capable client, not a finished product you must accept as-is. Fork it. Delete half of it. Add the oddly specific workflow only you need. The source code is the customization surface.
 
 ## Quick start
 
