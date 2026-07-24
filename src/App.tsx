@@ -270,6 +270,9 @@ function App() {
       }
       if (event.type === 'agent_start') updateSessionStatus(sessionId, 'running')
       if (event.type === 'agent_settled') updateSessionStatus(sessionId, 'idle')
+      if (event.type === 'auto_retry_end' && event.success === false && typeof event.finalError === 'string') {
+        showToast('error', `Provider connection failed after retries: ${event.finalError}`, sessionId)
+      }
       if (event.type === 'tool_execution_end') void refreshGit()
       if (event.type === 'extension_ui_request' && event.method === 'setStatus' && event.statusKey === 'agent') {
         updateSessionAgent(sessionId, typeof event.activeAgent === 'string' ? event.activeAgent : undefined)

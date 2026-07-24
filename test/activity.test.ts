@@ -38,6 +38,13 @@ test('keeps thinking content out of the activity label', () => {
   assert.equal(activityText(activity, undefined), 'Pi is thinking hard…')
 })
 
+test('reports provider reconnection attempts', () => {
+  const activity = activityForPiEvent({ kind: 'working' }, { type: 'auto_retry_start', attempt: 2, maxAttempts: 3 })
+
+  assert.deepEqual(activity, { kind: 'retrying', attempt: 2, maxAttempts: 3 })
+  assert.equal(activityText(activity, 'pi'), 'Pi is reconnecting to the provider (2/3)…')
+})
+
 test('uses playful activity labels', () => {
   assert.equal(activityText({ kind: 'writing' }, 'pi'), 'Pi is writing…')
   assert.equal(activityText({ kind: 'waiting' }, 'pi'), 'Pi is waiting for you 🎤')

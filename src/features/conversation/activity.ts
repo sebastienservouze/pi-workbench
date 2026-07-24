@@ -1,14 +1,23 @@
 import type { JsonObject } from '../../../shared/types.ts'
 
 export interface Activity {
-  kind: 'working' | 'thinking' | 'tool-preparing' | 'tool-waiting' | 'writing' | 'waiting'
+  kind: 'working' | 'thinking' | 'tool-preparing' | 'tool-waiting' | 'writing' | 'waiting' | 'retrying'
   thinking?: string
+  attempt?: number
+  maxAttempts?: number
 }
 
 /** Converts Pi events into a stable activity state for the conversation indicator. */
 export function activityForPiEvent(current: Activity | null, event: JsonObject): Activity | null {
   if (event.type === 'agent_start' || event.type === 'message_start') return { kind: 'working' }
   if (event.type === 'agent_settled') return null
+  if (event.type === 'auto_retry_start') {
+    return {
+      kind: 'retrying',
+      attempt: typeof event.attempt === 'number' ? event.attempt : undefined,
+      maxAttempts: typeof event.maxAttempts === 'number' ? event.maxAttempts : undefined,
+    }
+  }
   if (event.type === 'tool_execution_start') return { kind: 'tool-waiting' }
   if (event.type === 'tool_execution_end') return { kind: 'working' }
   if (event.type !== 'message_update' || !isObject(event.assistantMessageEvent)) return current
@@ -35,6 +44,10 @@ export function activityText(activity: Activity, agentName: string | undefined):
 
 /** Produces the variable part of the label so it can be animated independently of the name. */
 export function activityActionText(activity: Activity): string {
+  if (activity.kind === 'retrying') {
+    const progress = activity.attempt !== undefined && activity.maxAttempts !== undefined ? ` (${activity.attempt}/${activity.maxAttempts})` : ''
+    return `is reconnecting to the provider${progress}…`
+  }
   if (activity.kind === 'thinking') return 'is thinking hard…'
   if (activity.kind === 'tool-preparing') return 'is preparing a tool call…'
   if (activity.kind === 'tool-waiting') return 'is waiting for the tool…'
