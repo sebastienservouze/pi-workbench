@@ -10,6 +10,7 @@ import json from 'react-syntax-highlighter/dist/esm/languages/prism/json'
 import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup'
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
 import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { Tooltip } from '../../components/Tooltip.tsx'
 import { getWorkspaceFile, getWorkspaceFilePath } from '../../api.ts'
 import { fileContextDraft } from './context-session.ts'
 import { canHighlightFile } from './file-preview.ts'
@@ -42,9 +43,9 @@ export function ContextSessionButton({ onClick, onError }: { onClick: () => Prom
     }
   }
 
-  return <button aria-label="Continue in a new session" className="context-session-button" disabled={busy} onClick={() => void activate()} title="Continue in a new session" type="button">
+  return <Tooltip label="Continue in a new session"><button aria-label="Continue in a new session" className="context-session-button" disabled={busy} onClick={() => void activate()} type="button">
     <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" /></svg>
-  </button>
+  </button></Tooltip>
 }
 
 interface ToolCallCardProps {
@@ -140,7 +141,7 @@ export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = fa
   const hasBody = streaming || interrupted || hasResult
 
   return <article className={`tool-call${animateLiveChanges && streaming ? ' entering' : ''}${contentError ? ' error' : ''}${interrupted ? ' interrupted' : ''}${targeted ? ' conversation-target' : ''}`} data-tool-call-id={id}>
-    <button aria-expanded={htmlFile ? undefined : hasResult ? expanded : undefined} className="tool-call-heading tool-call-tooltip" data-tooltip={tooltip} disabled={!hasResult} onClick={activate} type="button">
+    <Tooltip label={tooltip}><button aria-expanded={htmlFile ? undefined : hasResult ? expanded : undefined} className="tool-call-heading" disabled={!hasResult} onClick={activate} type="button">
       <span aria-hidden="true">⌘</span>
       <span><strong aria-label={tooltip}>{name || 'Tool'}</strong></span>
       {presentation.headerDetail && <span className="tool-call-command"><code aria-label={`Full command: ${presentation.headerDetail.title}`}>{presentation.headerDetail.text}</code></span>}
@@ -150,7 +151,7 @@ export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = fa
         {hasResult ? contentError ? 'Failed' : <span aria-hidden="true">↘ {inputLength} car. · ↗ {outputLength} car.</span> : interrupted ? 'Generation interrupted' : streaming ? 'Generating…' : 'In progress…'}
         {active && <span aria-label={streaming ? 'Arguments are being generated' : 'Tool in progress'} className="spinner tool-call-spinner" role="status" />}
       </small>
-    </button>
+    </button></Tooltip>
     {filePath && (name === 'read' || name === 'write') && hasResult && <ContextSessionButton onClick={async () => {
       const { absolutePath } = await getWorkspaceFilePath(workspacePath, filePath)
       await onStartSession(fileContextDraft(absolutePath))

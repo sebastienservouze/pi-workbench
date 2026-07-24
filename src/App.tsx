@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import './App.css'
+import { Tooltip } from './components/Tooltip.tsx'
 import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getQuotas, getSnapshot, listRecentSessions, listSessions, openExplorer, openSession, refreshQuotas, revertGitCommit, sendPiCommand } from './api.ts'
 import { quotaRefreshAllowed } from '../shared/quota-refresh.ts'
 import type { GitSnapshot, JsonObject, ManagerEvent, QuotaSnapshot, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
@@ -636,14 +637,14 @@ function App() {
         ) : selectedSession ? (
           <>
             <Conversation activity={displayedActivity} agentName={selectedSession.activeAgent} darkMode={theme === 'dark'} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} navigationRequest={conversationNavigation} onError={handleConversationError} onStartSession={handleContextSessionStart} pendingSteering={pendingSteering} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
-            <button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Click to toggle view.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
+            <Tooltip label={`${conversationViewDetail.label} — ${conversationViewDetail.description}`}><button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Click to toggle view.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
                 const next = current === 'simple' ? 'detailed' : 'simple'
                 window.localStorage.setItem('pi-workbench.conversation-view', next)
                 return next
-              })} title={`${conversationViewDetail.label} — ${conversationViewDetail.description}`} type="button">
+              })} type="button">
               <span aria-hidden="true" className="chat-detail-toggle-icon">⌘</span>
               <span className="chat-detail-toggle-copy"><strong>{conversationViewDetail.label}</strong><small>{conversationViewDetail.description}</small></span>
-            </button>
+            </button></Tooltip>
             <div className="composer-area">
               <ToastStack onDismiss={dismissToast} toasts={visibleToasts} />
               <Composer

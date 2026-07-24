@@ -10,9 +10,7 @@
 .todo-list input[type='checkbox'] { width: 16px; height: 16px; margin: 0; accent-color: var(--teal); }
 .todo-text { min-width: 0; border: 0; padding: 5px 2px; background: transparent; color: var(--ink); font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; text-align: left; }
 .todo-text:focus-visible, .todo-start:focus-visible, .todo-send:focus-visible, .todo-delete:focus-visible, .todo-add button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
-.todo-tooltip-host { display: contents; }
-.todo-tooltip-content { position: fixed; z-index: 50; width: max-content; max-width: min(560px, calc(100vw - 16px)); border-radius: 6px; padding: 7px 9px; background: #173b34; color: white; font: 11px/1.45 ui-monospace, monospace; pointer-events: none; white-space: pre-wrap; box-shadow: var(--shadow-soft); }
-[data-theme='dark'] .todo-tooltip-content { background: #0e1e1a; }
+
 .todo-list .completed .todo-text { color: var(--muted); text-decoration: line-through; }
 .todo-edit { width: 100%; min-width: 0; border: 1px solid var(--teal); border-radius: 6px; padding: 5px 6px; background: var(--surface); color: var(--ink); font-size: 12px; outline: 3px solid color-mix(in srgb, var(--teal) 16%, transparent); }
 .todo-start, .todo-send, .todo-delete { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 6px; padding: 0; background: transparent; color: var(--subtle); font-size: 18px; }

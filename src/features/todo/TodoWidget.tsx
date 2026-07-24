@@ -1,5 +1,5 @@
-import { createPortal } from 'react-dom'
-import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { Tooltip } from '../../components/Tooltip.tsx'
 import type { TodoItem } from '../../../shared/types.ts'
 import { getTodos, updateTodos } from '../../api.ts'
 import { reorderTodoItems } from './todo-order.ts'
@@ -178,14 +178,14 @@ export function TodoWidget({ onOpenCountChange, onSendPrompt, onStartSession, wo
         {error && <div className="todo-error" role="alert"><span>{error}</span><button onClick={() => setReloadRequest((current) => current + 1)} type="button">Retry</button></div>}
         {visibleTodos.length === 0 && !error ? <div className="todo-empty"><strong>No tasks</strong><span>Write down an idea to pick up later in this workspace.</span></div> : <ul className="todo-list">
           {visibleTodos.map((todo) => <li className={draggedId === todo.id ? 'dragging' : undefined} data-todo-id={todo.id} key={todo.id}>
-            <TodoTooltip label="Move"><span
+            <Tooltip label="Move"><span
               aria-hidden="true"
               className="todo-drag"
               onPointerCancel={cancelDrag}
               onPointerDown={(event) => beginDrag(event, todo.id)}
               onPointerMove={moveDraggedTodo}
               onPointerUp={(event) => void finishDrag(event)}
-            >⠿</span></TodoTooltip>
+            >⠿</span></Tooltip>
             <input aria-label={`Mark “${todo.text}” as complete`} checked={false} disabled={busy} onChange={() => void save(todos.map((item) => item.id === todo.id ? { ...item, completed: true } : item))} type="checkbox" />
             {editingId === todo.id ? <input
               aria-label={`Edit “${todo.text}”`}
@@ -197,10 +197,10 @@ export function TodoWidget({ onOpenCountChange, onSendPrompt, onStartSession, wo
               onChange={(event) => setEditingText(event.target.value)}
               onKeyDown={(event) => editWithKeyboard(event, todo)}
               value={editingText}
-            /> : <TodoTooltip label="Edit"><button className="todo-text" disabled={busy || startingId !== null} onClick={() => { setEditingId(todo.id); setEditingText(todo.text) }} type="button">{todo.text}</button></TodoTooltip>}
-            <TodoTooltip label="Open a new session"><button aria-label={`Open a new session with “${todo.text}”`} className="todo-start" disabled={busy || editingId !== null || startingId !== null} onClick={() => void startSession(todo)} type="button">{startingId === todo.id ? '…' : '↗'}</button></TodoTooltip>
-            <TodoTooltip label="Open a session and send the prompt"><button aria-label={`Open a new session and send “${todo.text}”`} className="todo-send" disabled={busy || editingId !== null || startingId !== null} onClick={() => void sendPrompt(todo)} type="button">{startingId === todo.id ? '…' : '↑'}</button></TodoTooltip>
-            <TodoTooltip label="Delete"><button aria-label={`Delete “${todo.text}”`} className="todo-delete" disabled={busy || startingId !== null} onClick={() => void removeTodo(todo)} type="button">×</button></TodoTooltip>
+            /> : <Tooltip label="Edit"><button className="todo-text" disabled={busy || startingId !== null} onClick={() => { setEditingId(todo.id); setEditingText(todo.text) }} type="button">{todo.text}</button></Tooltip>}
+            <Tooltip label="Open a new session"><button aria-label={`Open a new session with “${todo.text}”`} className="todo-start" disabled={busy || editingId !== null || startingId !== null} onClick={() => void startSession(todo)} type="button">{startingId === todo.id ? '…' : '↗'}</button></Tooltip>
+            <Tooltip label="Open a session and send the prompt"><button aria-label={`Open a new session and send “${todo.text}”`} className="todo-send" disabled={busy || editingId !== null || startingId !== null} onClick={() => void sendPrompt(todo)} type="button">{startingId === todo.id ? '…' : '↑'}</button></Tooltip>
+            <Tooltip label="Delete"><button aria-label={`Delete “${todo.text}”`} className="todo-delete" disabled={busy || startingId !== null} onClick={() => void removeTodo(todo)} type="button">×</button></Tooltip>
           </li>)}
         </ul>}
       </>}
@@ -208,59 +208,13 @@ export function TodoWidget({ onOpenCountChange, onSendPrompt, onStartSession, wo
     <footer className="widget-footer">
       <form className="todo-add" onSubmit={(event) => void addTodo(event)}>
         <input aria-label="New task" disabled={busy || loading} maxLength={500} onChange={(event) => setNewText(event.target.value)} placeholder="Add a task to this workspace…" value={newText} />
-        <TodoTooltip label="Add"><button aria-label="Add task" disabled={busy || loading || !newText.trim()} type="submit">+</button></TodoTooltip>
+        <Tooltip label="Add"><button aria-label="Add task" disabled={busy || loading || !newText.trim()} type="submit">+</button></Tooltip>
       </form>
     </footer>
   </>
 }
 
-/** Renders a tooltip in the document layer so the sidebar cannot clip it. */
-function TodoTooltip({ children, label }: { children: ReactNode; label: string }) {
-  const [visible, setVisible] = useState(false)
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
-  const triggerRef = useRef<Element | null>(null)
-  const tooltipRef = useRef<HTMLDivElement>(null)
 
-  useLayoutEffect(() => {
-    if (!visible) return
-    const updatePosition = (): void => {
-      const trigger = triggerRef.current
-      const tooltip = tooltipRef.current
-      if (!trigger || !tooltip || !trigger.isConnected) return
-      const triggerRect = trigger.getBoundingClientRect()
-      const tooltipRect = tooltip.getBoundingClientRect()
-      const left = Math.min(Math.max(8, triggerRect.left + (triggerRect.width - tooltipRect.width) / 2), window.innerWidth - tooltipRect.width - 8)
-      let top = triggerRect.top - tooltipRect.height - 8
-      if (top < 8) top = triggerRect.bottom + 8
-      if (top + tooltipRect.height > window.innerHeight - 8) top = Math.max(8, window.innerHeight - tooltipRect.height - 8)
-      setPosition({ top, left })
-    }
-    updatePosition()
-    window.addEventListener('resize', updatePosition)
-    window.addEventListener('scroll', updatePosition, true)
-    return () => {
-      window.removeEventListener('resize', updatePosition)
-      window.removeEventListener('scroll', updatePosition, true)
-    }
-  }, [visible])
-
-  function show(eventTarget: EventTarget | null): void {
-    if (!(eventTarget instanceof Element)) return
-    triggerRef.current = eventTarget
-    setPosition(null)
-    setVisible(true)
-  }
-
-  function hide(): void {
-    setVisible(false)
-    triggerRef.current = null
-  }
-
-  return <>
-    <span className="todo-tooltip-host" onBlur={hide} onFocus={(event) => show(event.target)} onPointerEnter={(event) => show(event.target)} onPointerLeave={hide}>{children}</span>
-    {visible && createPortal(<div className="todo-tooltip-content" ref={tooltipRef} role="tooltip" style={{ left: position?.left ?? 0, top: position?.top ?? 0, visibility: position ? 'visible' : 'hidden' }}>{label}</div>, document.body)}
-  </>
-}
 
 function openCount(todos: TodoItem[]): number {
   return todos.filter((todo) => !todo.completed).length

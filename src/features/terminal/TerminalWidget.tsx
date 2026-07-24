@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { Tooltip } from '../../components/Tooltip.tsx'
 import type { TerminalCommandResult } from '../../../shared/types.ts'
 import { executeTerminalCommand } from '../../api.ts'
 
@@ -29,7 +30,7 @@ export function TerminalWidget({ workspacePath }: { workspacePath: string }) {
 
   return <>
     <header className="widget-header terminal-header">
-      <div><strong>Terminal</strong><span title={workspacePath}>{workspacePath}</span></div>
+      <div><strong>Terminal</strong><Tooltip label={workspacePath}><span>{workspacePath}</span></Tooltip></div>
       {results.length > 0 && <button onClick={() => setResults([])} type="button">Effacer</button>}
     </header>
     <div aria-live="polite" className="widget-content terminal-output">
@@ -47,7 +48,7 @@ export function TerminalWidget({ workspacePath }: { workspacePath: string }) {
       <form className="terminal-form" onSubmit={(event) => void execute(event)}>
         <span aria-hidden="true">$</span>
         <input aria-label="Command to run" autoComplete="off" disabled={running} maxLength={10_000} onChange={(event) => setCommand(event.target.value)} placeholder="npm run typecheck" spellCheck={false} value={command} />
-        <button aria-label="Run command" disabled={running || !command.trim()} title="Run" type="submit">↵</button>
+        <Tooltip label="Run"><button aria-label="Run command" disabled={running || !command.trim()} type="submit">↵</button></Tooltip>
       </form>
     </footer>
   </>

@@ -1,5 +1,6 @@
 import * as Select from '@radix-ui/react-select'
 import { memo, useEffect, useRef, useState, type ClipboardEvent as ReactClipboardEvent, type FormEvent, type RefObject } from 'react'
+import { Tooltip } from '../../components/Tooltip.tsx'
 import type { JsonObject, SessionSnapshot, SessionSummary } from '../../../shared/types.ts'
 import { maxComposerImages, prepareComposerImage, type ComposerImage } from './composer-images.ts'
 
@@ -257,18 +258,18 @@ export const Composer = memo(function Composer({ session, snapshot, agentBusy, a
             />}
           </div>
           <div className="composer-primary-actions">
-            <span className="composer-stop-slot">{running && <button aria-label="Stop generation" className="icon-button danger" onClick={() => void onAbort().catch(onError)} title="Stop generation" type="button">
+            <span className="composer-stop-slot">{running && <Tooltip label="Stop generation"><button aria-label="Stop generation" className="icon-button danger" onClick={() => void onAbort().catch(onError)} type="button">
               <svg aria-hidden="true" viewBox="0 0 16 16"><rect height="8" rx="1.5" width="8" x="4" y="4" /></svg>
-            </button>}</span>
-            <button aria-label={commandPending ? 'Run command' : 'Send message'} className={`icon-button send${commandPending ? ' command' : ''}`} disabled={submitting || preparingImages || (!message.trim() && images.length === 0)} title={commandPending ? 'Run command (Enter)' : 'Send message (Enter)'} type="submit">
+            </button></Tooltip>}</span>
+            <Tooltip label={commandPending ? 'Run command (Enter)' : 'Send message (Enter)'}><button aria-label={commandPending ? 'Run command' : 'Send message'} className={`icon-button send${commandPending ? ' command' : ''}`} disabled={submitting || preparingImages || (!message.trim() && images.length === 0)} type="submit">
               {commandPending
                 ? <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M9.2 1.5 3.5 8.4h3.2l-.3 6.1 6.1-7.4H9.1l.1-5.6Z" /></svg>
                 : <svg aria-hidden="true" viewBox="0 0 16 16"><path d="m2.5 2.5 11 5.5-11 5.5 1.8-5.1L9 8 4.3 7.6z" /></svg>}
-            </button>
+            </button></Tooltip>
           </div>
         </div>
         <div className="composer-info" aria-label="Session information">
-          <div className="composer-session">{running && <span aria-label="Pi is active" className="status-dot" role="img" />}<strong>{session.name}</strong><span title={session.cwd}>{session.cwd}</span></div>
+          <div className="composer-session">{running && <span aria-label="Pi is active" className="status-dot" role="img" />}<strong>{session.name}</strong><Tooltip label={session.cwd}><span>{session.cwd}</span></Tooltip></div>
           <div className="composer-stats"><span><b>Cost</b>{cost}</span><span className={contextClass}><b>Context</b><small>{contextTokens}</small>{contextPercentValue !== null && <>{contextPercent}<progress aria-label={`Context usage: ${contextTokens} (${contextPercent})`} max={100} value={contextPercentValue} /></>}</span></div>
         </div>
       </div>

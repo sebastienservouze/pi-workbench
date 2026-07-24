@@ -1,4 +1,5 @@
 import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { Tooltip } from '../../components/Tooltip.tsx'
 import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, QuotaSnapshot } from '../../../shared/types.ts'
 import { getTodos } from '../../api.ts'
 import { GitWidget } from '../git/GitWidget.tsx'
@@ -118,24 +119,24 @@ export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onA
       </section>
     </div>}
     <div className="right-sidebar-rail">
-      {analysis && <button aria-controls={activeWidget === 'analysis' ? 'analysis-panel' : undefined} aria-expanded={activeWidget === 'analysis'} aria-label={activeWidget === 'analysis' ? 'Collapse session analysis' : 'Expand session analysis'} className="rail-tab" onClick={() => onWidgetSelect('analysis')} title="Session analysis" type="button">
+      {analysis && <Tooltip label="Session analysis"><button aria-controls={activeWidget === 'analysis' ? 'analysis-panel' : undefined} aria-expanded={activeWidget === 'analysis'} aria-label={activeWidget === 'analysis' ? 'Collapse session analysis' : 'Expand session analysis'} className="rail-tab" onClick={() => onWidgetSelect('analysis')} type="button">
         <span aria-hidden="true">∑</span>
         {analysis.failedToolCalls > 0 && <small>{analysis.failedToolCalls}</small>}
-      </button>}
-      {snapshot && <button aria-controls={activeWidget === 'git' ? 'git-panel' : undefined} aria-expanded={activeWidget === 'git'} aria-label={activeWidget === 'git' ? 'Collapse Git panel' : 'Expand Git panel'} className="rail-tab" onClick={() => onWidgetSelect('git')} title="Git" type="button">
+      </button></Tooltip>}
+      {snapshot && <Tooltip label="Git"><button aria-controls={activeWidget === 'git' ? 'git-panel' : undefined} aria-expanded={activeWidget === 'git'} aria-label={activeWidget === 'git' ? 'Collapse Git panel' : 'Expand Git panel'} className="rail-tab" onClick={() => onWidgetSelect('git')} type="button">
         <span aria-hidden="true">⎇</span>
         {(hasChanges || snapshot.ahead > 0) && <small>{snapshot.files.length + snapshot.ahead}</small>}
-      </button>}
-      <button aria-controls={activeWidget === 'quotas' ? 'quotas-panel' : undefined} aria-expanded={activeWidget === 'quotas'} aria-label={`${activeWidget === 'quotas' ? 'Collapse' : 'Expand'} quota panel${quotaSummary ? `. ${quotaSummary.label}` : ''}`} className="rail-tab" onClick={() => onWidgetSelect('quotas')} title={quotaSummary?.label ?? 'Quotas'} type="button">
+      </button></Tooltip>}
+      <Tooltip label={quotaSummary?.label ?? 'Quotas'}><button aria-controls={activeWidget === 'quotas' ? 'quotas-panel' : undefined} aria-expanded={activeWidget === 'quotas'} aria-label={`${activeWidget === 'quotas' ? 'Collapse' : 'Expand'} quota panel${quotaSummary ? `. ${quotaSummary.label}` : ''}`} className="rail-tab" onClick={() => onWidgetSelect('quotas')} type="button">
         <span aria-hidden="true" className="quota-rail-value">{quotaSummary?.value ?? '%'}</span>
         {quotaSummary?.stale && <small>!</small>}
-      </button>
-      <button aria-controls={activeWidget === 'terminal' ? 'terminal-panel' : undefined} aria-expanded={activeWidget === 'terminal'} aria-label={activeWidget === 'terminal' ? 'Collapse terminal' : 'Expand terminal'} className="rail-tab" onClick={() => onWidgetSelect('terminal')} title="Terminal" type="button"><span aria-hidden="true">›_</span></button>
-      <button aria-controls={activeWidget === 'todo' ? 'todo-panel' : undefined} aria-expanded={activeWidget === 'todo'} aria-label={activeWidget === 'todo' ? 'Collapse the task panel' : 'Expand the task panel'} className="rail-tab" onClick={() => onWidgetSelect('todo')} title="Todo" type="button">
+      </button></Tooltip>
+      <Tooltip label="Terminal"><button aria-controls={activeWidget === 'terminal' ? 'terminal-panel' : undefined} aria-expanded={activeWidget === 'terminal'} aria-label={activeWidget === 'terminal' ? 'Collapse terminal' : 'Expand terminal'} className="rail-tab" onClick={() => onWidgetSelect('terminal')} type="button"><span aria-hidden="true">›_</span></button></Tooltip>
+      <Tooltip label="Todo"><button aria-controls={activeWidget === 'todo' ? 'todo-panel' : undefined} aria-expanded={activeWidget === 'todo'} aria-label={activeWidget === 'todo' ? 'Collapse the task panel' : 'Expand the task panel'} className="rail-tab" onClick={() => onWidgetSelect('todo')} type="button">
         <span aria-hidden="true">☑</span>
         {todoOpenCount !== null && todoOpenCount > 0 && <small aria-label={`${todoOpenCount} tasks remaining`}>{todoOpenCount}</small>}
-      </button>
-      {railActions.map((action) => <button aria-label={action.label} className="rail-tab" disabled={action.disabled} key={action.key} onClick={action.onClick} title={action.label} type="button">{action.icon}</button>)}
+      </button></Tooltip>
+      {railActions.map((action) => <Tooltip key={action.key} label={action.label}><button aria-label={action.label} className="rail-tab" disabled={action.disabled} onClick={action.onClick} type="button">{action.icon}</button></Tooltip>)}
     </div>
   </aside>
 }

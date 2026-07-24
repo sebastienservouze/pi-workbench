@@ -129,7 +129,6 @@ button:disabled, select:disabled { cursor: not-allowed; }
   .tool-call { border-color: #3a4a43; background: #1a2421; color: #b0c9c0; }
   .tool-call.error { border-color: #5c3d37; color: #f09087; }
   .tool-call-heading:not(:disabled):hover { background: rgb(79 185 171 / 8%); }
-  .tool-call-tooltip[data-tooltip]::after { background: #0e1e1a; }
   .tool-call-content { border-top-color: rgb(176 201 192 / 14%); }
   .tool-call-raw-args { border-top-color: rgb(176 201 192 / 14%); background: rgb(0 0 0 / 14%); }
   .tool-call-writing { border-top-color: rgb(176 201 192 / 10%); background: rgb(0 0 0 / 10%); }

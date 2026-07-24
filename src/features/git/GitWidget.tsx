@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Tooltip } from '../../components/Tooltip.tsx'
 import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot } from '../../../shared/types.ts'
 import { WidgetLayout } from '../right-sidebar/WidgetLayout.tsx'
 import { parseGitDiff } from './git-diff.ts'
@@ -60,7 +61,7 @@ export function GitWidget({ snapshot, onAction, onError, onFileSelect, onRefresh
       {hasChanges && <input aria-label="Commit message" disabled={busy} onChange={(event) => setMessage(event.target.value)} placeholder="Commit message" value={message} />}
       <button disabled={busy || (hasChanges && !message.trim())} type="submit">{busy ? 'Git in progress…' : hasChanges ? 'Commit & push' : `Push ${snapshot.ahead} commit${snapshot.ahead > 1 ? 's' : ''}`}</button>
     </form>}
-    header={fileDiff || selectedPath ? <><button aria-label="Back to Git files" className="git-back" onClick={() => { setFileDiff(null); setSelectedPath(null) }} title="Back" type="button">←</button><strong title={selectedPath ?? undefined}>{selectedPath}</strong></> : <><div><strong>{snapshot.branch}</strong><span>{hasChanges ? `${snapshot.files.length} file${snapshot.files.length > 1 ? 's' : ''} modified` : 'Clean tree'}</span></div><button aria-label="Refresh Git state" className="git-refresh" onClick={onRefresh} title="Refresh" type="button">↻</button></>}
+    header={fileDiff || selectedPath ? <><Tooltip label="Back"><button aria-label="Back to Git files" className="git-back" onClick={() => { setFileDiff(null); setSelectedPath(null) }} type="button">←</button></Tooltip><Tooltip label={selectedPath ?? ''}><strong>{selectedPath}</strong></Tooltip></> : <><div><strong>{snapshot.branch}</strong><span>{hasChanges ? `${snapshot.files.length} file${snapshot.files.length > 1 ? 's' : ''} modified` : 'Clean tree'}</span></div><Tooltip label="Refresh"><button aria-label="Refresh Git state" className="git-refresh" onClick={onRefresh} type="button">↻</button></Tooltip></>}
   >
     {fileDiff || selectedPath ? fileDiff ? <GitDiff diff={fileDiff.diff} /> : <p className="git-empty">Loading diff…</p> : <>
       {hasChanges && <ul className="git-file-list">
@@ -72,12 +73,12 @@ export function GitWidget({ snapshot, onAction, onError, onFileSelect, onRefresh
         <h2>Unpushed commits <small>{snapshot.commits.length}</small></h2>
         {snapshot.commits.map((commit) => <div className="git-commit" key={commit.hash}>
           <details>
-            <summary title={commit.subject}><code>{commit.hash.slice(0, 7)}</code><span>{commit.subject}</span></summary>
+            <summary><Tooltip label={commit.subject}><code>{commit.hash.slice(0, 7)}</code><span>{commit.subject}</span></Tooltip></summary>
             {commit.files.length > 0 ? <ul className="git-file-list git-commit-files">{commit.files.map((file) => <li className="git-file-item" key={file.path}>
               {file.status === 'added' || file.status === 'modified' ? <button className="git-file-button" onClick={() => void selectFile(file.path, commit.hash)} type="button"><GitFileRow file={file} /></button> : <GitFileRow file={file} />}
             </li>)}</ul> : <p className="git-empty">No files modified.</p>}
           </details>
-          <button aria-label={`Revert commit ${commit.hash.slice(0, 7)}`} className="git-revert" disabled={busy} onClick={() => void revertCommit(commit.hash)} title="Revert this commit" type="button">↶</button>
+          <Tooltip label="Revert this commit"><button aria-label={`Revert commit ${commit.hash.slice(0, 7)}`} className="git-revert" disabled={busy} onClick={() => void revertCommit(commit.hash)} type="button">↶</button></Tooltip>
         </div>)}
       </section>}
       {!hasChanges && snapshot.ahead === 0 && <p className="git-empty">No changes to commit.</p>}
@@ -88,8 +89,8 @@ export function GitWidget({ snapshot, onAction, onError, onFileSelect, onRefresh
 /** Displays common file metadata in Git lists. */
 function GitFileRow({ file }: { file: GitSnapshot['files'][number] }) {
   return <>
-    <span className={`git-file-status ${file.status}`} title={gitStatusLabel(file.status)}>{gitStatusInitial(file.status)}</span>
-    <span className="git-file-path" title={file.path}>{file.path}</span>
+    <Tooltip label={gitStatusLabel(file.status)}><span className={`git-file-status ${file.status}`}>{gitStatusInitial(file.status)}</span></Tooltip>
+    <Tooltip label={file.path}><span className="git-file-path">{file.path}</span></Tooltip>
     <span className="git-file-counts"><b>+{file.additions ?? '—'}</b><i>−{file.deletions ?? '—'}</i></span>
   </>
 }

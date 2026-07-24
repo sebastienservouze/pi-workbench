@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Tooltip } from '../../components/Tooltip.tsx'
 import type { RecentSession, SessionSummary } from '../../../shared/types.ts'
 import { sessionIndicator, type SessionIndicator } from './session-indicator.ts'
 import { sidebarSessions } from './sidebar-sessions.ts'
@@ -28,17 +29,17 @@ export function WorkspaceSidebar({ completedSessionIds, recentSessions, sessions
     <div className="brand">
       <span className="brand-mark">π</span>
       <div><strong>Pi Workbench</strong><small>Local workspace</small></div>
-      <button aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} className="theme-toggle" onClick={onToggleTheme} title={theme === 'dark' ? 'Light theme' : 'Dark theme'} type="button">
+      <Tooltip label={theme === 'dark' ? 'Light theme' : 'Dark theme'}><button aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} className="theme-toggle" onClick={onToggleTheme} type="button">
         {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-      </button>
-      <button aria-label="Open settings" className="theme-toggle" onClick={onOpenSettings} title="Settings" type="button">
+      </button></Tooltip>
+      <Tooltip label="Settings"><button aria-label="Open settings" className="theme-toggle" onClick={onOpenSettings} type="button">
         <SettingsIcon />
-      </button>
+      </button></Tooltip>
     </div>
     <div className="workspace-group">
-      <button className="workspace-path" onClick={onChooseWorkspace} title={workspacePath} type="button">
+      <Tooltip label={workspacePath}><button className="workspace-path" onClick={onChooseWorkspace} type="button">
         <span>Current directory</span><strong>{workspacePath}</strong>
-      </button>
+      </button></Tooltip>
     </div>
     <NewSessionButton onCreate={onCreate} onError={onError} />
     <nav className="session-list" aria-label="Recent Pi sessions">
@@ -46,10 +47,9 @@ export function WorkspaceSidebar({ completedSessionIds, recentSessions, sessions
         const activeSession = sessions.find((session) => session.sessionPath === recentSession.sessionPath && session.status !== 'exited')
         const indicator = sessionIndicator(activeSession, selectedId, completedSessionIds)
         return (
-          <button
+          <Tooltip label={recentSession.name}><button
             className={activeSession?.id === selectedId ? 'session-item selected' : 'session-item'}
             disabled={openingSessionPath === recentSession.sessionPath}
-            title={recentSession.name}
             key={recentSession.sessionPath}
             onClick={() => {
               if (activeSession) {
@@ -63,7 +63,7 @@ export function WorkspaceSidebar({ completedSessionIds, recentSessions, sessions
           >
             {indicator && <SessionStatusIndicator status={indicator} />}
             <span><strong>{openingSessionPath === recentSession.sessionPath ? 'Opening…' : recentSession.name}</strong><small>{new Date(recentSession.updatedAt).toLocaleString('en-US')}</small></span>
-          </button>
+          </button></Tooltip>
         )
       })}
       {visibleSessions.length === 0 && <p className="empty-sidebar">No Pi sessions in this directory.</p>}
@@ -79,11 +79,11 @@ const indicatorLabels: Record<SessionIndicator, string> = {
 
 /** Uses one visual vocabulary for active, attention, and completed session states. */
 function SessionStatusIndicator({ status }: { status: SessionIndicator }) {
-  return <span aria-label={indicatorLabels[status]} className={`session-status-indicator ${status}`} role="img" title={indicatorLabels[status]}>
+  return <Tooltip label={indicatorLabels[status]}><span aria-label={indicatorLabels[status]} className={`session-status-indicator ${status}`} role="img">
     {status === 'working' && <svg aria-hidden="true" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" /><path d="M8 2.5a5.5 5.5 0 0 1 5.5 5.5" /></svg>}
     {status === 'waiting' && <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M3 3.5h10v7H8l-3 2v-2H3z" /><path d="M6.6 6a1.5 1.5 0 0 1 2.8.7c0 1-1.4 1-1.4 2" /><path d="M8 9.5h.01" /></svg>}
     {status === 'complete' && <svg aria-hidden="true" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" /><path d="m5.5 8 1.6 1.6 3.5-3.5" /></svg>}
-  </span>
+  </span></Tooltip>
 }
 
 /** Prevents duplicate session creation and reports errors to the container. */

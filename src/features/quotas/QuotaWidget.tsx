@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Tooltip } from '../../components/Tooltip.tsx'
 import type { QuotaProviderSnapshot, QuotaSnapshot } from '../../../shared/types.ts'
 
 /** Displays normalized quota readings without deducing absent quota from provider responses. */
@@ -22,7 +23,7 @@ export function QuotaWidget({ quotas, onRefresh }: { quotas: QuotaSnapshot | nul
         <strong>Quotas</strong>
         <span>{updatedAt ? `Actualisé ${formatRelativeDate(updatedAt)}` : 'Aucun relevé'}</span>
       </div>
-      <button aria-label="Actualiser les quotas" className="git-refresh" disabled={refreshing || quotas?.refreshing || quotas?.sessionRequired} onClick={() => void refresh()} title="Actualiser" type="button">↻</button>
+      <Tooltip label="Actualiser"><button aria-label="Actualiser les quotas" className="git-refresh" disabled={refreshing || quotas?.refreshing || quotas?.sessionRequired} onClick={() => void refresh()} type="button">↻</button></Tooltip>
     </header>
     <div className="widget-content quota-content" aria-busy={refreshing || quotas?.refreshing}>
       {!quotas ? <QuotaSkeleton /> : <>

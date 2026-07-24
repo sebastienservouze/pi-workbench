@@ -182,9 +182,6 @@
 .tool-call-heading:not(:disabled):hover { background: rgb(33 68 61 / 5%); }
 .tool-call-heading:not(:disabled):focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
 .tool-call-heading > span:first-child { color: var(--teal); font-size: 14px; }
-.tool-call-tooltip { position: relative; }
-.tool-call-tooltip[data-tooltip]::after { position: absolute; z-index: 2; bottom: calc(100% + 7px); left: 0; width: max-content; max-width: min(560px, calc(100vw - 24px)); padding: 7px 9px; border-radius: 6px; background: #173b34; color: white; content: attr(data-tooltip); font: 11px/1.45 ui-monospace, monospace; opacity: 0; pointer-events: none; white-space: pre-wrap; box-shadow: var(--shadow-soft); transform: translateY(3px); transition: opacity 150ms ease-out, transform 150ms ease-out; visibility: hidden; }
-.tool-call-tooltip[data-tooltip]:hover::after { opacity: 1; transform: translateY(0); visibility: visible; }
 .tool-call-command { min-width: 0; color: inherit; font: 11px ui-monospace, monospace; }
 .tool-call-command > code { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tool-call-range { flex: 0 0 auto; font: 11px ui-monospace, monospace; }
