@@ -21,7 +21,6 @@ import { WorkspaceSidebar } from './features/workspace/WorkspaceSidebar.tsx'
 import { CommandPalette, type PaletteCommand } from './features/commands/CommandPalette.tsx'
 import { commandDefinitions, defaultShortcuts, lastAssistantText, rightWidgetFromCommand, shortcutFromEvent, type CommandId } from './features/commands/command-registry.ts'
 import { SettingsPanel } from './features/settings/SettingsPanel.tsx'
-import { ConfettiCelebration } from './features/celebration/ConfettiCelebration.tsx'
 import { analyzeSession, type SessionAnalysisTarget } from './features/session-analysis/session-analysis.ts'
 import './features/commands/commands.css'
 
@@ -106,7 +105,6 @@ function App() {
   const [observedToolDurations, setObservedToolDurations] = useState<ReadonlyMap<string, number>>(new Map())
   const [observedRequestDurations, setObservedRequestDurations] = useState<ReadonlyMap<number, number>>(new Map())
   const [shortcuts, setShortcuts] = useState(() => readShortcuts())
-  const [celebrationId, setCelebrationId] = useState(0)
   const selectedIdRef = useRef(selectedId)
   const creatingSessionRef = useRef(false)
   const refreshVersionRef = useRef(0)
@@ -122,7 +120,6 @@ function App() {
   const model = isObject(snapshot.state?.model) ? snapshot.state.model : undefined
   const currentQuotaProvider = quotaProviderForModel(model?.provider)
   const currentQuotaProviderRef = useRef(currentQuotaProvider)
-  const finishCelebration = useCallback(() => setCelebrationId(0), [])
   selectedIdRef.current = selectedId
   quotasRef.current = quotas
   currentQuotaProviderRef.current = currentQuotaProvider
@@ -319,7 +316,6 @@ function App() {
     setConversationNavigation(undefined)
     setObservedToolDurations(new Map())
     setObservedRequestDurations(new Map())
-    setCelebrationId(0)
     toolStartedAtRef.current.clear()
     requestStartedAtRef.current = undefined
     void refreshSnapshot(selectedId)
@@ -355,8 +351,7 @@ function App() {
       if (event.type === 'agent_start') updateSessionStatus(sessionId, 'running')
       if (event.type === 'agent_settled') {
         updateSessionStatus(sessionId, 'idle')
-        if (sessionId === selectedIdRef.current) setCelebrationId((current) => current + 1)
-        else setCompletedSessionIds((current) => new Set(current).add(sessionId))
+        if (sessionId !== selectedIdRef.current) setCompletedSessionIds((current) => new Set(current).add(sessionId))
       }
       if (event.type === 'auto_retry_end' && event.success === false && typeof event.finalError === 'string') {
         showToast('error', `Provider connection failed after retries: ${event.finalError}`, sessionId)
@@ -796,7 +791,6 @@ function App() {
       {dialog && !questionnaire && <ExtensionDialog dialog={dialog} onClose={() => closeDialog(dialog)} onError={(cause) => showToast('error', messageOf(cause))} />}
       {commandPaletteOpen && <CommandPalette commands={paletteCommands} onClose={() => setCommandPaletteOpen(false)} />}
       {settingsOpen && <SettingsPanel definitions={commandDefinitions} shortcuts={shortcuts} onChange={(id, shortcut) => { const next = { ...shortcuts, [id]: shortcut }; setShortcuts(next); window.localStorage.setItem('pi-livecraft.shortcuts', JSON.stringify(next)) }} onReset={() => { setShortcuts(defaultShortcuts); window.localStorage.setItem('pi-livecraft.shortcuts', JSON.stringify(defaultShortcuts)) }} onClose={() => setSettingsOpen(false)} />}
-      {celebrationId > 0 && <ConfettiCelebration key={celebrationId} onComplete={finishCelebration} />}
     </div>
   )
 }
