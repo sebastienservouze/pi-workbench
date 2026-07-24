@@ -2,9 +2,9 @@
 
 # Pi Workbench
 
-**Build with Pi. Rebuild the workbench while it is running.**
+**Build with Pi. Rebuild the workbench while it is running. Bring your own opinions.**
 
-A local, fork-first control room for parallel [Pi](https://github.com/earendil-works/pi) sessions.
+A local, fork-first control room for parallel [Pi](https://github.com/earendil-works/pi) sessions—and a workbench that expects you to reach for the wrench.
 
 [![Version](https://img.shields.io/github/package-json/v/sebastienservouze/pi-workbench?style=flat-square&label=version)](package.json)
 [![License](https://img.shields.io/github/license/sebastienservouze/pi-workbench?style=flat-square)](LICENSE)
@@ -23,19 +23,25 @@ A local, fork-first control room for parallel [Pi](https://github.com/earendil-w
   <p align="center"><img src="./docs/assets/pi-workbench-demo.gif" alt="Editing Pi Workbench from a live Pi session" width="1200" /></p>
 -->
 
-Pi Workbench is not a one-size-fits-all AI client. It is a working base meant to be **forked, stripped down, extended, and made personal**.
+Pi Workbench is not a one-size-fits-all AI client. It is a working base meant to be **forked, stripped down, extended, and made personal**. Delete half of it. Add the oddly specific button only you need. Paint it purple. It is your fork now.
 
 The defining loop is simple: open Pi Workbench, ask Pi to change Pi Workbench, and watch the interface evolve around the session you are already using. Vite refreshes the frontend, Node watches the local services, and the manager keeps Pi sessions alive through frontend and backend restarts.
 
-> The interface is part of the workspace—not a fixed product wrapped around it.
+> **Nothing is sacred. No locked workflow, no protected product layer. If it lives in this repository, you can change it.**
 
-## Why it feels different
+## Everything means everything
 
-### Shape the tool while using the tool
+The layout, styles, conversation rendering, widgets, commands, shortcuts, persistence, local API, process manager, Pi extensions, and documentation are all yours. You are not confined to a theme editor or a plugin sandbox: the source code *is* the customization surface.
 
-The agent can inspect and modify the application from inside an active session. Change a panel, refine a tool call, add a shortcut, or build a workflow-specific widget without leaving the workbench.
+The fastest loop is in the frontend and backend, where changes appear or restart automatically. You can modify the manager too; it simply sits on the session boundary, so restarting it interrupts the current response while history can normally resume.
 
-Most frontend changes appear immediately. Backend changes restart automatically without closing the active Pi process. The result is a tight feedback loop where the product can adapt to the work instead of forcing the work into a predefined UI.
+## Why it is fun
+
+### Use it. Change it. Keep using it.
+
+The agent can inspect and modify the application from inside an active session. Change a panel, refine a tool call, add a shortcut, or build a workflow-specific widget without leaving the workbench—or the conversation that gave you the idea.
+
+Most frontend changes appear immediately. Backend changes restart automatically without closing the active Pi process. Instead of adapting your work to somebody else's interface, keep turning the wrench until the interface fits the work.
 
 ### Turn a note into the next session
 
@@ -45,9 +51,9 @@ Todos are stored per workspace, so ideas do not disappear into chat history. Add
 2. open it immediately;
 3. prefill the composer with the task as the prompt.
 
-You stay in control of the final prompt before sending it. Direct submission from the todo is the natural next step, but is not implemented yet.
+You stay in control of the final prompt before sending it. Direct submission from the todo is the obvious next trick, but is not wired yet.
 
-### Keep the whole coding loop close
+### Good stuff already on the bench
 
 - **Parallel sessions** — create, switch, and reopen Pi sessions without tying them to the browser lifecycle.
 - **Live execution** — follow responses, thinking activity, usage, tool calls, and extension dialogs as they happen.
@@ -58,11 +64,20 @@ You stay in control of the final prompt before sending it. Direct submission fro
 
 ## Run it
 
-Pi Workbench is designed to run in development mode. You need:
+Pi Workbench is designed to run in development mode. You need **Node.js 24 or newer**, **npm**, and **Pi**.
 
-- Node.js 24 or newer;
-- npm;
-- a configured `pi` command.
+### 1. Install Pi
+
+Pi is required: Workbench provides the interface, but it does not bundle the agent. Install the [`@earendil-works/pi-coding-agent`](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) package, then launch Pi once to configure a provider:
+
+```bash
+npm install -g --ignore-scripts @earendil-works/pi-coding-agent
+pi
+```
+
+Use `/login` inside Pi, or follow the [Pi quickstart guide](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/quickstart.md) for API keys and alternative authentication modes. If `pi --version` already works and a provider is configured, you are ready.
+
+### 2. Install Pi Workbench
 
 ```bash
 git clone https://github.com/sebastienservouze/pi-workbench.git
@@ -71,32 +86,30 @@ npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). `Ctrl+C` stops the frontend, backend, and manager.
-
-If Pi is not configured yet, follow the [Pi quickstart guide](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/quickstart.md) and complete provider authentication before starting the workbench.
+That is the intended way to run it: `npm run dev` keeps the frontend, backend, and manager watched while you reshape them. Open [http://127.0.0.1:5173](http://127.0.0.1:5173); `Ctrl+C` stops all three processes.
 
 > [!IMPORTANT]
 > Pi Workbench listens only on `127.0.0.1`. Pi can read files, modify code, and execute commands in the selected workspace. Keep important work under version control and review Git actions before confirming them.
 
 ## Make it yours
 
-Forking is not a fallback—it is the intended product model.
+Forking is not a fallback—it is the intended product model. There is no canonical setup to converge on and no prize for keeping every feature.
 
 1. Fork the repository.
 2. Start it with `npm run dev`.
 3. Select the fork itself as the current workspace.
 4. Ask Pi to reshape one part of the interface.
-5. Keep only what improves your workflow.
+5. Keep the useful bits. Gleefully remove the rest.
 
 Good places to start:
 
 - add a workflow-specific widget to the right rail;
 - change how a tool call or file edit is presented;
 - create commands and shortcuts for repeated actions;
-- simplify the interface to the features you actually use;
-- connect a todo, analysis result, or Git state to your own session flow.
+- turn a recurring workspace command into a first-class action;
+- simplify the interface to the features you actually use.
 
-The focused guides in [`docs/README.md`](docs/README.md) and the [`src/features/` map](src/features/README.md) point to the smallest owning area for each kind of change.
+The focused guides in the [documentation index](docs/README.md) and [frontend feature map](src/features/README.md) point to the smallest owning area for each kind of change.
 
 ## The live architecture
 
