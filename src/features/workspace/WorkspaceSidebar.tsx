@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { RecentSession, SessionSummary } from '../../../shared/types.ts'
+import { sidebarSessions } from './sidebar-sessions.ts'
 
 interface WorkspaceSidebarProps {
   recentSessions: RecentSession[]
@@ -19,6 +20,7 @@ interface WorkspaceSidebarProps {
 /** Affiche le workspace courant et ouvre ou sélectionne ses sessions Pi récentes. */
 export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspacePath, theme, onChooseWorkspace, onCreate, onOpenSession, onSelectSession, onToggleTheme, onOpenSettings, onError }: WorkspaceSidebarProps) {
   const [openingSessionPath, setOpeningSessionPath] = useState('')
+  const visibleSessions = useMemo(() => sidebarSessions(recentSessions, sessions, workspacePath), [recentSessions, sessions, workspacePath])
 
   return <aside className="sidebar">
     <div className="brand">
@@ -38,7 +40,7 @@ export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspa
     </div>
     <NewSessionButton onCreate={onCreate} onError={onError} />
     <nav className="session-list" aria-label="Sessions Pi récentes">
-      {recentSessions.map((recentSession) => {
+      {visibleSessions.map((recentSession) => {
         const activeSession = sessions.find((session) => session.sessionPath === recentSession.sessionPath && session.status !== 'exited')
         return (
           <button
@@ -60,7 +62,7 @@ export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspa
           </button>
         )
       })}
-      {recentSessions.length === 0 && <p className="empty-sidebar">Aucune session Pi dans ce dossier.</p>}
+      {visibleSessions.length === 0 && <p className="empty-sidebar">Aucune session Pi dans ce dossier.</p>}
     </nav>
   </aside>
 }
