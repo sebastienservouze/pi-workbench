@@ -108,7 +108,10 @@
 .icon-button svg { width: 15px; height: 15px; fill: currentColor; }
 .icon-button.send { width: 36px; height: 36px; border-color: var(--accent); border-radius: 10px; background: var(--accent); color: white; box-shadow: 0 2px 0 color-mix(in srgb, var(--accent) 72%, black); }
 .icon-button.send:hover:not(:disabled) { border-color: var(--accent-hover); background: var(--accent-hover); }
-.icon-button.send:disabled { border-color: var(--line-strong); background: var(--line); color: var(--subtle); }
+.icon-button.send.command { border-color: #37677a; background: #37677a; box-shadow: 0 2px 0 #244b5b; }
+.icon-button.send.command:hover:not(:disabled) { border-color: #2c5668; background: #2c5668; }
+.icon-button.send.command:focus-visible { border-color: #37677a; box-shadow: 0 0 0 3px rgb(55 103 122 / 16%), 0 2px 0 #244b5b; }
+.icon-button.send:disabled { border-color: var(--line-strong); background: var(--line); color: var(--subtle); box-shadow: none; }
 .icon-button.danger { width: 36px; height: 36px; border-color: var(--danger); border-radius: 10px; background: var(--danger); color: white; box-shadow: 0 2px 0 color-mix(in srgb, var(--danger) 72%, black); }
 .icon-button.danger:hover:not(:disabled) { border-color: color-mix(in srgb, var(--danger) 86%, black); background: color-mix(in srgb, var(--danger) 86%, black); }
 .icon-button.danger:focus-visible { border-color: var(--danger); box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 16%, transparent), 0 2px 0 color-mix(in srgb, var(--danger) 72%, black); }

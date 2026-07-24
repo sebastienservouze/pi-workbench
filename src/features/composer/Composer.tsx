@@ -47,6 +47,8 @@ export const Composer = memo(function Composer({ session, snapshot, agentBusy, a
   const modelInput = selectedModel?.input ?? model?.input
   const supportsImages = Array.isArray(modelInput) && modelInput.includes('image')
   const thinking = typeof snapshot.state?.thinkingLevel === 'string' ? snapshot.state.thinkingLevel : 'off'
+  const pendingCommandName = /^\/([^\s]+)/.exec(message)?.[1].toLowerCase()
+  const commandPending = pendingCommandName !== undefined && commands.some((command) => String(command.name).toLowerCase() === pendingCommandName)
 
   useEffect(() => {
     if (submitRequest > 0) formRef.current?.requestSubmit()
@@ -258,8 +260,10 @@ export const Composer = memo(function Composer({ session, snapshot, agentBusy, a
             <span className="composer-stop-slot">{running && <button aria-label="Stop generation" className="icon-button danger" onClick={() => void onAbort().catch(onError)} title="Stop generation" type="button">
               <svg aria-hidden="true" viewBox="0 0 16 16"><rect height="8" rx="1.5" width="8" x="4" y="4" /></svg>
             </button>}</span>
-            <button aria-label="Send message" className="icon-button send" disabled={submitting || preparingImages || (!message.trim() && images.length === 0)} title="Send message (Enter)" type="submit">
-              <svg aria-hidden="true" viewBox="0 0 16 16"><path d="m2.5 2.5 11 5.5-11 5.5 1.8-5.1L9 8 4.3 7.6z" /></svg>
+            <button aria-label={commandPending ? 'Run command' : 'Send message'} className={`icon-button send${commandPending ? ' command' : ''}`} disabled={submitting || preparingImages || (!message.trim() && images.length === 0)} title={commandPending ? 'Run command (Enter)' : 'Send message (Enter)'} type="submit">
+              {commandPending
+                ? <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M9.2 1.5 3.5 8.4h3.2l-.3 6.1 6.1-7.4H9.1l.1-5.6Z" /></svg>
+                : <svg aria-hidden="true" viewBox="0 0 16 16"><path d="m2.5 2.5 11 5.5-11 5.5 1.8-5.1L9 8 4.3 7.6z" /></svg>}
             </button>
           </div>
         </div>
