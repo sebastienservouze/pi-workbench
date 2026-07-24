@@ -1,13 +1,11 @@
 import * as Select from '@radix-ui/react-select'
 import { memo, useEffect, useRef, useState, type ClipboardEvent as ReactClipboardEvent, type FormEvent, type RefObject } from 'react'
 import type { JsonObject, SessionSnapshot, SessionSummary } from '../../../shared/types.ts'
-import { sessionIndicatorLabel, type SessionIndicator } from '../conversation/activity.ts'
 import { maxComposerImages, prepareComposerImage, type ComposerImage } from './composer-images.ts'
 
 /** Provides user input and session commands while reflecting the current Pi state. */
-export const Composer = memo(function Composer({ session, sessionIndicator, snapshot, agentBusy, agentOptions, selectedAgent, agentLoading, showAgentSelector, onAgentChange, onCommand, commands, running, onSend, onAbort, onError, requestedSelect, onSelectOpened, submitRequest = 0, focusRequest, draftRequest, onDraftApplied }: {
+export const Composer = memo(function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, agentLoading, showAgentSelector, onAgentChange, onCommand, commands, running, onSend, onAbort, onError, requestedSelect, onSelectOpened, submitRequest = 0, focusRequest, draftRequest, onDraftApplied }: {
   session: SessionSummary
-  sessionIndicator: SessionIndicator
   snapshot: SessionSnapshot
   agentBusy: boolean
   agentOptions: string[]
@@ -263,7 +261,7 @@ export const Composer = memo(function Composer({ session, sessionIndicator, snap
           </button>
         </div>
         <div className="composer-info" aria-label="Session information">
-          <div className="composer-session"><span aria-label={sessionIndicatorLabel(sessionIndicator)} className={`status-dot ${sessionIndicator}`} role="img" /><strong>{session.name}</strong><span title={session.cwd}>{session.cwd}</span></div>
+          <div className="composer-session">{running && <span aria-label="Pi is active" className="status-dot" role="img" />}<strong>{session.name}</strong><span title={session.cwd}>{session.cwd}</span></div>
           <div className="composer-stats"><span><b>Cost</b>{cost}</span><span className={contextClass}><b>Context</b>{contextPercent}<small>{contextTokens}</small></span></div>
         </div>
       </div>
