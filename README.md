@@ -30,9 +30,9 @@ Open a project and get to work as you would with any Pi client. The difference s
 - **Use Pi normally.** Run one or several sessions, reopen history, and follow responses, thinking, usage, and tool calls live.
 - **Build your workflow on top of Pi.** Quick action on a tool call, better tool presentation, session analytics, only limit is your imagination.
 - **Change absolutely everything.** Layout, styles, widgets, commands, persistence, backend, manager, Pi extensions, and docs are all fair game. The source code is the customization surface.
-- **Stay in flow.** Ask Pi to modify the workbench from an active session; frontend changes appear immediately and backend changes restart without closing the Pi process.
+- **Stay in flow.** Ask Pi to modify Pi Livecraft from an active session; frontend changes appear immediately and backend changes restart without closing the Pi process.
 
-Fork it. Delete half of it. Add the oddly specific button only you need. Paint it purple. It is your workbench now.
+Fork it. Delete half of it. Add the oddly specific button only you need. Paint it purple. It is yours now.
 
 ## Quick start
 
@@ -40,7 +40,7 @@ Pi Livecraft is designed to run in development mode. You need **Node.js 24 or ne
 
 ### 1. Install Pi
 
-Pi is required: Workbench provides the interface, but it does not bundle the agent. Install the [`@earendil-works/pi-coding-agent`](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) package, then launch Pi once to configure a provider:
+Pi is required: Pi Livecraft provides the interface, but it does not bundle the agent. Install the [`@earendil-works/pi-coding-agent`](https://www.npmjs.com/package/@earendil-works/pi-coding-agent) package, then launch Pi once to configure a provider:
 
 ```bash
 npm install -g --ignore-scripts @earendil-works/pi-coding-agent
@@ -63,7 +63,7 @@ That is the intended way to run it: `npm run dev` keeps the frontend, backend, a
 > [!IMPORTANT]
 > Pi Livecraft listens only on `127.0.0.1`. Pi can read files, modify code, and execute commands in the selected workspace. Keep important work under version control and review Git actions before confirming them.
 
-## What is already on the bench
+## What is already included
 
 - **Session workspace** — create, switch, and reopen parallel Pi sessions without tying them to the browser lifecycle.
 - **Live execution** — inspect responses, activity, usage, rich tool calls, file previews, and extension dialogs as they happen.
