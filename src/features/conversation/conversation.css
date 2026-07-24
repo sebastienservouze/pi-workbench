@@ -158,8 +158,12 @@
 .context-session-button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; opacity: 1; transform: translateY(0); }
 .context-session-button:disabled { cursor: wait; opacity: .55; }
 .tool-call > .context-session-button { top: 5px; }
-.tool-call:has(> .context-session-button) > .tool-call-heading { padding-right: 40px; }
-@media (hover: none) { .context-session-button { opacity: 1; transform: none; } }
+.tool-call:hover:has(> .context-session-button) > .tool-call-heading,
+.tool-call:focus-within:has(> .context-session-button) > .tool-call-heading { padding-right: 40px; }
+@media (hover: none) {
+  .context-session-button { opacity: 1; transform: none; }
+  .tool-call:has(> .context-session-button) > .tool-call-heading { padding-right: 40px; }
+}
 @media (prefers-reduced-motion: reduce) { .context-session-button { transition: none; } }
 .conversation-entry, .tool-call.entering, .tool-call-result.entering { animation: conversation-entry-in 180ms cubic-bezier(.25, 1, .5, 1); }
 @keyframes conversation-entry-in { from { opacity: 0; transform: translateY(2px); } }
