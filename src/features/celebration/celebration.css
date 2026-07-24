@@ -1,0 +1,38 @@
+.confetti-overlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confetti-piece {
+  position: absolute;
+  top: var(--top);
+  left: var(--left);
+  display: block;
+  opacity: 0;
+  transform: translate3d(0, 0, 0) rotate(0deg) scale(var(--scale));
+  animation: confetti-flight var(--duration) cubic-bezier(.12, .72, .24, 1) var(--delay) forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes confetti-flight {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(var(--scale));
+  }
+  8% { opacity: 1; }
+  72% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--drift-x), var(--drift-y), 0) rotate(var(--spin)) scale(var(--scale));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece {
+    animation-duration: 2.2s;
+    animation-timing-function: linear;
+  }
+}
