@@ -78,7 +78,6 @@ button:disabled, select:disabled { cursor: not-allowed; }
 
 [data-theme="dark"] {
   /* ── sidebar / workspace ── */
-  .brand-mark { border-color: #536e61; box-shadow: 0 3px 0 #3d5248; }
   .theme-toggle:hover { background: rgb(255 255 255 / 8%); }
   .sidebar-action:hover,
   .sidebar-action:focus-visible,
