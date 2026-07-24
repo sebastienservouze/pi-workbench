@@ -99,14 +99,20 @@ button:disabled, select:disabled { cursor: not-allowed; }
   .composer-footer { background: var(--surface-raised); }
   .composer-select:hover,
   .icon-button:hover:not(:disabled) { border-color: #4d5c55; }
+  .composer-select.agent:hover,
+  .composer-select.agent[data-state='open'] { border-color: #3a6d64; }
+  .composer-select.model:hover,
+  .composer-select.model[data-state='open'] { border-color: #4a4170; }
+  .composer-select.thinking:hover,
+  .composer-select.thinking[data-state='open'] { border-color: #6b562e; }
   .composer-toggle:hover { border-color: #4d5c55; }
   .composer-toggle.active { border-color: #3a6d64; color: #5fc4b6; }
-  .composer-select.command .composer-select-icon,
-  .composer-select.behavior .composer-select-icon { color: var(--muted); }
+  .composer-select.command .composer-select-icon { color: #5a9bb5; }
+  .composer-select.behavior .composer-select-icon { color: #9d8cc4; }
   .composer-select-content { box-shadow: 0 15px 32px rgb(0 0 0 / 50%); }
-  .composer-select-content.model,
-  .composer-select-content.thinking,
-  .composer-select-content.agent { border-color: var(--line-strong); }
+  .composer-select-content.model { border-color: #4a4170; }
+  .composer-select-content.thinking { border-color: #6b562e; }
+  .composer-select-content.agent { border-color: #3a6d64; }
   .composer-select-option[data-highlighted] { background: #2a322f; }
   .composer-select-option[data-state='checked'] { color: #5fc4b6; }
   .icon-button.send { box-shadow: 0 2px 0 #1a3f38; }
