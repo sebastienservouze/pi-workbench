@@ -210,7 +210,11 @@
 .pi-activity { display: flex; align-items: flex-start; gap: 9px; color: var(--teal); font: 12px/1.55 ui-monospace, monospace; white-space: nowrap; }
 .conversation-activity { margin: 0 2px 18px; }
 .activity-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.spinner { width: 13px; height: 13px; border: 2px solid #b4d3cc; border-top-color: var(--teal); border-radius: 50%; animation: spin .8s linear infinite; }
+.activity-signal { display: inline-flex; align-items: center; justify-content: center; gap: 2px; width: 17px; height: 18px; }
+.activity-signal i { width: 3px; height: 3px; border-radius: 50%; background: currentColor; animation: activity-wave 900ms cubic-bezier(.25, 1, .5, 1) infinite; }
+.activity-signal i:nth-child(2) { animation-delay: 120ms; }
+.activity-signal i:nth-child(3) { animation-delay: 240ms; }
+@keyframes activity-wave { 0%, 60%, 100% { opacity: .45; transform: translateY(2px) scale(.8); } 30% { opacity: 1; transform: translateY(-3px) scale(1.15); } }
 .empty-conversation, .welcome { align-self: center; margin: auto; color: var(--muted); text-align: center; }
 .empty-conversation { max-width: 360px; padding: 44px 20px; }
 .empty-conversation h2, .welcome h1 { color: var(--ink); text-wrap: balance; }

@@ -172,7 +172,7 @@ function TurnUsage({ usage }: { usage: MessageUsage }) {
 
 /** Affiche l'état de travail courant de Pi dans le fil de conversation. */
 export function ActivityIndicator({ activity, agentName }: { activity: Activity; agentName?: string }) {
-  return <div className="pi-activity" role="status"><span aria-hidden="true" className="spinner" /><span className="activity-text" key={activity.kind}>{activityText(activity, agentName)}</span></div>
+  return <div className="pi-activity" role="status"><span aria-hidden="true" className="activity-signal"><i /><i /><i /></span><span className="activity-text" key={activity.kind}>{activityText(activity, agentName)}</span></div>
 }
 
 function isVisibleConversationMessage(message: JsonObject): boolean {
