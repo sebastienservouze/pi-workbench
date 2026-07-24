@@ -21,7 +21,7 @@ import { WorkspaceSidebar } from './features/workspace/WorkspaceSidebar.tsx'
 import { CommandPalette, type PaletteCommand } from './features/commands/CommandPalette.tsx'
 import { commandDefinitions, defaultShortcuts, lastAssistantText, rightWidgetFromCommand, shortcutFromEvent, type CommandId } from './features/commands/command-registry.ts'
 import { SettingsPanel } from './features/settings/SettingsPanel.tsx'
-import { readInterfaceScale, type InterfaceScale } from './features/settings/interface-scale.ts'
+import { defaultInterfaceScale, readInterfaceScale, type InterfaceScale } from './features/settings/interface-scale.ts'
 import { analyzeSession, type SessionAnalysisTarget } from './features/session-analysis/session-analysis.ts'
 import './features/commands/commands.css'
 
@@ -94,7 +94,7 @@ function App() {
   const [activeRightWidget, setActiveRightWidget] = useState<RightWidget | null>(readActiveRightWidget)
   const [rightSidebarWidth, setRightSidebarWidth] = useState(() => readRightSidebarWidth(window.localStorage.getItem('pi-livecraft.right-sidebar-width') ?? window.localStorage.getItem('pi-livecraft.git-sidebar-width')))
   const [theme, setTheme] = useState(() => window.localStorage.getItem('pi-livecraft.theme') ?? 'light')
-  const [interfaceScale, setInterfaceScale] = useState(() => readInterfaceScale(window.localStorage.getItem('pi-livecraft.interface-scale')))
+  const [interfaceScale, setInterfaceScale] = useState(() => readInterfaceScale(window.localStorage.getItem('pi-livecraft.interface-scale'), defaultInterfaceScale(window.screen.height, window.devicePixelRatio)))
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [creatingSession, setCreatingSession] = useState(false)
