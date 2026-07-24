@@ -60,8 +60,8 @@ npm run dev
 
 That is the intended way to run it: `npm run dev` keeps the frontend, backend, and manager watched while you reshape them. Open [http://127.0.0.1:5173](http://127.0.0.1:5173); `Ctrl+C` stops all three processes.
 
-> [!IMPORTANT]
-> Pi Livecraft listens only on `127.0.0.1`. Pi can read files, modify code, and execute commands in the selected workspace. Keep important work under version control and review Git actions before confirming them.
+> [!WARNING]
+> **Pi is not sandboxed.** It runs with your user permissions and can read files, modify code, and execute commands. Keep important work under version control and review Git actions before confirming them. Pi Livecraft limits network exposure by listening only on `127.0.0.1`.
 
 ## What is already included
 
