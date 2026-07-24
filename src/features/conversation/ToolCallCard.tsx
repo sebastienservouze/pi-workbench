@@ -1,4 +1,4 @@
-import { Component, memo, useEffect, useState, type ErrorInfo, type ReactNode } from 'react'
+import { memo, useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter'
@@ -12,6 +12,7 @@ import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typesc
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { getWorkspaceFile, getWorkspaceFilePath } from '../../api.ts'
 import { customExtensionRegistry } from '../../custom/extensions.ts'
+import { ExtensionRendererBoundary } from '../../extensions/ExtensionRendererBoundary.tsx'
 import type { ToolCallView } from '../../extensions/frontend.ts'
 import { fileContextDraft } from './context-session.ts'
 import { canHighlightFile } from './file-preview.ts'
@@ -83,9 +84,9 @@ export const ToolCallCard = memo(function ToolCallCard(props: ToolCallCardProps)
     status: props.interrupted ? 'interrupted' : props.hasResult ? 'completed' : props.streaming ? 'generating' : 'running',
   }
 
-  return <ToolCallRendererBoundary fallback={renderDefault()} onError={props.onError}>
+  return <ExtensionRendererBoundary fallback={renderDefault()} onError={props.onError}>
     <Renderer renderDefault={renderDefault} toolCall={toolCall} />
-  </ToolCallRendererBoundary>
+  </ExtensionRendererBoundary>
 })
 
 /** Affiche la carte officielle dont le résultat complet remplace l’aperçu au dépliage. */
@@ -226,22 +227,6 @@ function ToolCallEditDiff({ changes, onCollapse }: { changes: ReturnType<typeof 
       <div className="tool-call-edit-line added"><i aria-hidden="true">+</i><pre>{change.newText}</pre></div>
     </section>)}
   </section>
-}
-
-class ToolCallRendererBoundary extends Component<{ children: ReactNode; fallback: ReactNode; onError: (cause: unknown) => void }, { failed: boolean }> {
-  state = { failed: false }
-
-  static getDerivedStateFromError(): { failed: boolean } {
-    return { failed: true }
-  }
-
-  componentDidCatch(cause: Error, _info: ErrorInfo): void {
-    this.props.onError(cause)
-  }
-
-  render(): ReactNode {
-    return this.state.failed ? this.props.fallback : this.props.children
-  }
 }
 
 function messageOf(cause: unknown): string {

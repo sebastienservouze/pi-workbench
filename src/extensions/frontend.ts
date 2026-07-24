@@ -1,5 +1,19 @@
 import type { ComponentType, ReactNode } from 'react'
 
+export interface CustomMessageView {
+  content: unknown
+  customType: string
+  details?: unknown
+  timestamp?: number
+}
+
+export interface CustomMessageRendererProps {
+  message: Readonly<CustomMessageView>
+  renderDefault: () => ReactNode
+}
+
+export type CustomMessageRenderer = ComponentType<CustomMessageRendererProps>
+
 export interface ToolCallView {
   id: string
   name: string
@@ -19,22 +33,33 @@ export type ToolCallRenderer = ComponentType<ToolCallRendererProps>
 export interface WorkbenchExtension {
   apiVersion: 1
   id: string
+  messages?: Record<string, CustomMessageRenderer>
   toolCalls?: Record<string, ToolCallRenderer>
 }
 
 export interface FrontendExtensionRegistry {
+  messages: ReadonlyMap<string, CustomMessageRenderer>
   toolCalls: ReadonlyMap<string, ToolCallRenderer>
 }
 
 /** Valide les identifiants et assemble les contributions frontend sans remplacement implicite. */
 export function createFrontendExtensionRegistry(extensions: readonly WorkbenchExtension[]): FrontendExtensionRegistry {
   const extensionIds = new Set<string>()
+  const messageOwners = new Map<string, string>()
+  const messages = new Map<string, CustomMessageRenderer>()
   const toolCallOwners = new Map<string, string>()
   const toolCalls = new Map<string, ToolCallRenderer>()
 
   for (const extension of extensions) {
     if (extensionIds.has(extension.id)) throw new Error(`Extension frontend dupliquée : ${extension.id}`)
     extensionIds.add(extension.id)
+
+    for (const [customType, renderer] of Object.entries(extension.messages ?? {})) {
+      const owner = messageOwners.get(customType)
+      if (owner) throw new Error(`Renderer du message ${customType} fourni par ${owner} et ${extension.id}`)
+      messageOwners.set(customType, extension.id)
+      messages.set(customType, renderer)
+    }
 
     for (const [toolName, renderer] of Object.entries(extension.toolCalls ?? {})) {
       const owner = toolCallOwners.get(toolName)
@@ -44,5 +69,5 @@ export function createFrontendExtensionRegistry(extensions: readonly WorkbenchEx
     }
   }
 
-  return { toolCalls }
+  return { messages, toolCalls }
 }

@@ -1,5 +1,8 @@
 import { memo, useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type WheelEvent } from 'react'
 import type { JsonObject } from '../../../shared/types.ts'
+import { customExtensionRegistry } from '../../custom/extensions.ts'
+import { ExtensionRendererBoundary } from '../../extensions/ExtensionRendererBoundary.tsx'
+import type { CustomMessageView } from '../../extensions/frontend.ts'
 import { activityActionText, activityAgentName, type Activity } from './activity.ts'
 import { formatTokens, formatTurnCost, turnUsageByMessage, type MessageUsage } from './message-usage.ts'
 import { toolCallsInMessage, toolResultInMessage, type ToolExecution } from './tool-calls.ts'
@@ -120,7 +123,7 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
         const calls = detailedView ? toolCallsInMessage(message) : []
         if (!isVisibleConversationMessage(message) && calls.length === 0) return null
         return <div className={highlightedTarget === `message:${index}` ? 'conversation-target' : undefined} data-message-index={index} key={`${String(message.timestamp ?? '')}-${index}`}>
-          {isVisibleConversationMessage(message) && <MessageCard message={message} onStartSession={onStartSession} usage={usagesByMessage.get(index)} />}
+          {isVisibleConversationMessage(message) && <MessageCard message={message} onError={onError} onStartSession={onStartSession} usage={usagesByMessage.get(index)} />}
           {calls.map((call) => {
             const execution = executionsByCallId.get(call.id)
             const result = resultsByCallId.get(call.id) ?? execution?.result
@@ -147,7 +150,25 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
   )
 }
 
-const MessageCard = memo(function MessageCard({ message, onStartSession, usage }: { message: JsonObject; onStartSession: (draft: string) => Promise<void>; usage?: MessageUsage }) {
+const MessageCard = memo(function MessageCard({ message, onError, onStartSession, usage }: { message: JsonObject; onError: (cause: unknown) => void; onStartSession: (draft: string) => Promise<void>; usage?: MessageUsage }) {
+  if (message.role !== 'custom' || typeof message.customType !== 'string') return <DefaultMessageCard message={message} onStartSession={onStartSession} usage={usage} />
+
+  const Renderer = customExtensionRegistry.messages.get(message.customType)
+  const renderDefault = () => <DefaultCustomMessage message={message} />
+  if (!Renderer) return renderDefault()
+
+  const customMessage: CustomMessageView = {
+    content: message.content,
+    customType: message.customType,
+    details: message.details,
+    timestamp: typeof message.timestamp === 'number' ? message.timestamp : undefined,
+  }
+  return <ExtensionRendererBoundary fallback={renderDefault()} onError={onError}>
+    <Renderer message={customMessage} renderDefault={renderDefault} />
+  </ExtensionRendererBoundary>
+})
+
+const DefaultMessageCard = memo(function DefaultMessageCard({ message, onStartSession, usage }: { message: JsonObject; onStartSession: (draft: string) => Promise<void>; usage?: MessageUsage }) {
   const role = String(message.role)
   const timestamp = typeof message.timestamp === 'number' ? new Date(message.timestamp) : null
   const time = timestamp && !Number.isNaN(timestamp.getTime()) ? timestamp : null
@@ -159,6 +180,15 @@ const MessageCard = memo(function MessageCard({ message, onStartSession, usage }
     {role === 'user' && time && <time className="message-time" dateTime={time.toISOString()}>{time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time>}
   </article>
 })
+
+/** Rend un message personnalisé inconnu sans interpréter ses détails propres à l’extension. */
+function DefaultCustomMessage({ message }: { message: JsonObject & { customType?: unknown } }) {
+  const content = hasVisibleContent(message.content) ? renderContent(message.content) : <p>Message sans contenu affichable.</p>
+  return <article className="message custom-message">
+    <code className="custom-message-type">{String(message.customType)}</code>
+    <div className="content">{content}</div>
+  </article>
+}
 
 /** Affiche les compteurs facturés par Pi pour une réponse assistant terminée. */
 function TurnUsage({ usage }: { usage: MessageUsage }) {
@@ -177,6 +207,7 @@ export function ActivityIndicator({ activity, agentName }: { activity: Activity;
 
 function isVisibleConversationMessage(message: JsonObject): boolean {
   const role = message.role
+  if (role === 'custom') return message.display === true && typeof message.customType === 'string'
   return (role === 'user' || role === 'assistant' || role === 'system') && hasVisibleContent(message.content ?? message.output)
 }
 

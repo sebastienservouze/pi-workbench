@@ -9,6 +9,7 @@ import { listRecentPiSessions, loadPiSession } from './pi-session-store.ts'
 import { commitAndPush, getGitFileDiff, getGitSnapshot, revertGitCommit } from './git.ts'
 import { readWorkspaceFile, WorkspaceFileError } from './workspace-file.ts'
 import { loadWorkspaceTodos, parseTodoItems, saveWorkspaceTodos } from './todo-store.ts'
+import { visibleSessionMessages } from './session-snapshot.ts'
 import { runTerminalCommand } from './terminal.ts'
 import { isVsCodeAvailable, openExplorer, openVsCode, windowsWorkspacePath } from './vscode.ts'
 import { QuotaCache } from './quota-cache.ts'
@@ -218,7 +219,7 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
     ])
     const snapshot: SessionSnapshot = {
       state: objectData(state),
-      messages: arrayData(messages, 'messages').filter((message) => message.role === 'user' || message.role === 'assistant' || message.role === 'toolResult'),
+      messages: visibleSessionMessages(arrayData(messages, 'messages')),
       models: arrayData(models, 'models'),
       commands: arrayData(commands, 'commands'),
       stats: objectData(stats),

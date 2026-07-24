@@ -24,6 +24,8 @@
 .message.user { width: fit-content; max-width: 78%; margin-left: auto; padding: 13px 16px; border-radius: 14px 14px 4px; background: var(--accent); color: white; box-shadow: var(--shadow-soft); }
 .message.assistant { position: relative; max-width: 760px; padding: 0 2px; }
 .message.assistant > .content { padding-right: 34px; }
+.custom-message { max-width: 760px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-raised); }
+.custom-message-type { display: block; margin-bottom: 7px; color: var(--muted); font: 10px/1.4 ui-monospace, monospace; overflow-wrap: anywhere; }
 .turn-usage { display: flex; flex-wrap: wrap; gap: 5px 12px; margin: 11px 0 0; color: var(--muted); font: 10px ui-monospace, monospace; }
 .turn-usage div { display: inline-flex; gap: 4px; }
 .turn-usage dt { color: var(--subtle); }

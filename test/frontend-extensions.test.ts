@@ -1,21 +1,30 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createFrontendExtensionRegistry, type ToolCallRenderer } from '../src/extensions/frontend.ts'
+import { createFrontendExtensionRegistry, type CustomMessageRenderer, type ToolCallRenderer } from '../src/extensions/frontend.ts'
 
-const renderer: ToolCallRenderer = () => null
+const messageRenderer: CustomMessageRenderer = () => null
+const toolCallRenderer: ToolCallRenderer = () => null
 
-test('registers tool renderers without allowing ambiguous contributions', () => {
+test('registers frontend renderers without allowing ambiguous contributions', () => {
   const registry = createFrontendExtensionRegistry([
-    { apiVersion: 1, id: 'custom-tools', toolCalls: { inspect: renderer } },
+    { apiVersion: 1, id: 'custom-tools', messages: { notice: messageRenderer }, toolCalls: { inspect: toolCallRenderer } },
   ])
 
-  assert.equal(registry.toolCalls.get('inspect'), renderer)
+  assert.equal(registry.messages.get('notice'), messageRenderer)
+  assert.equal(registry.toolCalls.get('inspect'), toolCallRenderer)
   assert.throws(
     () => createFrontendExtensionRegistry([
-      { apiVersion: 1, id: 'first', toolCalls: { inspect: renderer } },
-      { apiVersion: 1, id: 'second', toolCalls: { inspect: renderer } },
+      { apiVersion: 1, id: 'first', toolCalls: { inspect: toolCallRenderer } },
+      { apiVersion: 1, id: 'second', toolCalls: { inspect: toolCallRenderer } },
     ]),
     /Renderer de l'outil inspect fourni par first et second/,
+  )
+  assert.throws(
+    () => createFrontendExtensionRegistry([
+      { apiVersion: 1, id: 'first', messages: { notice: messageRenderer } },
+      { apiVersion: 1, id: 'second', messages: { notice: messageRenderer } },
+    ]),
+    /Renderer du message notice fourni par first et second/,
   )
   assert.throws(
     () => createFrontendExtensionRegistry([
