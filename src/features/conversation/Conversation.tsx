@@ -39,11 +39,10 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   const [highlightedTarget, setHighlightedTarget] = useState<string>()
 
-  // Scrolls automatically when new content arrives unless the user has scrolled up.
+  // Keeps streaming content pinned without restarting a smooth animation on every update.
   useEffect(() => {
     if (!autoScrollRef.current) return
-    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
-    conversationRef.current?.scrollTo({ top: conversationRef.current.scrollHeight, behavior })
+    conversationRef.current?.scrollTo({ top: conversationRef.current.scrollHeight, behavior: 'auto' })
   }, [activity, visibleMessages.length, liveText, liveThinking, toolExecutions])
 
   useEffect(() => {
