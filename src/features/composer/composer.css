@@ -1,4 +1,4 @@
-.composer { margin: 0 auto 20px; overflow: hidden; border-radius: 14px; transition: border-color 180ms ease-out, box-shadow 180ms ease-out; }
+.composer { position: relative; margin: 0 auto 20px; overflow: visible; border-radius: 14px; transition: border-color 180ms ease-out, box-shadow 180ms ease-out; }
 .composer:focus-within { border-color: color-mix(in srgb, var(--accent) 48%, var(--line)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent), var(--shadow-soft); }
 .composer-images { display: flex; gap: 8px; overflow-x: auto; padding: 12px 16px 0; }
 .composer-image { position: relative; flex: 0 0 auto; width: 92px; height: 72px; border: 1px solid var(--line-strong); border-radius: 8px; background: #edf1ef; }
@@ -8,7 +8,7 @@
 .composer-image button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 .composer textarea { display: block; width: 100%; min-height: 92px; max-height: 240px; field-sizing: content; resize: none; overflow-y: auto; border: 0; outline: 0; padding: 18px 18px 16px; background: transparent; color: var(--ink); line-height: 1.55; }
 .composer textarea::placeholder { color: var(--muted); }
-.composer-footer { border-top: 1px solid var(--line); background: var(--surface-raised); }
+.composer-footer { border-top: 1px solid var(--line); border-radius: 0 0 13px 13px; background: var(--surface-raised); }
 .composer-info { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-width: 0; border-top: 1px solid color-mix(in srgb, var(--line) 72%, transparent); padding: 6px 12px 7px; }
 .composer-session, .composer-stats { display: flex; align-items: center; gap: 7px; min-width: 0; color: var(--muted); font: 10px ui-monospace, monospace; }
 .composer-session strong { overflow: hidden; color: var(--ink); font-family: ui-sans-serif, system-ui, sans-serif; font-size: 11px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
@@ -16,7 +16,7 @@
 .composer-stats { flex: 0 0 auto; gap: 12px; }
 .composer-stats span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .composer-stats b { color: var(--subtle); font: 650 9px ui-sans-serif, system-ui, sans-serif; }
-.composer-stats small { color: var(--ink); font: 10px ui-monospace, monospace; }
+.composer-stats small { color: currentColor; font: 10px ui-monospace, monospace; }
 .composer-stats progress { width: 48px; height: 4px; overflow: hidden; border: 0; border-radius: 999px; background: var(--line); accent-color: currentColor; }
 .composer-stats progress::-webkit-progress-bar { border-radius: inherit; background: var(--line); }
 .composer-stats progress::-webkit-progress-value { border-radius: inherit; background: currentColor; }

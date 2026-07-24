@@ -150,7 +150,7 @@ export const Composer = memo(function Composer({ session, snapshot, agentBusy, a
   const contextPercentValue = typeof contextUsage?.percent === 'number' ? Math.round(contextUsage.percent) : null
   const contextPercent = contextPercentValue === null ? '—' : `${contextPercentValue}%`
   const contextTokens = typeof contextUsage?.tokens === 'number' && typeof contextUsage.contextWindow === 'number'
-    ? `${formatTokens(contextUsage.tokens)} / ${formatTokens(contextUsage.contextWindow)}`
+    ? `${formatTokens(contextUsage.tokens)}/${formatTokens(contextUsage.contextWindow)}`
     : 'Unavailable'
   const cost = typeof stats?.cost === 'number' ? `$${stats.cost.toFixed(2)}` : '—'
   const contextClass = typeof contextUsage?.percent === 'number'

@@ -96,7 +96,11 @@
 }
 
 .slash-commands {
-  margin: 0 8px;
+  position: absolute;
+  right: 8px;
+  bottom: calc(100% + 8px);
+  left: 8px;
+  z-index: 20;
   border: 1px solid var(--line-strong);
   border-radius: 9px;
   background: var(--surface);
