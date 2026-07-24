@@ -249,3 +249,32 @@
 
 .message.system { margin: 4px 0; padding: 4px 0; color: var(--subtle); font-size: 11.5px; line-height: 1.5; text-align: center; }
 .message.system.error { margin: 6px 0; padding: 6px 12px; border-radius: 6px; background: #fff7f5; color: var(--danger); font-size: 12px; }
+
+.celebration-overlay {
+  position: fixed;
+  z-index: 35;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.celebration-piece {
+  position: absolute;
+  top: -12vh;
+  left: var(--confetti-left);
+  width: var(--confetti-width);
+  height: var(--confetti-height);
+  border-radius: var(--confetti-radius);
+  background: var(--confetti-color);
+  opacity: 0;
+  transform: translate3d(0, -12vh, 0) rotate(0deg);
+  animation: celebration-confetti var(--confetti-duration) cubic-bezier(.2, .7, .35, 1) var(--confetti-delay) forwards;
+  will-change: transform, opacity;
+}
+@keyframes celebration-confetti {
+  0% { opacity: 0; transform: translate3d(0, -12vh, 0) rotate(0deg); }
+  8% { opacity: .95; }
+  100% { opacity: .9; transform: translate3d(var(--confetti-drift), 112vh, 0) rotate(var(--confetti-rotation)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .celebration-piece { animation: none; opacity: 0; }
+}
