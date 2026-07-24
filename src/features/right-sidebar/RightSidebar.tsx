@@ -1,5 +1,6 @@
-import { useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
+import { useEffect, useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, QuotaSnapshot } from '../../../shared/types.ts'
+import { getTodos } from '../../api.ts'
 import { GitWidget } from '../git/GitWidget.tsx'
 import { QuotaWidget } from '../quotas/QuotaWidget.tsx'
 import { railQuota, type QuotaProvider } from '../quotas/quota-display.ts'
@@ -41,6 +42,17 @@ export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onA
 }) {
   const [todoOpenCount, setTodoOpenCount] = useState<number | null>(null)
   const hasChanges = snapshot ? snapshot.files.length > 0 : false
+
+  useEffect(() => {
+    let cancelled = false
+    setTodoOpenCount(null)
+    void getTodos(workspacePath).then((todos) => {
+      if (!cancelled) setTodoOpenCount(todos.filter((todo) => !todo.completed).length)
+    }).catch(() => {
+      if (!cancelled) setTodoOpenCount(null)
+    })
+    return () => { cancelled = true }
+  }, [workspacePath])
   const collapsed = activeWidget === null || (activeWidget === 'analysis' && !analysis) || (activeWidget === 'git' && !snapshot)
   const quotaSummary = railQuota(quotas, currentQuotaProvider)
 
@@ -120,7 +132,7 @@ export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onA
       <button aria-controls={activeWidget === 'terminal' ? 'terminal-panel' : undefined} aria-expanded={activeWidget === 'terminal'} aria-label={activeWidget === 'terminal' ? 'Collapse terminal' : 'Expand terminal'} className="rail-tab" onClick={() => onWidgetSelect('terminal')} title="Terminal" type="button"><span aria-hidden="true">›_</span></button>
       <button aria-controls={activeWidget === 'todo' ? 'todo-panel' : undefined} aria-expanded={activeWidget === 'todo'} aria-label={activeWidget === 'todo' ? 'Collapse the task panel' : 'Expand the task panel'} className="rail-tab" onClick={() => onWidgetSelect('todo')} title="Todo" type="button">
         <span aria-hidden="true">☑</span>
-        {todoOpenCount !== null && todoOpenCount > 0 && <small>{todoOpenCount}</small>}
+        {todoOpenCount !== null && <small aria-label={`${todoOpenCount} tasks remaining`}>{todoOpenCount}</small>}
       </button>
       {railActions.map((action) => <button aria-label={action.label} className="rail-tab" disabled={action.disabled} key={action.key} onClick={action.onClick} title={action.label} type="button">{action.icon}</button>)}
     </div>

@@ -29,7 +29,6 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
     setLoading(true)
     setError('')
     setTodos([])
-    onOpenCountChange(null)
     void getTodos(workspacePath)
       .then((nextTodos) => {
         if (cancelled) return
@@ -159,7 +158,8 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
 
   return <>
     <header className="widget-header">
-      <div><strong>Todo</strong><span>{loading ? 'Loading…' : `${remaining} remaining`}</span></div>
+      <div className="todo-heading"><strong>Todo</strong><span>{loading ? 'Loading…' : remaining === 0 ? 'All clear' : `${remaining} task${remaining === 1 ? '' : 's'} to do`}</span></div>
+      <span className="todo-count" aria-label={`${remaining} tasks remaining`}>{loading ? '—' : remaining}</span>
     </header>
     <div className="widget-content todo-content">
       {loading ? <div aria-label="Loading tasks" className="todo-skeleton" role="status"><i /><i /><i /></div> : <>
@@ -187,7 +187,7 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
               onKeyDown={(event) => editWithKeyboard(event, todo)}
               value={editingText}
             /> : <button className="todo-text" disabled={busy || startingId !== null} onClick={() => { setEditingId(todo.id); setEditingText(todo.text) }} title="Edit" type="button">{todo.text}</button>}
-            <button aria-label={`Start a session with “${todo.text}”`} className="todo-start" disabled={busy || editingId !== null || startingId !== null} onClick={() => void startSession(todo)} title="Start a session with this task" type="button">{startingId === todo.id ? '…' : '↗'}</button>
+            <button aria-label={`Start a new session with “${todo.text}”`} className="todo-start" disabled={busy || editingId !== null || startingId !== null} onClick={() => void startSession(todo)} title="Start a new session with this task as the prompt" type="button">{startingId === todo.id ? '…' : '↗'}</button>
             <button aria-label={`Delete “${todo.text}”`} className="todo-delete" disabled={busy || startingId !== null} onClick={() => void removeTodo(todo)} title="Delete" type="button">×</button>
           </li>)}
         </ul>}
@@ -195,7 +195,7 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
     </div>
     <footer className="widget-footer">
       <form className="todo-add" onSubmit={(event) => void addTodo(event)}>
-        <input aria-label="New task" disabled={busy || loading} maxLength={500} onChange={(event) => setNewText(event.target.value)} placeholder="Add a task…" value={newText} />
+        <input aria-label="New task" disabled={busy || loading} maxLength={500} onChange={(event) => setNewText(event.target.value)} placeholder="Add a task to this workspace…" value={newText} />
         <button aria-label="Add task" disabled={busy || loading || !newText.trim()} title="Add" type="submit">+</button>
       </form>
     </footer>

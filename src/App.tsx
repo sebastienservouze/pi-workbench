@@ -694,7 +694,7 @@ function App() {
           showToast('notice', `Commit ${hash.slice(0, 7)} revert.`)
           return result
         }}
-        onTodoStartSession={(message) => startAndSelectSession(() => createSession(workspacePath), message)}
+        onTodoStartSession={(message) => startAndSelectSession(() => createSession(workspacePath), undefined, message)}
         onWidgetSelect={(widget) => setActiveRightWidget((current) => {
           const next = current === widget ? null : widget
           window.localStorage.setItem('pi-workbench.right-sidebar-widget', next ?? 'none')
