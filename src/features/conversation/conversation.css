@@ -228,10 +228,10 @@
 .pi-activity { display: flex; align-items: flex-start; gap: 9px; color: var(--teal); font: 12px/1.55 ui-monospace, monospace; white-space: nowrap; }
 .conversation-activity { margin: 0 2px 18px; }
 .activity-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.pi-activity:not(.is-exited):not(.is-disconnected) .activity-text { animation: activity-text-shimmer 1.8s linear infinite; }
+.pi-activity:not(.is-exited):not(.is-disconnected) .activity-text { animation: activity-text-breathe 1.8s ease-in-out infinite; }
 .activity-action { display: inline-block; animation: activity-action-in 220ms cubic-bezier(.25, 1, .5, 1); }
 @keyframes activity-action-in { from { opacity: 0; transform: translateY(-5px); } }
-@keyframes activity-text-shimmer { 0% { text-shadow: -5px 0 5px rgb(79 185 171 / 0%); } 35% { text-shadow: -1px 0 5px rgb(79 185 171 / 55%); } 70% { text-shadow: 3px 0 5px rgb(79 185 171 / 20%); } 100% { text-shadow: 7px 0 5px rgb(79 185 171 / 0%); } }
+@keyframes activity-text-breathe { 0%, 100% { opacity: .82; } 50% { opacity: 1; } }
 .activity-signal { display: inline-flex; align-items: center; justify-content: center; gap: 2px; width: 17px; height: 18px; }
 .activity-signal i { width: 3px; height: 3px; border-radius: 50%; background: currentColor; animation: activity-wave 900ms cubic-bezier(.25, 1, .5, 1) infinite; }
 .activity-signal i:nth-child(2) { animation-delay: 120ms; }
