@@ -41,7 +41,6 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
   const executionsByCallId = useMemo(() => new Map(toolExecutions.map((execution) => [execution.id, execution])), [toolExecutions])
   const conversationRef = useRef<HTMLDivElement>(null)
   const conversationContentRef = useRef<HTMLDivElement>(null)
-  const conversationBottomRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef(true)
   const scrollFrameRef = useRef<number | undefined>(undefined)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
@@ -52,7 +51,8 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
     if (!autoScrollRef.current || scrollFrameRef.current !== undefined) return
     scrollFrameRef.current = window.requestAnimationFrame(() => {
       scrollFrameRef.current = undefined
-      if (autoScrollRef.current) conversationBottomRef.current?.scrollIntoView({ block: 'end' })
+      const conversation = conversationRef.current
+      if (autoScrollRef.current && conversation) conversation.scrollTop = conversation.scrollHeight
     })
   }, [])
 
@@ -116,8 +116,10 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
   function resumeAutoScroll(): void {
     autoScrollRef.current = true
     setShowScrollToBottom(false)
+    const conversation = conversationRef.current
+    if (!conversation) return
     const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
-    conversationBottomRef.current?.scrollIntoView({ behavior, block: 'end' })
+    conversation.scrollTo({ top: conversation.scrollHeight, behavior })
   }
 
   return (
@@ -161,7 +163,6 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
           <path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
         </svg>
       </button>
-      <div aria-hidden="true" className="conversation-bottom" ref={conversationBottomRef} />
     </section>
   )
 }
