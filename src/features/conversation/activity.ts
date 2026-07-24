@@ -3,7 +3,7 @@ import type { JsonObject, SessionSummary } from '../../../shared/types.ts'
 export type PiConnection = 'connecting' | 'connected' | 'disconnected'
 
 export interface Activity {
-  kind: 'connecting' | 'disconnected' | 'exited' | 'working' | 'thinking' | 'tool-preparing' | 'tool-waiting' | 'writing' | 'retrying' | 'compacting'
+  kind: 'connecting' | 'connected' | 'disconnected' | 'exited' | 'working' | 'thinking' | 'tool-preparing' | 'tool-waiting' | 'writing' | 'retrying' | 'compacting'
   thinking?: string
   attempt?: number
   maxAttempts?: number
@@ -42,7 +42,7 @@ export function sessionActivity(current: Activity | null, status: SessionSummary
   if (connection === 'disconnected') return { kind: 'disconnected' }
   if (status === 'exited') return { kind: 'exited' }
   if (status === 'starting') return { kind: 'connecting' }
-  if (status !== 'running') return null
+  if (status !== 'running') return { kind: 'connected' }
   return current ?? { kind: 'working' }
 }
 
@@ -54,6 +54,7 @@ export function activityText(activity: Activity, agentName: string | undefined):
 /** Produces the variable part of the label so it can be animated independently of the name. */
 export function activityActionText(activity: Activity): string {
   if (activity.kind === 'connecting') return 'is untangling the connection cable…'
+  if (activity.kind === 'connected') return 'is plugged in and ready ⚡'
   if (activity.kind === 'disconnected') return 'is off the radar 📡'
   if (activity.kind === 'exited') return 'has left the building 👋'
   if (activity.kind === 'retrying') {
