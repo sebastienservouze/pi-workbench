@@ -25,7 +25,7 @@ A local, fork-first control room for parallel [Pi](https://github.com/earendil-w
 
 Pi Workbench is not a one-size-fits-all AI client. It is a working base meant to be **forked, stripped down, extended, and made personal**. Delete half of it. Add the oddly specific button only you need. Paint it purple. It is your fork now.
 
-The defining loop is simple: open Pi Workbench, ask Pi to change Pi Workbench, and watch the interface evolve around the session you are already using. Vite refreshes the frontend, Node watches the local services, and the manager keeps Pi sessions alive through frontend and backend restarts.
+Use Pi Workbench as a regular Pi client: open a project, start one or several sessions, and get work done. Its twist is that the workbench itself is also fair game. When you want a different workflow, ask Pi to change the application without leaving your current session; Vite refreshes the frontend, Node watches the local services, and the manager keeps Pi sessions alive through frontend and backend restarts.
 
 > **Nothing is sacred. No locked workflow, no protected product layer. If it lives in this repository, you can change it.**
 
