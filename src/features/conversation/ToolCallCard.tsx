@@ -165,7 +165,7 @@ export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = fa
         {hasResult && <div className={animateLiveChanges ? 'tool-call-result entering' : 'tool-call-result'}>
           {expanded && !htmlFile
             ? <ToolCallContent call={{ name, args }} content={content} darkMode={darkMode} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} showEditDiff={!contentError} />
-            : <ToolCallPreview call={{ name, args }} content={preview.text} darkMode={darkMode} htmlFile={htmlFile} onClick={activate} remainingLineCount={preview.remainingLineCount} />}
+            : <ToolCallPreview call={{ name, args }} content={display.kind === 'svg' ? content : preview.text} darkMode={darkMode} htmlFile={htmlFile} onClick={activate} remainingLineCount={preview.remainingLineCount} />}
         </div>}
       </div>
     </div>
