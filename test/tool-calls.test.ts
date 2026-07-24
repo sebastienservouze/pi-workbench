@@ -164,10 +164,11 @@ test('builds browser file URLs from Windows and WSL share paths', () => {
   assert.equal(windowsFileUrl('\\\\wsl.localhost\\Ubuntu\\home\\ada\\index.html'), 'file://wsl.localhost/Ubuntu/home/ada/index.html')
 })
 
-test('detects Markdown, HTML and supported code formats read from the repository', () => {
+test('detects Markdown, HTML, SVG and supported code formats read from the repository', () => {
   assert.deepEqual(readContentDisplay({ path: 'docs/guide.md' }), { kind: 'markdown' })
   assert.deepEqual(readContentDisplay({ path: 'src/App.tsx' }), { kind: 'code', language: 'typescript' })
   assert.deepEqual(readContentDisplay({ path: 'public/preview.html' }), { kind: 'html' })
+  assert.deepEqual(readContentDisplay({ path: 'public/logo.SVG' }), { kind: 'svg' })
   assert.deepEqual(readContentDisplay({ path: 'src/Program.cs' }), { kind: 'code', language: 'csharp' })
   assert.deepEqual(readContentDisplay({ path: 'notes.txt' }), { kind: 'text' })
   assert.deepEqual(readContentDisplay({}), { kind: 'text' })
