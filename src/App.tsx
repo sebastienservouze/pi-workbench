@@ -11,14 +11,14 @@ import { Conversation } from './features/conversation/Conversation.tsx'
 import { applyToolCallUpdate, interruptToolCallGeneration, toolCallInUpdate, type ToolExecution, type ToolResult } from './features/conversation/tool-calls.ts'
 import { AskUserQuestionDialog, ExtensionDialog } from './features/dialogs/Dialogs.tsx'
 import { isAgentSelector, isAskUserQuestionDialog, isBlockingDialog, type UiDialog } from './features/dialogs/dialog-protocol.ts'
-import { clampRightSidebarWidth, readRightSidebarWidth } from './features/right-sidebar/right-sidebar.ts'
-import { RightSidebar, type RightWidget } from './features/right-sidebar/RightSidebar.tsx'
+import { clampRightSidebarWidth, isRightWidget, readRightSidebarWidth, type RightWidget } from './features/right-sidebar/right-sidebar.ts'
+import { RightSidebar } from './features/right-sidebar/RightSidebar.tsx'
 import { quotaProviderForModel } from './features/quotas/quota-display.ts'
 import { DirectoryPicker } from './features/workspace/DirectoryPicker.tsx'
 import { recentWorkspaces } from './features/workspace/recent-workspaces.ts'
 import { WorkspaceSidebar } from './features/workspace/WorkspaceSidebar.tsx'
 import { CommandPalette, type PaletteCommand } from './features/commands/CommandPalette.tsx'
-import { commandDefinitions, defaultShortcuts, lastAssistantText, shortcutFromEvent, type CommandId } from './features/commands/command-registry.ts'
+import { commandDefinitions, defaultShortcuts, lastAssistantText, rightWidgetFromCommand, shortcutFromEvent, type CommandId } from './features/commands/command-registry.ts'
 import { SettingsPanel } from './features/settings/SettingsPanel.tsx'
 import { analyzeSession, type SessionAnalysisTarget } from './features/session-analysis/session-analysis.ts'
 import './features/commands/commands.css'
@@ -134,6 +134,11 @@ function App() {
     const nextWidth = clampRightSidebarWidth(width)
     window.localStorage.setItem('pi-workbench.right-sidebar-width', String(nextWidth))
     setRightSidebarWidth(nextWidth)
+  }, [])
+
+  const openRightWidget = useCallback((widget: RightWidget) => {
+    window.localStorage.setItem('pi-workbench.right-sidebar-widget', widget)
+    setActiveRightWidget(widget)
   }, [])
 
   /** Toggles light/dark theme and persists the choice in local storage. */
@@ -480,6 +485,12 @@ function App() {
 
   /** Executes a productivity command in the context of the active session. */
   const executeCommand = useCallback((id: CommandId): void => {
+    const rightWidget = rightWidgetFromCommand(id)
+    if (rightWidget) {
+      if ((rightWidget === 'analysis' && !sessionAnalysis) || (rightWidget === 'git' && !gitSnapshot?.repository)) return
+      openRightWidget(rightWidget)
+      return
+    }
     if (id === 'open-palette') { setCommandPaletteOpen(true); return }
     if (id === 'open-settings') { setSettingsOpen(true); return }
     if (id === 'new-session') { void startAndSelectSession(() => createSession(workspacePath)).catch((cause) => showToast('error', messageOf(cause))); return }
@@ -491,14 +502,18 @@ function App() {
       if (!text) { showToast('notice', 'No assistant response to copy.'); return }
       void navigator.clipboard.writeText(text).then(() => showToast('notice', 'Last response copied.')).catch((cause) => showToast('error', messageOf(cause)))
     }
-  }, [selectedId, showToast, snapshot.messages, startAndSelectSession, workspacePath])
+  }, [gitSnapshot?.repository, openRightWidget, selectedId, sessionAnalysis, showToast, snapshot.messages, startAndSelectSession, workspacePath])
 
-  const paletteCommands: PaletteCommand[] = useMemo(() => commandDefinitions.map((definition) => ({
-    ...definition,
-    shortcut: shortcuts[definition.id],
-    disabled: (['send', 'abort', 'open-thinking', 'open-model', 'open-agent', 'copy-last-response'] as CommandId[]).includes(definition.id) && !selectedSession || (definition.id === 'abort' && selectedSession?.status !== 'running'),
-    onExecute: () => executeCommand(definition.id),
-  })), [executeCommand, selectedSession, shortcuts])
+  const paletteCommands: PaletteCommand[] = useMemo(() => commandDefinitions.map((definition) => {
+    const rightWidget = rightWidgetFromCommand(definition.id)
+    const unavailableWidget = (rightWidget === 'analysis' && !sessionAnalysis) || (rightWidget === 'git' && !gitSnapshot?.repository)
+    return {
+      ...definition,
+      shortcut: shortcuts[definition.id],
+      disabled: unavailableWidget || (['send', 'abort', 'open-thinking', 'open-model', 'open-agent', 'copy-last-response'] as CommandId[]).includes(definition.id) && !selectedSession || (definition.id === 'abort' && selectedSession?.status !== 'running'),
+      onExecute: () => executeCommand(definition.id),
+    }
+  }), [executeCommand, gitSnapshot?.repository, selectedSession, sessionAnalysis, shortcuts])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
@@ -729,7 +744,7 @@ function readRecentWorkspaces(): string[] {
 
 function readActiveRightWidget(): RightWidget | null {
   const stored = window.localStorage.getItem('pi-workbench.right-sidebar-widget')
-  if (stored === 'analysis' || stored === 'git' || stored === 'quotas' || stored === 'terminal' || stored === 'todo') return stored
+  if (isRightWidget(stored)) return stored
   if (stored === 'none') return null
   return window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git'
 }

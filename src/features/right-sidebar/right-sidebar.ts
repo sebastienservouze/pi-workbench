@@ -1,3 +1,17 @@
+export const rightWidgetDefinitions = [
+  { id: 'analysis', label: 'Session analysis' },
+  { id: 'git', label: 'Git' },
+  { id: 'quotas', label: 'Quotas' },
+  { id: 'terminal', label: 'Terminal' },
+  { id: 'todo', label: 'Todo' },
+] as const
+
+export type RightWidget = typeof rightWidgetDefinitions[number]['id']
+
+export function isRightWidget(value: string | null): value is RightWidget {
+  return rightWidgetDefinitions.some(({ id }) => id === value)
+}
+
 export const defaultRightSidebarWidth = 300
 export const minRightSidebarWidth = 240
 export const maxRightSidebarWidth = 720

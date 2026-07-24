@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { parseGitDiff } from '../src/features/git/git-diff.ts'
-import { clampRightSidebarWidth, defaultRightSidebarWidth, maxRightSidebarWidth, minRightSidebarWidth, readRightSidebarWidth } from '../src/features/right-sidebar/right-sidebar.ts'
+import { clampRightSidebarWidth, defaultRightSidebarWidth, isRightWidget, maxRightSidebarWidth, minRightSidebarWidth, readRightSidebarWidth } from '../src/features/right-sidebar/right-sidebar.ts'
 
 test('borne et restaure la largeur de la sidebar droite', () => {
   assert.equal(maxRightSidebarWidth, 720)
@@ -10,6 +10,8 @@ test('borne et restaure la largeur de la sidebar droite', () => {
   assert.equal(clampRightSidebarWidth(320.6), 321)
   assert.equal(readRightSidebarWidth(null), defaultRightSidebarWidth)
   assert.equal(readRightSidebarWidth('invalid'), defaultRightSidebarWidth)
+  assert.equal(isRightWidget('terminal'), true)
+  assert.equal(isRightWidget('unknown'), false)
 })
 
 test('parse un diff unifié sans ses métadonnées Git', () => {

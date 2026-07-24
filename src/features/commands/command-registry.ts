@@ -1,6 +1,9 @@
 import type { JsonObject } from '../../../shared/types.ts'
+import { rightWidgetDefinitions, type RightWidget } from '../right-sidebar/right-sidebar.ts'
 
-export type CommandId = 'new-session' | 'send' | 'abort' | 'open-thinking' | 'open-model' | 'open-agent' | 'copy-last-response' | 'open-palette' | 'open-settings'
+type CoreCommandId = 'new-session' | 'send' | 'abort' | 'open-thinking' | 'open-model' | 'open-agent' | 'copy-last-response' | 'open-palette' | 'open-settings'
+export type WidgetCommandId = `open-widget-${RightWidget}`
+export type CommandId = CoreCommandId | WidgetCommandId
 
 export interface CommandDefinition {
   id: CommandId
@@ -18,6 +21,7 @@ export const commandDefinitions: CommandDefinition[] = [
   { id: 'copy-last-response', label: 'Copy last response' },
   { id: 'open-palette', label: 'Open command palette' },
   { id: 'open-settings', label: 'Open settings' },
+  ...rightWidgetDefinitions.map(({ id, label }) => ({ id: rightWidgetCommandId(id), label: `Open ${label}` })),
 ]
 
 export const defaultShortcuts: Partial<Record<CommandId, string>> = {
@@ -25,6 +29,16 @@ export const defaultShortcuts: Partial<Record<CommandId, string>> = {
   'open-settings': 'mod+,',
   send: 'mod+enter',
   abort: 'escape',
+}
+
+/** Gives every sidebar widget a stable command without duplicating its identity. */
+export function rightWidgetCommandId(widget: RightWidget): WidgetCommandId {
+  return `open-widget-${widget}`
+}
+
+/** Resolves widget commands while leaving unrelated productivity commands untouched. */
+export function rightWidgetFromCommand(commandId: CommandId): RightWidget | null {
+  return rightWidgetDefinitions.find(({ id }) => rightWidgetCommandId(id) === commandId)?.id ?? null
 }
 
 /** Normalizes a keyboard combination for stable comparison and storage. */

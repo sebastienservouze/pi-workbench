@@ -26,7 +26,7 @@ pi --mode rpc process
 - `right-sidebar/` — integrated widgets, rail actions, collapse state, and resizing;
 - `workspace/` — directory selection and recent sessions.
 
-Each substantial feature contains a README describing its boundary, data flow, constraints, and focused tests.
+Use the [`src/features/` map](../src/features/README.md) to locate frontend ownership. Features with non-obvious contracts add a short README beside their code rather than expanding this system overview.
 
 `src/api.ts` is the frontend's only HTTP boundary. A component does not communicate directly with the manager or a Pi process.
 
@@ -54,6 +54,8 @@ Each substantial feature contains a README describing its boundary, data flow, c
 
 - New tool presentation: `src/features/conversation/tool-calls.ts`, then its focused test.
 - New conversation or composer behavior: the relevant feature, without growing `App` when the state is not cross-cutting.
+- New palette command, widget command, or shortcut: read [`../src/features/commands/README.md`](../src/features/commands/README.md).
+- New preference or persisted UI state: read [`../src/features/settings/README.md`](../src/features/settings/README.md).
 - New right widget: read [`../src/features/right-sidebar/README.md`](../src/features/right-sidebar/README.md).
 - Existing local capability: its module under `server/features/`, after reading [`../server/features/README.md`](../server/features/README.md).
 - New local route: `server/backend.ts`, then `src/api.ts` if the frontend uses it.

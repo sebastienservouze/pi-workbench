@@ -7,10 +7,8 @@ import { SessionAnalysisWidget } from '../session-analysis/SessionAnalysisWidget
 import type { SessionAnalysis, SessionAnalysisTarget } from '../session-analysis/session-analysis.ts'
 import { TerminalWidget } from '../terminal/TerminalWidget.tsx'
 import { TodoWidget } from '../todo/TodoWidget.tsx'
-import { maxRightSidebarWidth, minRightSidebarWidth } from './right-sidebar.ts'
+import { maxRightSidebarWidth, minRightSidebarWidth, type RightWidget } from './right-sidebar.ts'
 import { WidgetLayout } from './WidgetLayout.tsx'
-
-export type RightWidget = 'analysis' | 'git' | 'quotas' | 'terminal' | 'todo'
 
 export interface RailAction {
   key: string

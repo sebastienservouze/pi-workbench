@@ -2,72 +2,56 @@
 
 ## Architecture and boundaries
 
-- Read [`docs/architecture.md`](docs/architecture.md) before a cross-cutting change or moving a module.
+- Read [`docs/architecture.md`](docs/architecture.md) before a cross-cutting change or moving a module; use [`docs/README.md`](docs/README.md) to find focused guides.
 - The React frontend communicates with the backend only through `src/api.ts`.
-- `src/App.tsx` only orchestrates cross-cutting state; put area-specific rendering and logic in `src/features/<feature>/`.
-- Colocate feature-specific CSS with its feature. Reserve `src/styles/` for global and responsive rules, and keep `src/App.css` as the ordered entry point.
-- `server/backend.ts` owns the web API and SSE stream. It can restart without interrupting Pi.
-- `server/manager.ts` is the sole owner of `pi --mode rpc` processes; do not move that responsibility into the backend.
-- Use Pi's public RPC protocol. Do not read its internal files to reproduce a capability already exposed through RPC.
-- The application is local and listens only on `127.0.0.1`. Do not broaden this exposure without explicit authentication and scoping.
-- Do not add a database, frontend router, state manager, or UI library without a demonstrated need.
+- `src/App.tsx` orchestrates cross-cutting state. Area-specific rendering and logic belong in `src/features/<feature>/`.
+- Colocate feature CSS. Reserve `src/styles/` for global and responsive rules; `src/App.css` remains the ordered entry point.
+- `server/backend.ts` owns the web API and SSE stream and can restart without interrupting Pi.
+- `server/manager.ts` is the sole owner of `pi --mode rpc` processes. Ask before changing or restarting it because this can interrupt the current connection and response; history can normally resume the session.
+- Use Pi's public RPC protocol. Do not read internal files to reproduce an RPC capability or move process ownership into the backend.
+- The application listens only on `127.0.0.1`. Do not broaden exposure without explicit authentication and scoping.
+- Do not add a database, frontend router, state manager, or UI library without demonstrated need.
 
-## Self-modification
+## Working rules
 
-Pi Workbench is designed to be modified by the agents using it. Before editing, analyze the existing flow, reuse repository conventions, and look for the root cause rather than working around a symptom.
+Pi Workbench is designed to be modified by the agents using it. Trace the existing flow and callers, then make the smallest compatible change at the owning boundary.
 
-- Prefer the smallest change that solves the need, without a new dependency or speculative abstraction.
-- Preserve existing contracts, APIs, data formats, and expected behavior whenever possible.
-- Inspect callers, tests, and neighboring components before changing a shared function.
-- Validate changes with relevant checks and do not mix them with pre-existing repository changes.
-- If a change introduces a compatibility break, clearly report it before applying it: describe the removed or changed behavior, the expected impact, and how to migrate.
-- `server/manager.ts` owns the `pi --mode rpc` processes. It may be changed when necessary, but ask for approval first: changing or restarting the manager can interrupt the Pi connection and current response. The session can normally be recovered through Pi history and resumed.
-- Do not move Pi process management elsewhere or modify the RPC protocol without demonstrated necessity.
+- Reuse repository patterns and preserve observable APIs, protocols, and data formats.
+- Keep validation at trust boundaries and avoid speculative dependencies or abstractions.
+- Do not mix agent changes with pre-existing work.
+- Before a compatibility break, report the changed behavior, impact, and migration.
+- Validate with the narrowest relevant check. Never claim a check that was not run.
 
 ## Commands
 
 ```bash
-npm install
-npm run dev:manager
+npm run dev                 # manager, backend, and frontend
+npm run dev:manager         # individual development processes
 npm run dev:backend
 npm run dev:frontend
 npm run typecheck
 npm run lint
 npm run build
+npm test -- test/file.test.ts
+npm test -- --test-name-pattern="test name" test/file.test.ts
+npm test                    # full suite
 ```
 
-Tests:
-
-```bash
-# A specific test
-npm test -- --test-name-pattern="exposes current Pi commands over RPC" test/pi-rpc.integration.test.ts
-
-# A file
-npm test -- test/pi-rpc.integration.test.ts
-
-# The full suite
-npm test
-```
-
-The integration test expects a configured `pi` command and the `/agent` extension to be available.
-
-## Pi documentation
-
-Pi documentation is available locally at `$(npm root -g)/@earendil-works/pi-coding-agent/docs/`.
+The integration test requires a configured `pi` command and the `/agent` extension. Pi documentation is installed at `$(npm root -g)/@earendil-works/pi-coding-agent/docs/`.
 
 ## Focused documentation
 
-Use [`docs/README.md`](docs/README.md) as the documentation index.
-
-- Read [`docs/tool-call-presentations.md`](docs/tool-call-presentations.md) before creating or changing a tool call display.
-- Read [`src/features/right-sidebar/README.md`](src/features/right-sidebar/README.md) before creating or changing a right sidebar widget.
-- Read [`server/features/README.md`](server/features/README.md) before moving or changing a backend capability.
+- [Frontend feature map](src/features/README.md)
+- [Tool call presentations](docs/tool-call-presentations.md)
+- [Commands and shortcuts](src/features/commands/README.md)
+- [Settings and preferences](src/features/settings/README.md)
+- [Right sidebar widgets](src/features/right-sidebar/README.md)
+- [Backend capabilities](server/features/README.md)
 
 ## Conventions
 
 - Write identifiers, filenames, and code in English.
-- Keep code spacious, simple, and readable; give variables explicit names.
-- Document every application function longer than four lines with English JSDoc, except obvious utility functions (type guards, conversions, formatting, or local parsing). Describe its purpose, contract, invariant, side effect, or non-obvious rationale; never paraphrase the code.
+- Keep code spacious and explicit.
+- Document every application function longer than four lines with English JSDoc, except obvious type guards, conversions, formatting, or local parsing. Explain purpose, contract, invariant, side effect, or rationale rather than paraphrasing code.
 - Keep TypeScript strict and run Oxlint before proposing a change.
-- Use commits in the `<gitmoji> concise imperative subject` format, without a conventional prefix such as `feat:`.
-- Never claim a test or check that was not actually run.
+- Commit as `<gitmoji> concise imperative subject`, without a conventional prefix.
