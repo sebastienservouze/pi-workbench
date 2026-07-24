@@ -37,6 +37,7 @@ const conversationViewDetails = {
 function App() {
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
+  const [completedSessionIds, setCompletedSessionIds] = useState<ReadonlySet<string>>(new Set())
   const [workspacePath, setWorkspacePath] = useState(() => window.localStorage.getItem('pi-workbench.workspace-path') ?? '~/.pi')
   const [recentWorkspacePaths, setRecentWorkspacePaths] = useState(() => recentWorkspaces(window.localStorage.getItem('pi-workbench.workspace-path') ?? '~/.pi', readRecentWorkspaces()))
   const [directoryPickerOpen, setDirectoryPickerOpen] = useState(false)
@@ -159,6 +160,12 @@ function App() {
   useEffect(() => {
     if (selectedId) window.localStorage.setItem('pi-workbench.selected-session', selectedId)
     else window.localStorage.removeItem('pi-workbench.selected-session')
+    setCompletedSessionIds((current) => {
+      if (!current.has(selectedId)) return current
+      const next = new Set(current)
+      next.delete(selectedId)
+      return next
+    })
   }, [selectedId])
 
   /** Reloads sessions and their UI requests while discarding stale responses. */
@@ -291,7 +298,10 @@ function App() {
         void refreshSessions()
       }
       if (event.type === 'agent_start') updateSessionStatus(sessionId, 'running')
-      if (event.type === 'agent_settled') updateSessionStatus(sessionId, 'idle')
+      if (event.type === 'agent_settled') {
+        updateSessionStatus(sessionId, 'idle')
+        if (sessionId !== selectedIdRef.current) setCompletedSessionIds((current) => new Set(current).add(sessionId))
+      }
       if (event.type === 'auto_retry_end' && event.success === false && typeof event.finalError === 'string') {
         showToast('error', `Provider connection failed after retries: ${event.finalError}`, sessionId)
       }
@@ -600,6 +610,7 @@ function App() {
       style={{ '--right-sidebar-width': `${rightSidebarWidth}px` } as CSSProperties}
     >
       <WorkspaceSidebar
+        completedSessionIds={completedSessionIds}
         recentSessions={recentSessions}
         sessions={sessions}
         selectedId={selectedId}

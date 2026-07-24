@@ -3,6 +3,7 @@ import type { RecentSession, SessionSummary } from '../../../shared/types.ts'
 import { sidebarSessions } from './sidebar-sessions.ts'
 
 interface WorkspaceSidebarProps {
+  completedSessionIds: ReadonlySet<string>
   recentSessions: RecentSession[]
   sessions: SessionSummary[]
   selectedId: string
@@ -18,7 +19,7 @@ interface WorkspaceSidebarProps {
 }
 
 /** Displays the current workspace and opens or selects its recent Pi sessions. */
-export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspacePath, theme, onChooseWorkspace, onCreate, onOpenSession, onSelectSession, onToggleTheme, onOpenSettings, onError }: WorkspaceSidebarProps) {
+export function WorkspaceSidebar({ completedSessionIds, recentSessions, sessions, selectedId, workspacePath, theme, onChooseWorkspace, onCreate, onOpenSession, onSelectSession, onToggleTheme, onOpenSettings, onError }: WorkspaceSidebarProps) {
   const [openingSessionPath, setOpeningSessionPath] = useState('')
   const visibleSessions = useMemo(() => sidebarSessions(recentSessions, sessions, workspacePath), [recentSessions, sessions, workspacePath])
 
@@ -59,6 +60,7 @@ export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspa
             type="button"
           >
             {activeSession?.status === 'running' && <span aria-label="Pi is active" className="status-dot" role="img" />}
+            {activeSession?.status === 'idle' && activeSession.id !== selectedId && completedSessionIds.has(activeSession.id) && <span aria-label="Pi finished its turn" className="turn-complete-indicator" role="img">✓</span>}
             <span><strong>{openingSessionPath === recentSession.sessionPath ? 'Opening…' : recentSession.name}</strong><small>{new Date(recentSession.updatedAt).toLocaleString('en-US')}</small></span>
           </button>
         )
