@@ -95,7 +95,11 @@ Good places to start:
 
 The focused guides in the [documentation index](docs/README.md) and [frontend feature map](src/features/README.md) point to the smallest owning area for each kind of change.
 
-## The live architecture
+## How Pi Livecraft talks to Pi
+
+Pi remains the agent harness: it owns the session, model, tools, history, and extensions. Pi Livecraft does not replace that runtime; it adds a React interface on top of it.
+
+A local backend sends commands to `pi --mode rpc` through Pi's public RPC protocol, then streams Pi's events back to the browser:
 
 ```text
 React browser
