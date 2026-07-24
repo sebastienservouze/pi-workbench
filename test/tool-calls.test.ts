@@ -106,8 +106,8 @@ test('extracts valid edit replacements without accepting malformed entries', () 
 
 test('measures serialized arguments and adds input and output sizes below the full tool title', () => {
   assert.equal(toolDataLength({ command: 'pwd' }), 17)
-  assert.equal(formatToolCallTooltip('pwd', 17), 'pwd\nAppel : 17 caractères')
-  assert.equal(formatToolCallTooltip('pwd', 17, 0), 'pwd\nAppel : 17 caractères · Résultat : 0 caractères')
+  assert.equal(formatToolCallTooltip('pwd', 17), 'pwd\nCall: 17 characters')
+  assert.equal(formatToolCallTooltip('pwd', 17, 0), 'pwd\nCall: 17 characters · Result: 0 characters')
 })
 
 test('truncates text only after 140 characters', () => {
@@ -151,7 +151,7 @@ test('uses the Bash presentation while preserving the generic fallback', () => {
   const command = 'a'.repeat(81)
   assert.deepEqual(toolCallPresentation({ id: 'call_1', name: 'bash', args: { command, timeout: 30 } }), {
     headerDetail: { text: `${'a'.repeat(80)}…`, title: command },
-    pendingDetail: 'timeout : 30s',
+    pendingDetail: 'timeout: 30s',
   })
   assert.deepEqual(toolCallPresentation({ id: 'call_2', name: 'bash', args: { timeout: 30 } }), {})
 })

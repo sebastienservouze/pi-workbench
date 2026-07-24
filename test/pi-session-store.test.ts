@@ -53,7 +53,7 @@ test('uses a placeholder when a session has no name or user prompt', async () =>
 
   const [recent] = await listRecentPiSessions('/workspace', directory)
 
-  assert.equal(recent.name, 'Nouvelle session')
+  assert.equal(recent.name, 'New session')
 })
 
 async function writeSession(path: string, cwd: string, id: string, name: string, renamedName?: string, lastMessageTimestamp?: string): Promise<void> {

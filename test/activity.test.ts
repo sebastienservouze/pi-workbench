@@ -19,10 +19,10 @@ test('keeps a current activity through thinking, tool preparation, execution, an
   activity = activityForPiEvent(activity, { type: 'tool_execution_end' })
   assert.deepEqual(activity, { kind: 'working' })
 
-  assert.equal(activityText({ kind: 'tool-preparing' }, 'worker'), 'Worker prépare un appel d’outil aux petits oignons…')
-  assert.equal(activityText({ kind: 'tool-waiting' }, 'worker'), 'Worker attend le verdict de l’outil…')
-  assert.equal(activityText(activity, 'worker'), 'Worker met les rouages en marche…')
-  assert.equal(activityText({ kind: 'thinking', thinking: '**Inspecting** files' }, undefined), 'Pi fait chauffer ses neurones…')
+  assert.equal(activityText({ kind: 'tool-preparing' }, 'worker'), 'Worker is preparing a tool call…')
+  assert.equal(activityText({ kind: 'tool-waiting' }, 'worker'), 'Worker is waiting for the tool…')
+  assert.equal(activityText(activity, 'worker'), 'Worker is getting things moving…')
+  assert.equal(activityText({ kind: 'thinking', thinking: '**Inspecting** files' }, undefined), 'Pi is thinking hard…')
 
   activity = activityForPiEvent(activity, { type: 'message_update', assistantMessageEvent: { type: 'text_delta', delta: 'Done' } })
   assert.deepEqual(activity, { kind: 'writing' })
@@ -35,10 +35,10 @@ test('keeps thinking content out of the activity label', () => {
   activity = activityForPiEvent(activity, { type: 'message_update', assistantMessageEvent: { type: 'thinking_delta', delta: '**Checking** tests' } })
 
   assert.deepEqual(activity, { kind: 'thinking', thinking: '**Inspecting** files\n**Checking** tests' })
-  assert.equal(activityText(activity, undefined), 'Pi fait chauffer ses neurones…')
+  assert.equal(activityText(activity, undefined), 'Pi is thinking hard…')
 })
 
-test('uses playful French activity labels', () => {
-  assert.equal(activityText({ kind: 'writing' }, 'pi'), 'Pi fait danser les mots…')
-  assert.equal(activityText({ kind: 'waiting' }, 'pi'), 'Pi vous passe le micro 🎤')
+test('uses playful activity labels', () => {
+  assert.equal(activityText({ kind: 'writing' }, 'pi'), 'Pi is writing…')
+  assert.equal(activityText({ kind: 'waiting' }, 'pi'), 'Pi is waiting for you 🎤')
 })
