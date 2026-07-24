@@ -228,7 +228,7 @@
 .pi-activity { display: flex; align-items: flex-start; gap: 9px; color: var(--teal); font: 12px/1.55 ui-monospace, monospace; white-space: nowrap; }
 .conversation-activity { margin: 0 2px 18px; }
 .activity-text { position: relative; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.pi-activity:not(.is-exited):not(.is-disconnected) .activity-text::after { position: absolute; inset: 0 auto 0 -35%; width: 22%; background: linear-gradient(105deg, transparent, rgb(255 255 255 / 35%), transparent); content: ''; pointer-events: none; transform: translateX(-100%) skewX(-18deg); animation: activity-text-shimmer 900ms cubic-bezier(.25, 1, .5, 1) infinite; }
+.pi-activity:not(.is-exited):not(.is-disconnected) .activity-text::after { position: absolute; inset: 0 auto 0 -35%; width: 22%; background: linear-gradient(105deg, transparent, rgb(255 255 255 / 35%), transparent); content: ''; pointer-events: none; transform: translateX(-100%) skewX(-18deg); animation: activity-text-shimmer 1.8s cubic-bezier(.25, 1, .5, 1) infinite; }
 .activity-action { display: inline-block; animation: activity-action-in 220ms cubic-bezier(.25, 1, .5, 1); }
 @keyframes activity-action-in { from { opacity: 0; transform: translateY(-5px); } }
 @keyframes activity-text-shimmer { 0% { transform: translateX(-100%) skewX(-18deg); } 30% { transform: translateX(275%) skewX(-18deg); } 60%, 100% { transform: translateX(650%) skewX(-18deg); } }
