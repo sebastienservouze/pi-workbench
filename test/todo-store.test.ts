@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import test from 'node:test'
-import { loadWorkspaceTodos, parseTodoItems, parseTodoStore, saveWorkspaceTodos } from '../server/todo-store.ts'
+import { loadWorkspaceTodos, parseTodoItems, parseTodoStore, saveWorkspaceTodos } from '../server/features/todos/todo-store.ts'
 
 const todos = [
   { id: 'first', text: 'Première tâche', completed: false },

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { parseCopilotUsage, parseOpenAiUsage } from '../shared/quota-parsers.ts'
 import { quotaRefreshAllowed } from '../shared/quota-refresh.ts'
-import { QuotaCache } from '../server/quota-cache.ts'
+import { QuotaCache } from '../server/features/quotas/quota-cache.ts'
 import { quotaProviderForModel, railQuota } from '../src/features/quotas/quota-display.ts'
 
 test('normalizes the Codex five-hour and weekly windows', () => {

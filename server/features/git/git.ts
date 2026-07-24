@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import type { GitCommit, GitFileChange, GitFileDiff, GitRevertResult, GitSnapshot } from '../shared/types.ts'
+import type { GitCommit, GitFileChange, GitFileDiff, GitRevertResult, GitSnapshot } from '../../../shared/types.ts'
 
 interface GitCommandResult {
   exitCode: number

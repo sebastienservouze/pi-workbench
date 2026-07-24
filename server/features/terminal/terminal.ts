@@ -1,5 +1,5 @@
 import { exec } from 'node:child_process'
-import type { TerminalCommandResult } from '../shared/types.ts'
+import type { TerminalCommandResult } from '../../../shared/types.ts'
 
 const maxOutputBytes = 1_000_000
 const timeoutMs = 10 * 60_000

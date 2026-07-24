@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
-import type { TodoItem } from '../shared/types.ts'
+import type { TodoItem } from '../../../shared/types.ts'
 
 interface TodoStore {
   workspaces: Record<string, TodoItem[]>

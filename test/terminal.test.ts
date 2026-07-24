@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { runTerminalCommand } from '../server/terminal.ts'
+import { runTerminalCommand } from '../server/features/terminal/terminal.ts'
 
 test('exécute une commande dans le cwd et conserve ses sorties', async () => {
   const result = await runTerminalCommand(process.cwd(), "printf '%s' \"$PWD\"; printf 'erreur' >&2; exit 7")

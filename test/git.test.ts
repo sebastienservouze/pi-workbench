@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import test from 'node:test'
-import { getGitFileDiff, getGitSnapshot, mergeNumstats, parseGitStatus, revertGitCommit } from '../server/git.ts'
+import { getGitFileDiff, getGitSnapshot, mergeNumstats, parseGitStatus, revertGitCommit } from '../server/features/git/git.ts'
 
 const execFile = promisify(execFileCallback)
 

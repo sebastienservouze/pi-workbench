@@ -6,14 +6,14 @@ import { fileURLToPath } from 'node:url'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { ManagerClient } from './manager-client.ts'
 import { listRecentPiSessions, loadPiSession } from './pi-session-store.ts'
-import { commitAndPush, getGitFileDiff, getGitSnapshot, revertGitCommit } from './git.ts'
+import { commitAndPush, getGitFileDiff, getGitSnapshot, revertGitCommit } from './features/git/git.ts'
+import { QuotaService } from './features/quotas/quota-service.ts'
+import { runTerminalCommand } from './features/terminal/terminal.ts'
+import { loadWorkspaceTodos, parseTodoItems, saveWorkspaceTodos } from './features/todos/todo-store.ts'
 import { readWorkspaceFile, WorkspaceFileError } from './workspace-file.ts'
-import { loadWorkspaceTodos, parseTodoItems, saveWorkspaceTodos } from './todo-store.ts'
 import { visibleSessionMessages } from './session-snapshot.ts'
-import { runTerminalCommand } from './terminal.ts'
 import { isVsCodeAvailable, openExplorer, openVsCode, windowsWorkspacePath } from './vscode.ts'
-import { QuotaCache } from './quota-cache.ts'
-import type { DirectoryListing, JsonObject, ManagerEvent, QuotaSnapshot, SessionSnapshot } from '../shared/types.ts'
+import type { DirectoryListing, JsonObject, ManagerEvent, SessionSnapshot } from '../shared/types.ts'
 
 const host = '127.0.0.1'
 const port = readPort('PI_WORKBENCH_BACKEND_PORT', 43_121)
@@ -21,16 +21,15 @@ const managerPort = readPort('PI_WORKBENCH_MANAGER_PORT', 43_120)
 const manager = new ManagerClient(host, managerPort)
 const eventClients = new Set<ServerResponse>()
 const distDirectory = fileURLToPath(new URL('../dist/', import.meta.url))
-const quotaCache = new QuotaCache()
-let quotaRefresh: Promise<QuotaSnapshot> | undefined
+const quotas = new QuotaService(manager)
 
 manager.on('event', (event: ManagerEvent) => {
-  quotaCache.receiveManagerEvent(event)
+  quotas.receiveManagerEvent(event)
   broadcast(event)
 })
 manager.on('connected', () => {
   broadcast({ kind: 'event', event: 'manager_connected', sessionId: '' })
-  void restoreQuotasFromIdleSession()
+  void quotas.restoreFromIdleSession()
 })
 manager.on('disconnected', () => broadcast({ kind: 'event', event: 'manager_disconnected', sessionId: '' }))
 manager.start()
@@ -75,15 +74,14 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
   }
 
   if (method === 'GET' && url.pathname === '/api/quotas') {
-    const sessions = await manager.request({ action: 'list' })
-    sendJson(response, 200, quotaCache.snapshot(!Array.isArray(sessions) || sessions.length === 0))
+    sendJson(response, 200, await quotas.snapshot())
     return
   }
 
   if (method === 'POST' && url.pathname === '/api/quotas/refresh') {
     const body = await readJsonBody(request)
     if (typeof body.sessionId !== 'string' || !body.sessionId) throw new HttpError(409, 'An open Pi session is required to refresh quotas.')
-    sendJson(response, 200, await refreshQuotas(body.sessionId, body.automatic === true))
+    sendJson(response, 200, await quotas.refresh(body.sessionId, body.automatic === true))
     return
   }
 
@@ -253,32 +251,6 @@ async function piCommand(sessionId: string, command: JsonObject): Promise<JsonOb
   const response = await manager.request({ action: 'command', sessionId, command })
   if (!isObject(response)) throw new Error('Invalid response from Pi manager')
   return response
-}
-
-/** Deduplicates concurrent requests and lets the extension apply its automatic delay. */
-function refreshQuotas(sessionId: string, automatic = false): Promise<QuotaSnapshot> {
-  quotaRefresh ??= (async () => {
-    quotaCache.setRefreshing(true)
-    try {
-      await manager.request({ action: 'command', sessionId, command: { type: 'prompt', message: `/workbench-quotas${automatic ? ' auto' : ''}` } }, 60_000)
-    } finally {
-      quotaCache.setRefreshing(false)
-    }
-    return quotaCache.snapshot(false)
-  })().finally(() => { quotaRefresh = undefined })
-  return quotaRefresh
-}
-
-/** Restores the cache after a backend restart without interrupting an active session. */
-async function restoreQuotasFromIdleSession(): Promise<void> {
-  try {
-    const sessions = await manager.request({ action: 'list' })
-    if (!Array.isArray(sessions)) return
-    const idleSession = sessions.find((session) => isObject(session) && session.status === 'idle' && typeof session.id === 'string')
-    if (isObject(idleSession) && typeof idleSession.id === 'string') await refreshQuotas(idleSession.id, true)
-  } catch {
-    // A manual refresh remains possible once the manager is available.
-  }
 }
 
 function objectData(response: JsonObject): JsonObject | null {

@@ -1,4 +1,4 @@
-import type { CopilotQuotaWindow, JsonObject, OpenAiQuotaWindow, QuotaProviderReport, QuotaProviderSnapshot, QuotaReport, QuotaSnapshot } from '../shared/types.ts'
+import type { CopilotQuotaWindow, JsonObject, OpenAiQuotaWindow, QuotaProviderReport, QuotaProviderSnapshot, QuotaReport, QuotaSnapshot } from '../../../shared/types.ts'
 
 const emptyProvider = <T>(): QuotaProviderSnapshot<T> => ({ data: [], stale: false })
 
