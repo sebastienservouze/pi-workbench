@@ -46,6 +46,7 @@ export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspa
           <button
             className={activeSession?.id === selectedId ? 'session-item selected' : 'session-item'}
             disabled={openingSessionPath === recentSession.sessionPath}
+            title={recentSession.name}
             key={recentSession.sessionPath}
             onClick={() => {
               if (activeSession) {
@@ -54,10 +55,6 @@ export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspa
               }
               setOpeningSessionPath(recentSession.sessionPath)
               void onOpenSession(recentSession).catch(onError).finally(() => setOpeningSessionPath(''))
-            }}
-            onMouseEnter={(event) => {
-              const name = event.currentTarget.querySelector('strong')
-              event.currentTarget.title = name && name.scrollWidth > name.clientWidth ? recentSession.name : ''
             }}
             type="button"
           >
