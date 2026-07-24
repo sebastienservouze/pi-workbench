@@ -6,7 +6,7 @@ import type { GitSnapshot, JsonObject, ManagerEvent, QuotaSnapshot, RecentSessio
 import { Composer } from './features/composer/Composer.tsx'
 import { promptSessionTitle } from './features/composer/prompt-title.ts'
 import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
-import { activityForPiEvent, sessionActivity, waitingActivity, type Activity, type PiConnection } from './features/conversation/activity.ts'
+import { activityForPiEvent, sessionActivity, type Activity, type PiConnection } from './features/conversation/activity.ts'
 import { Conversation } from './features/conversation/Conversation.tsx'
 import { applyToolCallUpdate, interruptToolCallGeneration, toolCallInUpdate, type ToolExecution, type ToolResult } from './features/conversation/tool-calls.ts'
 import { AskUserQuestionDialog, ExtensionDialog } from './features/dialogs/Dialogs.tsx'
@@ -300,7 +300,7 @@ function App() {
       }
 
       if (sessionId === selectedIdRef.current && event.type === 'extension_ui_request' && isBlockingDialog(event) && !isAgentSelector(event)) {
-        setActivity(waitingActivity())
+        setActivity(null)
       }
 
       if (event.type === 'extension_ui_request') {
