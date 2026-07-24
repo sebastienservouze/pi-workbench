@@ -116,7 +116,6 @@ button:disabled, select:disabled { cursor: not-allowed; }
   .composer-select-option[data-highlighted] { background: #2a322f; }
   .composer-select-option[data-state='checked'] { color: #5fc4b6; }
   .icon-button.send { box-shadow: 0 2px 0 #1a3f38; }
-  .icon-button.danger { border-color: #5c3d37; }
 
   /* ── conversation ── */
   .chat-detail-toggle.active { border-color: #3a6d64; color: #5fc4b6; }
