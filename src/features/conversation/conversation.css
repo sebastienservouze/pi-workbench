@@ -215,6 +215,7 @@
 .tool-call-markdown h1, .tool-call-markdown h2, .tool-call-markdown h3 { margin: 14px 0 8px; line-height: 1.3; }
 .tool-call-markdown :not(pre) > code { padding: 1px 3px; border-radius: 3px; background: rgb(33 68 61 / 10%); font: 11px ui-monospace, monospace; }
 .tool-call-syntax { font: 11px/1.5 ui-monospace, monospace !important; }
+.tool-call-syntax code { background: transparent !important; }
 .pi-activity { display: flex; align-items: flex-start; gap: 9px; color: var(--teal); font: 12px/1.55 ui-monospace, monospace; white-space: nowrap; }
 .conversation-activity { margin: 0 2px 18px; }
 .activity-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

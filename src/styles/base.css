@@ -122,6 +122,10 @@ button:disabled, select:disabled { cursor: not-allowed; }
   .tool-call-preview { background: rgb(0 0 0 / 14%); }
   .tool-call-preview:hover { background: rgb(0 0 0 / 24%); }
   .tool-call-content pre { background: rgb(0 0 0 / 14%); }
+  .tool-call-edit-change { border-color: rgb(176 201 192 / 18%); }
+  .tool-call-edit-change h4 { background: rgb(176 201 192 / 8%); }
+  .tool-call-edit-line.removed { background: #321a16; color: #f09087; }
+  .tool-call-edit-line.added { background: #172b21; color: #79ce97; }
   .tool-call-markdown :not(pre) > code { background: rgb(176 201 192 / 12%); }
   .spinner { border-color: #3a544c; }
   .message.system.error { background: #2d1c19; }
