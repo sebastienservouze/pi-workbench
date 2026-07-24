@@ -1,6 +1,6 @@
 import type { JsonObject } from '../../../shared/types.ts'
 
-export type CommandId = 'new-session' | 'send' | 'abort' | 'toggle-git' | 'open-thinking' | 'open-model' | 'open-agent' | 'copy-last-response' | 'open-palette' | 'open-settings'
+export type CommandId = 'new-session' | 'send' | 'abort' | 'open-thinking' | 'open-model' | 'open-agent' | 'copy-last-response' | 'open-palette' | 'open-settings'
 
 export interface CommandDefinition {
   id: CommandId
@@ -12,7 +12,6 @@ export const commandDefinitions: CommandDefinition[] = [
   { id: 'new-session', label: 'New session' },
   { id: 'send', label: 'Send message' },
   { id: 'abort', label: 'Abort Pi' },
-  { id: 'toggle-git', label: 'Show or hide Git' },
   { id: 'open-thinking', label: 'Open thinking level' },
   { id: 'open-model', label: 'Open model picker' },
   { id: 'open-agent', label: 'Open agent picker' },

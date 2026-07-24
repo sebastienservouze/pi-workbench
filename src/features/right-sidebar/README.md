@@ -2,7 +2,7 @@
 
 The right sidebar composes the persistent rail, active integrated widget, collapse state, and accessible resizing. `App.tsx` owns the active widget and width because they affect the application layout.
 
-Add a panel widget directly in `RightSidebar.tsx`, keep its rendering and state in `src/features/<feature>/`, and pass only existing data and callbacks. Do not add a widget registry. Panel content uses `WidgetLayout`; action-only entries use `RailAction`.
+Add a panel widget directly in `RightSidebar.tsx`, keep its rendering and state in `src/features/<feature>/`, and pass only existing data and callbacks. Do not add a widget registry. Panel content uses `WidgetLayout`; action-only entries use `RailAction`. Widgets are opened from the sidebar rail, not from the command palette; do not add widget-specific palette commands or shortcuts.
 
 Width is stored in `pi-workbench.right-sidebar-width` and bounded from 240 to 720 px. The legacy `pi-workbench.git-sidebar-width` key is read only as a fallback. The active widget uses `pi-workbench.right-sidebar-widget`; `pi-workbench.git-sidebar-collapsed` remains a historical migration fallback.
 
