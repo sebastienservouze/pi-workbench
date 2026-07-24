@@ -125,12 +125,12 @@ Read [`docs/architecture.md`](docs/architecture.md) before changing boundaries o
 ## Project map
 
 ```text
-src/features/       Frontend behavior, rendering, and colocated styles
+src/features/        Frontend behavior, rendering, and colocated styles
 src/api.ts           Browser-to-backend boundary
 server/backend.ts    Local HTTP API and SSE stream
 server/manager.ts    Sole owner of Pi RPC processes
 server/features/     Git, quotas, terminal, and todo capabilities
-pi-extensions/       Extensions loaded into Workbench sessions
+pi-extensions/       Extensions loaded ONLY into Workbench sessions
 shared/              Contracts exchanged between layers
 test/                Focused automated checks
 ```
