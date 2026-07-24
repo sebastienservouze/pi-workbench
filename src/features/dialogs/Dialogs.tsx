@@ -22,8 +22,8 @@ function stripMarkdown(text: string): string {
     .trim()
 }
 
-/** Presents one question at a time and keeps responses until batch-sent to Pi. */
-export function AskUserQuestionDialog({ dialog, onClose, onError }: { dialog: UiDialog; onClose: () => void; onError: (cause: unknown) => void }) {
+/** Presents one question at a time, identifies its session, and keeps responses until batch-sent to Pi. */
+export function AskUserQuestionDialog({ dialog, sessionName, onClose, onError }: { dialog: UiDialog; sessionName?: string; onClose: () => void; onError: (cause: unknown) => void }) {
   const request = parseQuestionnaire(dialog.request)
   const [selectedOptions, setSelectedOptions] = useState<string[][]>(() => request.questions.map(() => []))
   const [freeText, setFreeText] = useState<string[]>(() => request.questions.map(() => ''))
@@ -77,9 +77,9 @@ export function AskUserQuestionDialog({ dialog, onClose, onError }: { dialog: Ui
           <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5"/>
           <path d="M6 8h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
-        <span>Question {activeQuestion + 1} of {request.questions.length}</span>
+        <span>{sessionName ? `Question de « ${sessionName} »` : `Question ${activeQuestion + 1} sur ${request.questions.length}`}</span>
         <span>·</span>
-        <span>Show</span>
+        <span>Afficher</span>
         <svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
           <path d="M6 10l4-4 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
@@ -93,7 +93,7 @@ export function AskUserQuestionDialog({ dialog, onClose, onError }: { dialog: Ui
         <div className="ask-user-question-heading">
           <div className="ask-user-question-heading-row">
             <div>
-              <span>Pi is waiting for your response</span>
+              <span>{sessionName ? `Question de la session « ${sessionName} »` : 'Pi attend votre réponse'}</span>
               <strong id="ask-user-question-title">Question {activeQuestion + 1} sur {request.questions.length}</strong>
             </div>
             <button className="ask-user-question-minimize" onClick={() => setMinimized(true)} aria-label="Hide question" type="button">

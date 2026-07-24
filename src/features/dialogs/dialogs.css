@@ -28,8 +28,8 @@
 
 .ask-user-question-heading { padding: 15px 17px 13px; border-bottom: 1px solid var(--line); background: #fffdfc; }
 .ask-user-question-heading-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.ask-user-question-heading-row > div { display: grid; gap: 3px; }
-.ask-user-question-heading span { color: var(--accent-hover); font-size: 11px; font-weight: 750; }
+.ask-user-question-heading-row > div { display: grid; min-width: 0; gap: 3px; }
+.ask-user-question-heading span { overflow-wrap: anywhere; color: var(--accent-hover); font-size: 11px; font-weight: 750; }
 .ask-user-question-heading strong { font-size: 15px; letter-spacing: -.015em; }
 .ask-user-question-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--surface-raised); scrollbar-width: thin; }
 .ask-user-question-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: max-content; border: 1px solid transparent; border-radius: 7px; padding: 6px 9px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 700; transition: border-color 180ms ease, background 180ms ease, color 180ms ease, transform 180ms ease; }
