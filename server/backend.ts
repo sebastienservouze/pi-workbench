@@ -11,7 +11,7 @@ import { QuotaService } from './features/quotas/quota-service.ts'
 import { runTerminalCommand } from './features/terminal/terminal.ts'
 import { loadWorkspaceTodos, parseTodoItems, saveWorkspaceTodos } from './features/todos/todo-store.ts'
 import { readWorkspaceFile, WorkspaceFileError } from './workspace-file.ts'
-import { visibleSessionMessages } from './session-snapshot.ts'
+import { activeSessionMessages } from './session-snapshot.ts'
 import { isVsCodeAvailable, openExplorer, openVsCode, windowsWorkspacePath } from './vscode.ts'
 import type { DirectoryListing, JsonObject, ManagerEvent, SessionSnapshot } from '../shared/types.ts'
 
@@ -209,16 +209,16 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
   const snapshotMatch = url.pathname.match(/^\/api\/sessions\/([^/]+)\/snapshot$/)
   if (method === 'GET' && snapshotMatch) {
     const sessionId = decodeURIComponent(snapshotMatch[1])
-    const [state, messages, models, commands, stats] = await Promise.all([
+    const [state, entries, models, commands, stats] = await Promise.all([
       piCommand(sessionId, { type: 'get_state' }),
-      piCommand(sessionId, { type: 'get_messages' }),
+      piCommand(sessionId, { type: 'get_entries' }),
       piCommand(sessionId, { type: 'get_available_models' }),
       piCommand(sessionId, { type: 'get_commands' }),
       piCommand(sessionId, { type: 'get_session_stats' }),
     ])
     const snapshot: SessionSnapshot = {
       state: objectData(state),
-      messages: visibleSessionMessages(arrayData(messages, 'messages')),
+      messages: activeSessionMessages(arrayData(entries, 'entries'), objectData(entries)?.leafId),
       models: arrayData(models, 'models'),
       commands: arrayData(commands, 'commands'),
       stats: objectData(stats),

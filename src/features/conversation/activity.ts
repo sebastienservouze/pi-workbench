@@ -1,7 +1,7 @@
 import type { JsonObject } from '../../../shared/types.ts'
 
 export interface Activity {
-  kind: 'working' | 'thinking' | 'tool-preparing' | 'tool-waiting' | 'writing' | 'waiting' | 'retrying'
+  kind: 'working' | 'thinking' | 'tool-preparing' | 'tool-waiting' | 'writing' | 'waiting' | 'retrying' | 'compacting'
   thinking?: string
   attempt?: number
   maxAttempts?: number
@@ -9,7 +9,8 @@ export interface Activity {
 
 /** Converts Pi events into a stable activity state for the conversation indicator. */
 export function activityForPiEvent(current: Activity | null, event: JsonObject): Activity | null {
-  if (event.type === 'agent_start' || event.type === 'message_start') return { kind: 'working' }
+  if (event.type === 'agent_start' || event.type === 'message_start' || event.type === 'compaction_end') return { kind: 'working' }
+  if (event.type === 'compaction_start') return { kind: 'compacting' }
   if (event.type === 'agent_settled') return null
   if (event.type === 'auto_retry_start') {
     return {
@@ -48,6 +49,7 @@ export function activityActionText(activity: Activity): string {
     const progress = activity.attempt !== undefined && activity.maxAttempts !== undefined ? ` (${activity.attempt}/${activity.maxAttempts})` : ''
     return `is reconnecting to the provider${progress}…`
   }
+  if (activity.kind === 'compacting') return 'is compacting the session…'
   if (activity.kind === 'thinking') return 'is thinking hard…'
   if (activity.kind === 'tool-preparing') return 'is preparing a tool call…'
   if (activity.kind === 'tool-waiting') return 'is waiting for the tool…'

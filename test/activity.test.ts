@@ -38,6 +38,14 @@ test('keeps thinking content out of the activity label', () => {
   assert.equal(activityText(activity, undefined), 'Pi is thinking hard…')
 })
 
+test('reports compaction until Pi continues or settles', () => {
+  const compacting = activityForPiEvent({ kind: 'working' }, { type: 'compaction_start', reason: 'threshold' })
+
+  assert.deepEqual(compacting, { kind: 'compacting' })
+  assert.equal(activityText(compacting, 'pi'), 'Pi is compacting the session…')
+  assert.deepEqual(activityForPiEvent(compacting, { type: 'compaction_end', reason: 'threshold' }), { kind: 'working' })
+})
+
 test('reports provider reconnection attempts', () => {
   const activity = activityForPiEvent({ kind: 'working' }, { type: 'auto_retry_start', attempt: 2, maxAttempts: 3 })
 
