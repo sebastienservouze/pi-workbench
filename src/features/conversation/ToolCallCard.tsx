@@ -94,7 +94,7 @@ export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = fa
   const content = htmlOpenError ?? writtenContentError ?? (name === 'write' && writtenContent === undefined && loadingWrittenContent ? 'Loading file…' : name === 'write' ? writtenContent ?? displayedOutput : displayedOutput)
   const contentError = resultError || Boolean(writtenContentError) || Boolean(htmlOpenError)
   const preview = toolTextPreview(content)
-  const renderingCode = (display.kind === 'code' || display.kind === 'svg') && canHighlightFile(content) && expanded && !loadingWrittenContent && !writtenContentError && !codeRendered
+  const renderingCode = display.kind === 'code' && canHighlightFile(content) && expanded && !loadingWrittenContent && !writtenContentError && !codeRendered
 
   useEffect(() => {
     if (name !== 'write' || !filePath || !hasResult || resultError) return
@@ -178,12 +178,10 @@ function ToolCallPreview({ call, content, darkMode, htmlFile, onClick, remaining
   const display = call.name === 'read' || call.name === 'write' ? readContentDisplay(call.args) : { kind: 'text' as const }
   const highlightedCode = display.kind === 'code' && canHighlightFile(content)
 
-  return <button aria-label={display.kind === 'svg' ? 'SVG preview; click to view source' : undefined} className="tool-call-preview" onClick={onClick} type="button">
-    {display.kind === 'svg'
-      ? <img alt="SVG preview" className="tool-call-svg-preview" height="256" src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(content)}`} width="256" />
-      : highlightedCode
-        ? <SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px 4px' }} language={display.language} PreTag="div" style={darkMode ? oneDark : oneLight} wrapLongLines>{content}</SyntaxHighlighter>
-        : <pre>{content}</pre>}
+  return <button className="tool-call-preview" onClick={onClick} type="button">
+    {highlightedCode
+      ? <SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px 4px' }} language={display.language} PreTag="div" style={darkMode ? oneDark : oneLight} wrapLongLines>{content}</SyntaxHighlighter>
+      : <pre>{content}</pre>}
     {remainingLineCount > 0 && <span>{remainingLabel}</span>}
     {htmlFile && <span>Click to open in browser</span>}
   </button>
@@ -198,8 +196,8 @@ function ToolCallContent({ call, content, darkMode, onCollapse, renderingCode, s
 
   const display = call.name === 'read' || call.name === 'write' ? readContentDisplay(call.args) : { kind: 'text' as const }
   if (display.kind === 'markdown') return <section className="tool-call-content tool-call-markdown" onClick={onCollapse}><Markdown>{content}</Markdown></section>
-  if ((display.kind === 'code' || display.kind === 'svg') && canHighlightFile(content)) return <section className="tool-call-content" onClick={onCollapse}><SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px' }} language={display.language} PreTag="div" style={darkMode ? oneDark : oneLight} wrapLongLines>{content}</SyntaxHighlighter></section>
-  if (display.kind === 'code' || display.kind === 'svg') return <section className="tool-call-content" onClick={onCollapse}><p className="tool-call-notice">Highlighting disabled beyond 50,000 characters.</p><pre>{content}</pre></section>
+  if (display.kind === 'code' && canHighlightFile(content)) return <section className="tool-call-content" onClick={onCollapse}><SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px' }} language={display.language} PreTag="div" style={darkMode ? oneDark : oneLight} wrapLongLines>{content}</SyntaxHighlighter></section>
+  if (display.kind === 'code') return <section className="tool-call-content" onClick={onCollapse}><p className="tool-call-notice">Highlighting disabled beyond 50,000 characters.</p><pre>{content}</pre></section>
   return <section className="tool-call-content" onClick={onCollapse}><pre>{content}</pre></section>
 }
 
