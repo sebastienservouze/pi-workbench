@@ -140,6 +140,8 @@ button:disabled, select:disabled { cursor: not-allowed; }
   .tool-call-edit-line.removed { background: #321a16; color: #f09087; }
   .tool-call-edit-line.added { background: #172b21; color: #79ce97; }
   .tool-call-markdown :not(pre) > code { background: rgb(176 201 192 / 12%); }
+  .tool-call-preview-svg { padding: 12px; display: flex; justify-content: center; align-items: center; min-height: 80px; cursor: pointer; }
+  .tool-call-svg-preview { max-width: 256px; max-height: 256px; width: auto; height: auto; display: block; margin: 0 auto; }
   .spinner { border-color: #3a544c; }
   .message.system.error { background: #2d1c19; }
 
