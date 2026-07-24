@@ -78,23 +78,17 @@ npm run dev
 
 ## Make it yours
 
-The template is a starting point, not an upstream your application must follow. **Creating an independent repository is the intended product model.** There is no canonical setup to converge on and no prize for keeping every feature.
+Pi Livecraft is a playground for improving your own Pi workflow. Start with a small friction — something you type repeatedly, context you keep looking up, or output you wish were easier to scan — and ask Pi to turn it into part of the application. Experiment freely, keep what helps, and gleefully remove the rest.
 
-1. Create a repository with **Use this template**.
-2. Clone it and start it with `npm run dev`.
-3. Select that repository as the current workspace.
-4. Ask Pi to reshape one part of the interface.
-5. Keep the useful bits. Gleefully remove the rest.
+A few ideas:
 
-Good places to start:
+- turn a repeated prompt or workspace command into a one-click action;
+- give an important tool call a richer, more useful presentation;
+- surface the session context you usually hunt for in a right-rail widget;
+- combine messages, forms, and actions into a workflow for a recurring task;
+- strip the interface back to the features you enjoy using.
 
-- add a workflow-specific widget to the right rail;
-- change how a tool call or file edit is presented;
-- create commands and shortcuts for repeated actions;
-- turn a recurring workspace command into a first-class action;
-- simplify the interface to the features you actually use.
-
-The focused guides in the [documentation index](docs/README.md) and [frontend feature map](src/features/README.md) point to the smallest owning area for each kind of change.
+There is no canonical setup and no prize for keeping every feature. Make something useful, make something weird, and have fun. The focused guides in the [documentation index](docs/README.md) and [frontend feature map](src/features/README.md) point to the smallest owning area for each experiment.
 
 ## How Pi Livecraft talks to Pi
 
