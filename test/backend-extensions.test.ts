@@ -6,7 +6,7 @@ import { requestExtension } from '../src/api.ts'
 const handler: BackendExtensionRequestHandler = () => ({ ok: true })
 
 test('registers one backend namespace per extension', () => {
-  const extension = { apiVersion: 1 as const, id: 'workspace-tools', handleRequest: handler }
+  const extension = { id: 'workspace-tools', handleRequest: handler }
   const registry = createBackendExtensionRegistry([extension])
 
   assert.equal(registry.extensions.get('workspace-tools'), extension)

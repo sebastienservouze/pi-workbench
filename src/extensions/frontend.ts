@@ -63,7 +63,6 @@ export interface ToolCallRendererProps {
 export type ToolCallRenderer = ComponentType<ToolCallRendererProps>
 
 export interface WorkbenchExtension {
-  apiVersion: 1
   id: string
   activity?: ActivityRenderer
   messages?: Record<string, CustomMessageRenderer>

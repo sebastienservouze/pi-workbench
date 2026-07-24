@@ -14,7 +14,6 @@ export interface BackendExtensionRequest {
 export type BackendExtensionRequestHandler = (context: BackendExtensionRequest) => unknown | Promise<unknown>
 
 export interface WorkbenchBackendExtension {
-  apiVersion: 1
   id: string
   handleRequest: BackendExtensionRequestHandler
 }

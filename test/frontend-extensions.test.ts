@@ -9,7 +9,7 @@ const widgetRenderer: RightSidebarWidgetRenderer = () => null
 
 test('registers frontend renderers without allowing ambiguous contributions', () => {
   const registry = createFrontendExtensionRegistry([
-    { apiVersion: 1, id: 'custom-tools', activity: activityRenderer, messages: { notice: messageRenderer }, rightSidebarWidgets: [{ icon: '*', id: 'status', label: 'Statut', render: widgetRenderer }], toolCalls: { inspect: toolCallRenderer } },
+    { id: 'custom-tools', activity: activityRenderer, messages: { notice: messageRenderer }, rightSidebarWidgets: [{ icon: '*', id: 'status', label: 'Statut', render: widgetRenderer }], toolCalls: { inspect: toolCallRenderer } },
   ])
 
   assert.equal(registry.activity, activityRenderer)
@@ -18,7 +18,7 @@ test('registers frontend renderers without allowing ambiguous contributions', ()
   assert.equal(registry.toolCalls.get('inspect'), toolCallRenderer)
   assert.throws(
     () => createFrontendExtensionRegistry([
-      { apiVersion: 1, id: 'widgets', rightSidebarWidgets: [
+      { id: 'widgets', rightSidebarWidgets: [
         { icon: '1', id: 'status', label: 'Statut', render: widgetRenderer },
         { icon: '2', id: 'status', label: 'Autre statut', render: widgetRenderer },
       ] },
@@ -27,33 +27,33 @@ test('registers frontend renderers without allowing ambiguous contributions', ()
   )
   assert.throws(
     () => createFrontendExtensionRegistry([
-      { apiVersion: 1, id: 'first', activity: activityRenderer },
-      { apiVersion: 1, id: 'second', activity: activityRenderer },
+      { id: 'first', activity: activityRenderer },
+      { id: 'second', activity: activityRenderer },
     ]),
     /Renderer d’activité fourni par first et second/,
   )
   assert.throws(
     () => createFrontendExtensionRegistry([
-      { apiVersion: 1, id: 'first', toolCalls: { inspect: toolCallRenderer } },
-      { apiVersion: 1, id: 'second', toolCalls: { inspect: toolCallRenderer } },
+      { id: 'first', toolCalls: { inspect: toolCallRenderer } },
+      { id: 'second', toolCalls: { inspect: toolCallRenderer } },
     ]),
     /Renderer de l'outil inspect fourni par first et second/,
   )
   assert.throws(
     () => createFrontendExtensionRegistry([
-      { apiVersion: 1, id: 'first', messages: { notice: messageRenderer } },
-      { apiVersion: 1, id: 'second', messages: { notice: messageRenderer } },
+      { id: 'first', messages: { notice: messageRenderer } },
+      { id: 'second', messages: { notice: messageRenderer } },
     ]),
     /Renderer du message notice fourni par first et second/,
   )
   assert.throws(
-    () => createFrontendExtensionRegistry([{ apiVersion: 1, id: '' }]),
+    () => createFrontendExtensionRegistry([{ id: '' }]),
     /identifiant d’extension frontend est requis/,
   )
   assert.throws(
     () => createFrontendExtensionRegistry([
-      { apiVersion: 1, id: 'duplicate' },
-      { apiVersion: 1, id: 'duplicate' },
+      { id: 'duplicate' },
+      { id: 'duplicate' },
     ]),
     /Extension frontend dupliquée : duplicate/,
   )

@@ -24,7 +24,6 @@ import { MyToolCall } from './MyToolCall.tsx'
 import type { WorkbenchExtension } from '../extensions/frontend.ts'
 
 export const customExtensions: readonly WorkbenchExtension[] = [{
-  apiVersion: 1,
   id: 'my-tools',
   toolCalls: { my_tool: MyToolCall },
 }]

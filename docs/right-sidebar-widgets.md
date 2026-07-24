@@ -84,7 +84,6 @@ const StatusWidget = ({ request, workspacePath }: RightSidebarWidgetProps) => {
 }
 
 export const customExtensions: readonly WorkbenchExtension[] = [{
-  apiVersion: 1,
   id: 'my-workbench',
   rightSidebarWidgets: [{
     id: 'status',
@@ -103,7 +102,6 @@ La capacité Node.js correspondante se déclare séparément dans `server/custom
 
 ```ts
 export const customBackendExtensions: readonly WorkbenchBackendExtension[] = [{
-  apiVersion: 1,
   id: 'my-workbench',
   handleRequest: async ({ method, path, readJsonBody, resolveWorkingDirectory }) => {
     if (method !== 'POST' || path !== 'status') throw new BackendExtensionHttpError(404, 'Not found')
