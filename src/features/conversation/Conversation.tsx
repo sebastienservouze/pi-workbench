@@ -8,12 +8,13 @@ import { outputContextDraft } from './context-session.ts'
 import { ContextSessionButton, Markdown, ToolCallCard } from './ToolCallCard.tsx'
 
 /** Assembles history, the live stream, and tool executions according to the selected detail level. */
-export function Conversation({ activity, agentName, messages, liveText, liveThinking, detailedView, navigationRequest, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath, onError, onStartSession }: {
+export function Conversation({ activity, agentName, messages, liveText, liveThinking, darkMode, detailedView, navigationRequest, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath, onError, onStartSession }: {
   activity: Activity | null
   agentName?: string
   messages: JsonObject[]
   liveText: string
   liveThinking: string
+  darkMode: boolean
   detailedView: boolean
   navigationRequest?: { id: number; target: SessionAnalysisTarget }
   repositoryRoot?: string | null
@@ -146,12 +147,12 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
           {calls.map((call) => {
             const execution = executionsByCallId.get(call.id)
             const result = resultsByCallId.get(call.id) ?? execution?.result
-            return <ToolCallCard args={call.args} hasResult={result !== undefined} id={call.id} interrupted={execution?.status === 'interrupted'} key={call.id} name={call.name} onError={onError} onStartSession={onStartSession} rawArgs={execution?.rawArgs} rawArgsLength={execution?.rawArgsLength} rawArgsTruncated={execution?.rawArgsTruncated} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} revealRequest={navigationRequest?.target.kind === 'tool' && navigationRequest.target.id === call.id ? navigationRequest.id : undefined} streaming={execution?.status === 'generating'} targeted={highlightedTarget === `tool:${call.id}`} workspacePath={workspacePath} />
+            return <ToolCallCard args={call.args} darkMode={darkMode} hasResult={result !== undefined} id={call.id} interrupted={execution?.status === 'interrupted'} key={call.id} name={call.name} onError={onError} onStartSession={onStartSession} rawArgs={execution?.rawArgs} rawArgsLength={execution?.rawArgsLength} rawArgsTruncated={execution?.rawArgsTruncated} repositoryRoot={repositoryRoot} resultContent={result?.content} resultError={result?.isError} revealRequest={navigationRequest?.target.kind === 'tool' && navigationRequest.target.id === call.id ? navigationRequest.id : undefined} streaming={execution?.status === 'generating'} targeted={highlightedTarget === `tool:${call.id}`} workspacePath={workspacePath} />
           })}
         </div>
       })}
       {liveThinking && <ReasoningBlock live>{liveThinking}</ReasoningBlock>}
-      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard animateLiveChanges args={execution.args} hasResult={execution.result !== undefined} id={execution.id} interrupted={execution.status === 'interrupted'} key={execution.id} name={execution.name} onError={onError} onStartSession={onStartSession} rawArgs={execution.rawArgs} rawArgsLength={execution.rawArgsLength} rawArgsTruncated={execution.rawArgsTruncated} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} revealRequest={navigationRequest?.target.kind === 'tool' && navigationRequest.target.id === execution.id ? navigationRequest.id : undefined} streaming={execution.status === 'generating'} targeted={highlightedTarget === `tool:${execution.id}`} workspacePath={workspacePath} />)}
+      {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard animateLiveChanges args={execution.args} darkMode={darkMode} hasResult={execution.result !== undefined} id={execution.id} interrupted={execution.status === 'interrupted'} key={execution.id} name={execution.name} onError={onError} onStartSession={onStartSession} rawArgs={execution.rawArgs} rawArgsLength={execution.rawArgsLength} rawArgsTruncated={execution.rawArgsTruncated} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} revealRequest={navigationRequest?.target.kind === 'tool' && navigationRequest.target.id === execution.id ? navigationRequest.id : undefined} streaming={execution.status === 'generating'} targeted={highlightedTarget === `tool:${execution.id}`} workspacePath={workspacePath} />)}
       {liveText && <article className="message assistant streaming conversation-entry"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {visibleMessages.length === 0 && !liveText && !liveThinking && <div className="empty-conversation"><h2>Session ready</h2><p>Send a message or use a command from your Pi installation.</p></div>}
       {activity && <div className="conversation-activity"><ActivityIndicator activity={activity} agentName={agentName} /></div>}

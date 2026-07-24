@@ -9,7 +9,7 @@ import javascript from 'react-syntax-highlighter/dist/esm/languages/prism/javasc
 import json from 'react-syntax-highlighter/dist/esm/languages/prism/json'
 import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup'
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
-import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { getWorkspaceFile, getWorkspaceFilePath } from '../../api.ts'
 import { fileContextDraft } from './context-session.ts'
 import { canHighlightFile } from './file-preview.ts'
@@ -50,6 +50,7 @@ export function ContextSessionButton({ onClick, onError }: { onClick: () => Prom
 interface ToolCallCardProps {
   animateLiveChanges?: boolean
   args: unknown
+  darkMode: boolean
   hasResult: boolean
   id: string
   interrupted?: boolean
@@ -69,7 +70,7 @@ interface ToolCallCardProps {
 }
 
 /** Displays the official card whose full result replaces the preview when expanded. */
-export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = false, args, hasResult, id, interrupted = false, name, onError, onStartSession, rawArgs, rawArgsLength, rawArgsTruncated = false, repositoryRoot, resultContent, resultError, revealRequest, streaming = false, targeted = false, workspacePath }: ToolCallCardProps) {
+export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = false, args, darkMode, hasResult, id, interrupted = false, name, onError, onStartSession, rawArgs, rawArgsLength, rawArgsTruncated = false, repositoryRoot, resultContent, resultError, revealRequest, streaming = false, targeted = false, workspacePath }: ToolCallCardProps) {
   const pending = !hasResult
   const active = pending && !interrupted
   const filePath = name === 'read' || name === 'write' ? toolFilePath(args) : null
@@ -162,8 +163,8 @@ export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = fa
         </>}
         {hasResult && <div className={animateLiveChanges ? 'tool-call-result entering' : 'tool-call-result'}>
           {expanded && !htmlFile
-            ? <ToolCallContent call={{ name, args }} content={content} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} showEditDiff={!contentError} />
-            : <ToolCallPreview call={{ name, args }} content={preview.text} htmlFile={htmlFile} onClick={activate} remainingLineCount={preview.remainingLineCount} />}
+            ? <ToolCallContent call={{ name, args }} content={content} darkMode={darkMode} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} showEditDiff={!contentError} />
+            : <ToolCallPreview call={{ name, args }} content={preview.text} darkMode={darkMode} htmlFile={htmlFile} onClick={activate} remainingLineCount={preview.remainingLineCount} />}
         </div>}
       </div>
     </div>
@@ -171,14 +172,14 @@ export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = fa
 })
 
 /** Displays a clickable, highlighted preview for supported code files. */
-function ToolCallPreview({ call, content, htmlFile, onClick, remainingLineCount }: { call: { name: string; args: unknown }; content: string; htmlFile: boolean; onClick: () => void; remainingLineCount: number }) {
+function ToolCallPreview({ call, content, darkMode, htmlFile, onClick, remainingLineCount }: { call: { name: string; args: unknown }; content: string; darkMode: boolean; htmlFile: boolean; onClick: () => void; remainingLineCount: number }) {
   const remainingLabel = `Click to view ${remainingLineCount} more ${remainingLineCount === 1 ? 'line' : 'lines'}`
   const display = call.name === 'read' || call.name === 'write' ? readContentDisplay(call.args) : { kind: 'text' as const }
   const highlightedCode = display.kind === 'code' && canHighlightFile(content)
 
   return <button className="tool-call-preview" onClick={onClick} type="button">
     {highlightedCode
-      ? <SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px 4px' }} language={display.language} PreTag="div" style={oneLight} wrapLongLines>{content}</SyntaxHighlighter>
+      ? <SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px 4px' }} language={display.language} PreTag="div" style={darkMode ? oneDark : oneLight} wrapLongLines>{content}</SyntaxHighlighter>
       : <pre>{content}</pre>}
     {remainingLineCount > 0 && <span>{remainingLabel}</span>}
     {htmlFile && <span>Click to open in browser</span>}
@@ -186,7 +187,7 @@ function ToolCallPreview({ call, content, htmlFile, onClick, remainingLineCount 
 }
 
 /** Displays the full result in its appropriate format instead of the preview. */
-function ToolCallContent({ call, content, onCollapse, renderingCode, showEditDiff }: { call: { name: string; args: unknown }; content: string; onCollapse: () => void; renderingCode: boolean; showEditDiff: boolean }) {
+function ToolCallContent({ call, content, darkMode, onCollapse, renderingCode, showEditDiff }: { call: { name: string; args: unknown }; content: string; darkMode: boolean; onCollapse: () => void; renderingCode: boolean; showEditDiff: boolean }) {
   if (renderingCode) return <section className="tool-call-content tool-call-loading" role="status" onClick={onCollapse}><span aria-hidden="true" className="spinner" />Highlighting file…</section>
 
   const changes = showEditDiff && call.name === 'edit' ? toolEditChanges(call.args) : []
@@ -194,7 +195,7 @@ function ToolCallContent({ call, content, onCollapse, renderingCode, showEditDif
 
   const display = call.name === 'read' || call.name === 'write' ? readContentDisplay(call.args) : { kind: 'text' as const }
   if (display.kind === 'markdown') return <section className="tool-call-content tool-call-markdown" onClick={onCollapse}><Markdown>{content}</Markdown></section>
-  if (display.kind === 'code' && canHighlightFile(content)) return <section className="tool-call-content" onClick={onCollapse}><SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px' }} language={display.language} PreTag="div" style={oneLight} wrapLongLines>{content}</SyntaxHighlighter></section>
+  if (display.kind === 'code' && canHighlightFile(content)) return <section className="tool-call-content" onClick={onCollapse}><SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px' }} language={display.language} PreTag="div" style={darkMode ? oneDark : oneLight} wrapLongLines>{content}</SyntaxHighlighter></section>
   if (display.kind === 'code') return <section className="tool-call-content" onClick={onCollapse}><p className="tool-call-notice">Highlighting disabled beyond 50,000 characters.</p><pre>{content}</pre></section>
   return <section className="tool-call-content" onClick={onCollapse}><pre>{content}</pre></section>
 }
