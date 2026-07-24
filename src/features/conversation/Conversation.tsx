@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type WheelEvent } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type WheelEvent } from 'react'
 import type { JsonObject } from '../../../shared/types.ts'
 import { activityActionText, activityAgentName, type Activity } from './activity.ts'
 import { formatTokens, formatTurnCost, turnUsageByMessage, type MessageUsage } from './message-usage.ts'
@@ -24,26 +24,51 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
   onStartSession: (draft: string) => Promise<void>
 }) {
   const allMessages = messages
-  const visibleMessages = allMessages.filter(isVisibleConversationMessage)
-  const usagesByMessage = turnUsageByMessage(allMessages)
-  const toolCalls = allMessages.flatMap(toolCallsInMessage)
-  const toolCallIds = new Set(toolCalls.map((call) => call.id))
-  const resultsByCallId = new Map(allMessages.flatMap((message) => {
-    const result = toolResultInMessage(message)
-    return result ? [[result.toolCallId, result] as const] : []
-  }))
-  const executionsByCallId = new Map(toolExecutions.map((execution) => [execution.id, execution]))
+  const { visibleMessages, usagesByMessage, toolCallIds, resultsByCallId } = useMemo(() => {
+    const visible = allMessages.filter(isVisibleConversationMessage)
+    const calls = allMessages.flatMap(toolCallsInMessage)
+    const results = new Map(allMessages.flatMap((message) => {
+      const result = toolResultInMessage(message)
+      return result ? [[result.toolCallId, result] as const] : []
+    }))
+    return {
+      visibleMessages: visible,
+      usagesByMessage: turnUsageByMessage(allMessages),
+      toolCallIds: new Set(calls.map((call) => call.id)),
+      resultsByCallId: results,
+    }
+  }, [allMessages])
+  const executionsByCallId = useMemo(() => new Map(toolExecutions.map((execution) => [execution.id, execution])), [toolExecutions])
   const conversationRef = useRef<HTMLDivElement>(null)
+  const conversationContentRef = useRef<HTMLDivElement>(null)
+  const conversationBottomRef = useRef<HTMLDivElement>(null)
   const autoScrollRef = useRef(true)
   const userScrollIntentRef = useRef(false)
+  const scrollFrameRef = useRef<number | undefined>(undefined)
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   const [highlightedTarget, setHighlightedTarget] = useState<string>()
 
-  // Keeps streaming content pinned without restarting a smooth animation on every update.
+  /** Coalesces content growth into one automatic scroll per rendered frame. */
+  const scheduleAutoScroll = useCallback(() => {
+    if (!autoScrollRef.current || scrollFrameRef.current !== undefined) return
+    scrollFrameRef.current = window.requestAnimationFrame(() => {
+      scrollFrameRef.current = undefined
+      if (autoScrollRef.current) conversationBottomRef.current?.scrollIntoView({ block: 'end' })
+    })
+  }, [])
+
   useEffect(() => {
-    if (!autoScrollRef.current) return
-    conversationRef.current?.scrollTo({ top: conversationRef.current.scrollHeight, behavior: 'auto' })
-  }, [activity, visibleMessages.length, liveText, liveThinking, toolExecutions])
+    const content = conversationContentRef.current
+    if (!content) return
+    const observer = new ResizeObserver(scheduleAutoScroll)
+    observer.observe(content)
+    scheduleAutoScroll()
+    return () => observer.disconnect()
+  }, [scheduleAutoScroll])
+
+  useEffect(() => () => {
+    if (scrollFrameRef.current !== undefined) window.cancelAnimationFrame(scrollFrameRef.current)
+  }, [])
 
   useEffect(() => {
     if (scrollToBottomRequest > 0) resumeAutoScroll()
@@ -100,7 +125,8 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
     userScrollIntentRef.current = false
     autoScrollRef.current = true
     setShowScrollToBottom(false)
-    conversationRef.current?.scrollTo({ top: conversationRef.current.scrollHeight, behavior: 'smooth' })
+    const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
+    conversationBottomRef.current?.scrollIntoView({ behavior, block: 'end' })
   }
 
   return (
@@ -115,6 +141,7 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
       ref={conversationRef}
       tabIndex={0}
     >
+      <div className="conversation-content" ref={conversationContentRef}>
       {allMessages.map((message, index) => {
         const calls = detailedView ? toolCallsInMessage(message) : []
         if (!isVisibleConversationMessage(message) && calls.length === 0) return null
@@ -132,6 +159,7 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
       {liveText && <article className="message assistant streaming conversation-entry"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {visibleMessages.length === 0 && !liveText && !liveThinking && <div className="empty-conversation"><h2>Session ready</h2><p>Send a message or use a command from your Pi installation.</p></div>}
       {activity && <div className="conversation-activity"><ActivityIndicator activity={activity} agentName={agentName} /></div>}
+      </div>
       <button
         aria-label="Resume automatic scrolling"
         className={`scroll-to-bottom${showScrollToBottom ? ' visible' : ''}`}
@@ -142,6 +170,7 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
           <path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
         </svg>
       </button>
+      <div aria-hidden="true" className="conversation-bottom" ref={conversationBottomRef} />
     </section>
   )
 }

@@ -1,10 +1,10 @@
 import * as Select from '@radix-ui/react-select'
-import { useEffect, useRef, useState, type ClipboardEvent as ReactClipboardEvent, type FormEvent, type RefObject } from 'react'
+import { memo, useEffect, useRef, useState, type ClipboardEvent as ReactClipboardEvent, type FormEvent, type RefObject } from 'react'
 import type { JsonObject, SessionSnapshot, SessionSummary } from '../../../shared/types.ts'
 import { maxComposerImages, prepareComposerImage, type ComposerImage } from './composer-images.ts'
 
 /** Provides user input and session commands while reflecting the current Pi state. */
-export function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, agentLoading, showAgentSelector, onAgentChange, onCommand, commands, running, onSend, onAbort, onError, requestedSelect, onSelectOpened, submitRequest = 0, focusRequest, draftRequest, onDraftApplied }: {
+export const Composer = memo(function Composer({ session, snapshot, agentBusy, agentOptions, selectedAgent, agentLoading, showAgentSelector, onAgentChange, onCommand, commands, running, onSend, onAbort, onError, requestedSelect, onSelectOpened, submitRequest = 0, focusRequest, draftRequest, onDraftApplied }: {
   session: SessionSummary
   snapshot: SessionSnapshot
   agentBusy: boolean
@@ -255,7 +255,7 @@ export function Composer({ session, snapshot, agentBusy, agentOptions, selectedA
       </div>
     </form>
   )
-}
+})
 
 function ComposerSelect({ ariaLabel, disabled, onOpenChange, onValueChange, open, options, placeholder, tone, triggerRef, value }: {
   ariaLabel: string

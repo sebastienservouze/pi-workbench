@@ -27,6 +27,7 @@ interface AgentIntent {
 }
 
 const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [], stats: null }
+const emptyAgentOptions: string[] = []
 const conversationViewDetails = {
   simple: { label: 'Simplified view', description: 'Messages only, without tool calls' },
   detailed: { label: 'Detailed view', description: 'Visible calls with expandable preview' },
@@ -79,6 +80,8 @@ function App() {
   const agentIntentsRef = useRef(new Map<string, AgentIntent>())
   const toolStartedAtRef = useRef(new Map<string, number>())
   const requestStartedAtRef = useRef<number | undefined>(undefined)
+  const pendingLiveUpdatesRef = useRef({ text: '', thinking: '' })
+  const liveUpdateFrameRef = useRef<number | undefined>(undefined)
   const quotaAutoRefreshAtRef = useRef(new Map<string, number>())
   const quotasRef = useRef(quotas)
   const model = isObject(snapshot.state?.model) ? snapshot.state.model : undefined
@@ -100,6 +103,30 @@ function App() {
   }, [])
 
   const visibleToasts = toasts.filter((toast) => toast.sessionId === null || toast.sessionId === selectedId)
+
+  /** Applies accumulated stream deltas at most once per rendered frame. */
+  const flushLiveUpdates = useCallback(() => {
+    if (liveUpdateFrameRef.current !== undefined) window.cancelAnimationFrame(liveUpdateFrameRef.current)
+    liveUpdateFrameRef.current = undefined
+    const pending = pendingLiveUpdatesRef.current
+    pendingLiveUpdatesRef.current = { text: '', thinking: '' }
+    if (pending.text) setLiveText((current) => current + pending.text)
+    if (pending.thinking) setLiveThinking((current) => current + pending.thinking)
+  }, [])
+
+  /** Queues a stream delta without rerendering the whole workspace for every SSE event. */
+  const queueLiveUpdate = useCallback((kind: 'text' | 'thinking', delta: string) => {
+    pendingLiveUpdatesRef.current[kind] += delta
+    if (liveUpdateFrameRef.current !== undefined) return
+    liveUpdateFrameRef.current = window.requestAnimationFrame(flushLiveUpdates)
+  }, [flushLiveUpdates])
+
+  /** Cancels stream work that belongs to a response or session no longer displayed. */
+  const clearPendingLiveUpdates = useCallback(() => {
+    if (liveUpdateFrameRef.current !== undefined) window.cancelAnimationFrame(liveUpdateFrameRef.current)
+    liveUpdateFrameRef.current = undefined
+    pendingLiveUpdatesRef.current = { text: '', thinking: '' }
+  }, [])
 
   const updateRightSidebarWidth = useCallback((width: number) => {
     const nextWidth = clampRightSidebarWidth(width)
@@ -205,6 +232,7 @@ function App() {
   useEffect(() => void refreshGit(), [refreshGit])
   useEffect(() => { void getQuotas().then(setQuotas).catch(() => undefined) }, [])
   useEffect(() => {
+    clearPendingLiveUpdates()
     setSnapshot(emptySnapshot)
     setSnapshotSessionId('')
     setLiveText('')
@@ -217,7 +245,7 @@ function App() {
     toolStartedAtRef.current.clear()
     requestStartedAtRef.current = undefined
     void refreshSnapshot(selectedId)
-  }, [refreshSnapshot, selectedId])
+  }, [clearPendingLiveUpdates, refreshSnapshot, selectedId])
 
   useEffect(() => {
     const events = new EventSource('/api/events')
@@ -305,16 +333,20 @@ function App() {
         setToolExecutions((current) => current.map((execution) => execution.id === id ? { ...execution, result } : execution))
         void refreshSnapshot(sessionId)
       }
-      setActivity((current) => activityForPiEvent(current, event))
+      setActivity((current) => {
+        const next = activityForPiEvent(current, event)
+        return next?.kind === current?.kind ? current : next
+      })
       if (event.type === 'message_start') {
+        clearPendingLiveUpdates()
         setToolExecutions(interruptToolCallGeneration)
         setLiveText('')
         setLiveThinking('')
       }
       if (event.type === 'message_update' && isObject(event.assistantMessageEvent)) {
         const update = event.assistantMessageEvent
-        if (update.type === 'thinking_delta' && typeof update.delta === 'string') setLiveThinking((current) => current + update.delta)
-        if (update.type === 'text_delta' && typeof update.delta === 'string') setLiveText((current) => current + update.delta)
+        if (update.type === 'thinking_delta' && typeof update.delta === 'string') queueLiveUpdate('thinking', update.delta)
+        if (update.type === 'text_delta' && typeof update.delta === 'string') queueLiveUpdate('text', update.delta)
         if (update.type === 'error') setToolExecutions(interruptToolCallGeneration)
       }
       const settledRequestDuration = event.type === 'agent_settled' && requestStartedAtRef.current !== undefined
@@ -325,6 +357,7 @@ function App() {
         void refreshSessionQuotas(sessionId, true)
       }
       if (event.type === 'message_end' || event.type === 'agent_settled') {
+        flushLiveUpdates()
         setToolExecutions(interruptToolCallGeneration)
         void refreshSnapshot(sessionId, true).then((nextSnapshot) => {
           if (!nextSnapshot || settledRequestDuration === undefined) return
@@ -344,7 +377,7 @@ function App() {
         ])
       }
     }
-  }, [refreshGit, refreshSessionQuotas, refreshSessions, refreshSnapshot, showToast])
+  }, [clearPendingLiveUpdates, flushLiveUpdates, queueLiveUpdate, refreshGit, refreshSessionQuotas, refreshSessions, refreshSnapshot, showToast])
 
   useEffect(() => {
     const exposesAgentCommand = snapshot.commands.some((command) => command.name === 'agent')
@@ -362,6 +395,25 @@ function App() {
   }
 
   const selectedSession = sessions.find((session) => session.id === selectedId)
+  const selectedSessionStatus = selectedSession?.status
+  const handleConversationError = useCallback((cause: unknown) => showToast('error', messageOf(cause)), [showToast])
+  const handleComposerAgentChange = useCallback((agent: string) => requestAgent(selectedId, agent), [requestAgent, selectedId])
+  /** Executes a composer command and synchronizes capabilities affected by it. */
+  const handleComposerCommand = useCallback(async (command: JsonObject) => {
+    const result = await sendPiCommand(selectedId, command)
+    await refreshSnapshot(selectedId)
+    return result
+  }, [refreshSnapshot, selectedId])
+  /** Sends the current draft with the behavior supported by the active session. */
+  const handleComposerSend = useCallback(async (message: string, images: JsonObject[], behavior: 'steer' | 'followUp') => {
+    const command: JsonObject = { type: 'prompt', message, images }
+    if (selectedSessionStatus === 'running') command.streamingBehavior = behavior
+    await sendPiCommand(selectedId, command)
+    await refreshSessions()
+    setScrollToBottomRequest((current) => current + 1)
+  }, [refreshSessions, selectedId, selectedSessionStatus])
+  const handleComposerAbort = useCallback(() => sendPiCommand(selectedId, { type: 'abort' }), [selectedId])
+  const handleComposerSelectOpened = useCallback(() => setRequestedSelect(null), [])
   const sessionAnalysis = useMemo(() => selectedSession && snapshotSessionId === selectedSession.id
     ? analyzeSession(snapshot.messages, snapshot.stats, selectedSession.status === 'running', {
       requestDurations: observedRequestDurations,
@@ -394,6 +446,8 @@ function App() {
       showToast('error', messageOf(cause))
     }
   }, [refreshSessions, showToast])
+
+  const handleContextSessionStart = useCallback((draft: string) => startAndSelectSession(() => createSession(workspacePath), undefined, draft), [startAndSelectSession, workspacePath])
 
   const markComposerDraftApplied = useCallback((id: string) => {
     setComposerDraftRequest((current) => current?.id === id ? undefined : current)
@@ -512,7 +566,7 @@ function App() {
           </>
         ) : selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} navigationRequest={conversationNavigation} onError={(cause) => showToast('error', messageOf(cause))} onStartSession={(draft) => startAndSelectSession(() => createSession(workspacePath), undefined, draft)} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} navigationRequest={conversationNavigation} onError={handleConversationError} onStartSession={handleContextSessionStart} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Click to toggle view.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
                 const next = current === 'simple' ? 'detailed' : 'simple'
                 window.localStorage.setItem('pi-workbench.conversation-view', next)
@@ -528,14 +582,10 @@ function App() {
               session={selectedSession}
               snapshot={snapshot}
               agentBusy={Boolean(agentBusy[selectedSession.id])}
-              agentOptions={agentOptions[selectedSession.id] ?? []}
+              agentOptions={agentOptions[selectedSession.id] ?? emptyAgentOptions}
               selectedAgent={selectedSession.activeAgent ?? ''}
-              onAgentChange={(agent) => requestAgent(selectedSession.id, agent)}
-              onCommand={async (command) => {
-                const result = await sendPiCommand(selectedSession.id, command)
-                await refreshSnapshot(selectedSession.id)
-                return result
-              }}
+              onAgentChange={handleComposerAgentChange}
+              onCommand={handleComposerCommand}
               commands={snapshot.commands}
               agentLoading={snapshotSessionId !== selectedSession.id}
               focusRequest={focusComposerRequest}
@@ -543,17 +593,11 @@ function App() {
               onDraftApplied={markComposerDraftApplied}
               showAgentSelector={snapshotSessionId !== selectedSession.id || snapshot.commands.some((command) => command.name === 'agent')}
               running={selectedSession.status === 'running'}
-              onSend={async (message, images, behavior) => {
-                const command: JsonObject = { type: 'prompt', message, images }
-                if (selectedSession.status === 'running') command.streamingBehavior = behavior
-                await sendPiCommand(selectedSession.id, command)
-                await refreshSessions()
-                setScrollToBottomRequest((current) => current + 1)
-              }}
-              onAbort={() => sendPiCommand(selectedSession.id, { type: 'abort' })}
-              onError={(cause) => showToast('error', messageOf(cause))}
+              onSend={handleComposerSend}
+              onAbort={handleComposerAbort}
+              onError={handleConversationError}
               requestedSelect={requestedSelect}
-              onSelectOpened={() => setRequestedSelect(null)}
+              onSelectOpened={handleComposerSelectOpened}
               submitRequest={submitRequest}
               />
             </div>
