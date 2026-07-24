@@ -62,7 +62,7 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
     })
-    response.write('retry: 500\n\n')
+    response.write(`retry: 500\n\ndata: ${JSON.stringify({ kind: 'event', event: manager.connected ? 'manager_connected' : 'manager_disconnected', sessionId: '' })}\n\n`)
     eventClients.add(response)
     request.on('close', () => eventClients.delete(response))
     return

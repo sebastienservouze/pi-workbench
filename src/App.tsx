@@ -6,7 +6,7 @@ import type { GitSnapshot, JsonObject, ManagerEvent, QuotaSnapshot, RecentSessio
 import { Composer } from './features/composer/Composer.tsx'
 import { promptSessionTitle } from './features/composer/prompt-title.ts'
 import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
-import { activityForPiEvent, waitingActivity, type Activity } from './features/conversation/activity.ts'
+import { activityForPiEvent, sessionActivity, waitingActivity, type Activity, type PiConnection } from './features/conversation/activity.ts'
 import { Conversation } from './features/conversation/Conversation.tsx'
 import { applyToolCallUpdate, interruptToolCallGeneration, toolCallInUpdate, type ToolExecution, type ToolResult } from './features/conversation/tool-calls.ts'
 import { AskUserQuestionDialog, ExtensionDialog } from './features/dialogs/Dialogs.tsx'
@@ -46,6 +46,7 @@ function App() {
   const [liveText, setLiveText] = useState('')
   const [liveThinking, setLiveThinking] = useState('')
   const [activity, setActivity] = useState<Activity | null>(null)
+  const [piConnection, setPiConnection] = useState<PiConnection>('connecting')
   const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([])
   const [conversationView, setConversationView] = useState<'detailed' | 'simple'>(() => {
     const stored = window.localStorage.getItem('pi-workbench.conversation-view')
@@ -253,13 +254,19 @@ function App() {
     events.onmessage = ({ data }) => {
       const event: unknown = JSON.parse(data)
       if (!isManagerEvent(event)) return
-      if (event.event === 'manager_connected' || event.event === 'session_created' || event.event === 'session_exited') {
-        void refreshSessions()
+      if (event.event === 'manager_connected' || event.event === 'manager_disconnected') {
+        setPiConnection(event.event === 'manager_connected' ? 'connected' : 'disconnected')
+        setActivity(null)
       }
+      if (event.event === 'manager_connected' || event.event === 'session_created' || event.event === 'session_exited') void refreshSessions()
       if (event.event !== 'pi' || !isObject(event.data)) return
       handlePiEvent(event.sessionId, event.data)
     }
-    events.onerror = () => showToast('error', 'Connection to backend lost; retrying.')
+    events.onerror = () => {
+      setPiConnection('connecting')
+      setActivity(null)
+      showToast('error', 'Connection to backend lost; retrying.')
+    }
     return () => events.close()
 
     /** Translates received events into UI updates and possible UI responses. */
@@ -400,6 +407,7 @@ function App() {
 
   const selectedSession = sessions.find((session) => session.id === selectedId)
   const selectedSessionStatus = selectedSession?.status
+  const displayedActivity = selectedSession ? sessionActivity(activity, selectedSession.status, piConnection) : null
   const handleConversationError = useCallback((cause: unknown) => showToast('error', messageOf(cause)), [showToast])
   const handleComposerAgentChange = useCallback((agent: string) => requestAgent(selectedId, agent), [requestAgent, selectedId])
   /** Executes a composer command and synchronizes capabilities affected by it. */
@@ -578,7 +586,7 @@ function App() {
           </>
         ) : selectedSession ? (
           <>
-            <Conversation activity={activity} agentName={selectedSession.activeAgent} darkMode={theme === 'dark'} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} navigationRequest={conversationNavigation} onError={handleConversationError} onStartSession={handleContextSessionStart} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation activity={displayedActivity} agentName={selectedSession.activeAgent} darkMode={theme === 'dark'} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} navigationRequest={conversationNavigation} onError={handleConversationError} onStartSession={handleContextSessionStart} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Click to toggle view.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
                 const next = current === 'simple' ? 'detailed' : 'simple'
                 window.localStorage.setItem('pi-workbench.conversation-view', next)

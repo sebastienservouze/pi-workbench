@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { activityForPiEvent, activityText } from '../src/features/conversation/activity.ts'
+import { activityForPiEvent, activityText, sessionActivity } from '../src/features/conversation/activity.ts'
 
 test('keeps a current activity through thinking, tool preparation, execution, and writing', () => {
   let activity = activityForPiEvent(null, { type: 'agent_start' })
@@ -53,7 +53,17 @@ test('reports provider reconnection attempts', () => {
   assert.equal(activityText(activity, 'pi'), 'Pi is reconnecting to the provider (2/3)…')
 })
 
+test('restores reliable activity from connection and session status', () => {
+  assert.deepEqual(sessionActivity(null, 'idle', 'connecting'), { kind: 'connecting' })
+  assert.deepEqual(sessionActivity(null, 'idle', 'connected'), { kind: 'connected' })
+  assert.deepEqual(sessionActivity(null, 'running', 'connected'), { kind: 'working' })
+  assert.deepEqual(sessionActivity({ kind: 'writing' }, 'running', 'disconnected'), { kind: 'disconnected' })
+  assert.deepEqual(sessionActivity(null, 'exited', 'connected'), { kind: 'exited' })
+})
+
 test('uses playful activity labels', () => {
+  assert.equal(activityText({ kind: 'connected' }, 'pi'), 'Pi is plugged in and ready ⚡')
+  assert.equal(activityText({ kind: 'disconnected' }, 'pi'), 'Pi is off the radar 📡')
   assert.equal(activityText({ kind: 'writing' }, 'pi'), 'Pi is writing…')
   assert.equal(activityText({ kind: 'waiting' }, 'pi'), 'Pi is waiting for you 🎤')
 })

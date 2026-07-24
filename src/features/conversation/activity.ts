@@ -1,7 +1,9 @@
-import type { JsonObject } from '../../../shared/types.ts'
+import type { JsonObject, SessionSummary } from '../../../shared/types.ts'
+
+export type PiConnection = 'connecting' | 'connected' | 'disconnected'
 
 export interface Activity {
-  kind: 'working' | 'thinking' | 'tool-preparing' | 'tool-waiting' | 'writing' | 'waiting' | 'retrying' | 'compacting'
+  kind: 'connecting' | 'connected' | 'disconnected' | 'exited' | 'working' | 'thinking' | 'tool-preparing' | 'tool-waiting' | 'writing' | 'waiting' | 'retrying' | 'compacting'
   thinking?: string
   attempt?: number
   maxAttempts?: number
@@ -38,6 +40,17 @@ export function waitingActivity(): Activity {
   return { kind: 'waiting' }
 }
 
+/** Reconciles live activity with the manager and process states available after a page reload. */
+export function sessionActivity(current: Activity | null, status: SessionSummary['status'], connection: PiConnection): Activity {
+  if (connection === 'connecting') return { kind: 'connecting' }
+  if (connection === 'disconnected') return { kind: 'disconnected' }
+  if (status === 'exited') return { kind: 'exited' }
+  if (current) return current
+  if (status === 'running') return { kind: 'working' }
+  if (status === 'starting') return { kind: 'connecting' }
+  return { kind: 'connected' }
+}
+
 /** Produces a playful label that precisely describes the current activity. */
 export function activityText(activity: Activity, agentName: string | undefined): string {
   return `${activityAgentName(agentName)} ${activityActionText(activity)}`
@@ -45,6 +58,10 @@ export function activityText(activity: Activity, agentName: string | undefined):
 
 /** Produces the variable part of the label so it can be animated independently of the name. */
 export function activityActionText(activity: Activity): string {
+  if (activity.kind === 'connecting') return 'is untangling the connection cable…'
+  if (activity.kind === 'connected') return 'is plugged in and ready ⚡'
+  if (activity.kind === 'disconnected') return 'is off the radar 📡'
+  if (activity.kind === 'exited') return 'has left the building 👋'
   if (activity.kind === 'retrying') {
     const progress = activity.attempt !== undefined && activity.maxAttempts !== undefined ? ` (${activity.attempt}/${activity.maxAttempts})` : ''
     return `is reconnecting to the provider${progress}…`
