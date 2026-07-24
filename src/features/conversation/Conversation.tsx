@@ -65,6 +65,8 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
     return () => observer.disconnect()
   }, [scheduleAutoScroll])
 
+  useEffect(scheduleAutoScroll, [activity, liveText, liveThinking, scheduleAutoScroll, toolExecutions, visibleMessages.length])
+
   useEffect(() => () => {
     if (scrollFrameRef.current !== undefined) window.cancelAnimationFrame(scrollFrameRef.current)
   }, [])
