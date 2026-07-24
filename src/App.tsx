@@ -4,6 +4,7 @@ import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getQuotas
 import { quotaRefreshAllowed } from '../shared/quota-refresh.ts'
 import type { GitSnapshot, JsonObject, ManagerEvent, QuotaSnapshot, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 import { Composer } from './features/composer/Composer.tsx'
+import { promptSessionTitle } from './features/composer/prompt-title.ts'
 import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
 import { activityForPiEvent, waitingActivity, type Activity } from './features/conversation/activity.ts'
 import { Conversation } from './features/conversation/Conversation.tsx'
@@ -411,10 +412,13 @@ function App() {
   const handleComposerSend = useCallback(async (message: string, images: JsonObject[], behavior: 'steer' | 'followUp') => {
     const command: JsonObject = { type: 'prompt', message, images }
     if (selectedSessionStatus === 'running') command.streamingBehavior = behavior
+    if (selectedSession?.name === 'Nouvelle session' && !snapshot.messages.some((entry) => entry.role === 'user')) {
+      await sendPiCommand(selectedId, { type: 'set_session_name', name: promptSessionTitle(message) })
+    }
     await sendPiCommand(selectedId, command)
     await refreshSessions()
     setScrollToBottomRequest((current) => current + 1)
-  }, [refreshSessions, selectedId, selectedSessionStatus])
+  }, [refreshSessions, selectedId, selectedSession?.name, selectedSessionStatus, snapshot.messages])
   const handleComposerAbort = useCallback(() => sendPiCommand(selectedId, { type: 'abort' }), [selectedId])
   const handleComposerSelectOpened = useCallback(() => setRequestedSelect(null), [])
   const sessionAnalysis = useMemo(() => selectedSession && snapshotSessionId === selectedSession.id
@@ -437,6 +441,7 @@ function App() {
       setSelectedId(session.id)
       if (draftMessage) setComposerDraftRequest({ id: crypto.randomUUID(), message: draftMessage, sessionId: session.id })
       if (initialMessage) {
+        await sendPiCommand(session.id, { type: 'set_session_name', name: promptSessionTitle(initialMessage) })
         await sendPiCommand(session.id, { type: 'prompt', message: initialMessage })
         await refreshSessions()
         setScrollToBottomRequest((current) => current + 1)
