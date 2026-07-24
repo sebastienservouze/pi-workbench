@@ -10,7 +10,7 @@
 
 <div align="center">
 
-> Pi Workbench is a local web interface for using multiple [Pi](https://github.com/earendil-works/pi) sessions in the same workspace. It keeps Pi sessions independent from the interface: restarting the frontend or backend does not interrupt an active session.
+> Pi Workbench is a local web interface for extending Pi with a frontend interface allowing for even further customization. Also allows for using multiple [Pi](https://github.com/earendil-works/pi) sessions in the same workspace. It keeps Pi sessions independent from the interface: restarting the frontend or backend does not interrupt an active session. Ask it to modify itself and it will do live in front of your eyes.
 
 </div>
 
