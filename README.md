@@ -4,6 +4,7 @@
 
 **Craft your own Pi client while it runs.**
 
+[![Built with Pi](https://img.shields.io/badge/Built%20with-Pi.dev-6C63FF?style=flat-square&logo=terminal&logoColor=white)](https://pi.dev)
 [![Version](https://img.shields.io/github/package-json/v/sebastienservouze/pi-livecraft?style=flat-square&label=version)](package.json)
 [![License](https://img.shields.io/github/license/sebastienservouze/pi-livecraft?style=flat-square)](LICENSE)
 [![GitHub stars](https://img.shields.io/github/stars/sebastienservouze/pi-livecraft?style=flat-square&logo=github)](https://github.com/sebastienservouze/pi-livecraft/stargazers)
@@ -153,8 +154,6 @@ The Pi RPC integration test additionally requires a configured Pi installation.
 ## ❤️ Built for Pi
 
 Pi Livecraft is made specifically for the [Pi coding agent](https://pi.dev). It embraces Pi's extension system, live development workflow, and agent architecture instead of replacing or abstracting them away.
-
-[![Built with Pi](https://img.shields.io/badge/Built%20with-Pi.dev-6C63FF?logo=terminal&logoColor=white)](https://pi.dev)
 
 ## Contributing
 
