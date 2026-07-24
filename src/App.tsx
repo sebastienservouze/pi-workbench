@@ -40,7 +40,7 @@ function App() {
   const [workspacePath, setWorkspacePath] = useState(() => window.localStorage.getItem('pi-workbench.workspace-path') ?? '~/.pi')
   const [recentWorkspacePaths, setRecentWorkspacePaths] = useState(() => recentWorkspaces(window.localStorage.getItem('pi-workbench.workspace-path') ?? '~/.pi', readRecentWorkspaces()))
   const [directoryPickerOpen, setDirectoryPickerOpen] = useState(false)
-  const [selectedId, setSelectedId] = useState('')
+  const [selectedId, setSelectedId] = useState(() => window.localStorage.getItem('pi-workbench.selected-session') ?? '')
   const [snapshot, setSnapshot] = useState<SessionSnapshot>(emptySnapshot)
   const [snapshotSessionId, setSnapshotSessionId] = useState('')
   const [liveText, setLiveText] = useState('')
@@ -148,6 +148,11 @@ function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme
   }, [theme])
+
+  useEffect(() => {
+    if (selectedId) window.localStorage.setItem('pi-workbench.selected-session', selectedId)
+    else window.localStorage.removeItem('pi-workbench.selected-session')
+  }, [selectedId])
 
   /** Reloads sessions and their UI requests while discarding stale responses. */
   const refreshSessions = useCallback(async (cwd = workspacePath) => {
@@ -480,7 +485,6 @@ function App() {
     if (id === 'new-session') { void startAndSelectSession(() => createSession(workspacePath)).catch((cause) => showToast('error', messageOf(cause))); return }
     if (id === 'send') { setSubmitRequest((current) => current + 1); return }
     if (id === 'abort' && selectedId) { void sendPiCommand(selectedId, { type: 'abort' }).catch((cause) => showToast('error', messageOf(cause))); return }
-    if (id === 'toggle-git') { setActiveRightWidget((current) => current === 'git' ? null : 'git'); return }
     if (id === 'open-agent' || id === 'open-model' || id === 'open-thinking') { setRequestedSelect(id === 'open-agent' ? 'agent' : id === 'open-model' ? 'model' : 'thinking'); return }
     if (id === 'copy-last-response') {
       const text = lastAssistantText(snapshot.messages)
@@ -599,6 +603,7 @@ function App() {
             <div className="composer-area">
               <ToastStack onDismiss={dismissToast} toasts={visibleToasts} />
               <Composer
+              key={selectedSession.id}
               session={selectedSession}
               snapshot={snapshot}
               agentBusy={Boolean(agentBusy[selectedSession.id])}

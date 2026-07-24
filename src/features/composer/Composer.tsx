@@ -26,7 +26,8 @@ export const Composer = memo(function Composer({ session, snapshot, agentBusy, a
   draftRequest?: { id: string; message: string }
   onDraftApplied?: (id: string) => void
 }) {
-  const [message, setMessage] = useState('')
+  const draftStorageKey = `pi-workbench.composer-draft.${session.id}`
+  const [message, setMessage] = useState(() => readComposerDraft(draftStorageKey))
   const [images, setImages] = useState<ComposerImage[]>([])
   const [preparingImages, setPreparingImages] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -66,7 +67,7 @@ export const Composer = memo(function Composer({ session, snapshot, agentBusy, a
 
   useEffect(() => {
     if (!draftRequest) return
-    setMessage(draftRequest.message)
+    setDraftMessage(draftRequest.message)
     textareaRef.current?.focus()
     onDraftApplied?.(draftRequest.id)
   }, [draftRequest, onDraftApplied])
@@ -78,9 +79,20 @@ export const Composer = memo(function Composer({ session, snapshot, agentBusy, a
 
   /** Inserts the selected slash command into the textarea and closes the popover. */
   function selectSlashCommand(name: string): void {
-    setMessage(`/${name} `)
+    setDraftMessage(`/${name} `)
     setSlashOpen(false)
     setSlashIndex(-1)
+  }
+
+  /** Updates the visible draft and persists it so a page reload cannot discard typed text. */
+  function setDraftMessage(nextMessage: string): void {
+    setMessage(nextMessage)
+    try {
+      if (nextMessage) window.localStorage.setItem(draftStorageKey, nextMessage)
+      else window.localStorage.removeItem(draftStorageKey)
+    } catch {
+      // Storage can be unavailable in private browsing; the in-memory draft still works.
+    }
   }
 
   /** Sends text and images in the same RPC command, restoring the draft on failure. */
@@ -93,12 +105,12 @@ export const Composer = memo(function Composer({ session, snapshot, agentBusy, a
       return
     }
     setSubmitting(true)
-    setMessage('')
+    setDraftMessage('')
     setImages([])
     try {
       await onSend(nextMessage, images.map(({ data, mimeType }) => ({ type: 'image', data, mimeType })), behavior)
     } catch (cause) {
-      setMessage(nextMessage)
+      setDraftMessage(nextMessage)
       setImages(images)
       onError(cause)
     } finally {
@@ -113,7 +125,7 @@ export const Composer = memo(function Composer({ session, snapshot, agentBusy, a
     event.preventDefault()
     const pastedText = event.clipboardData.getData('text/plain')
     const { selectionEnd, selectionStart } = event.currentTarget
-    if (pastedText) setMessage((current) => `${current.slice(0, selectionStart)}${pastedText}${current.slice(selectionEnd)}`)
+    if (pastedText) setDraftMessage(`${message.slice(0, selectionStart)}${pastedText}${message.slice(selectionEnd)}`)
 
     const remaining = maxComposerImages - images.length
     if (remaining <= 0) {
@@ -170,7 +182,7 @@ export const Composer = memo(function Composer({ session, snapshot, agentBusy, a
       )}
       <textarea aria-label="Message" disabled={submitting} onPaste={(event) => void handlePaste(event)} ref={textareaRef} value={message} onChange={(event) => {
         const next = event.target.value
-        setMessage(next)
+        setDraftMessage(next)
         if (next.startsWith('/') && commands.length > 0) {
           setSlashOpen(true)
           setSlashFilter(next.slice(1))
@@ -309,4 +321,13 @@ function isObject(value: unknown): value is JsonObject {
 
 function formatTokens(value: number): string {
   return value >= 1000 ? `${Math.round(value / 1000)}k` : String(value)
+}
+
+/** Restores the draft for one session without making storage availability a prerequisite. */
+function readComposerDraft(storageKey: string): string {
+  try {
+    return window.localStorage.getItem(storageKey) ?? ''
+  } catch {
+    return ''
+  }
 }
