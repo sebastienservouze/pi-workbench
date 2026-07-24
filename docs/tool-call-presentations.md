@@ -14,3 +14,22 @@ Par défaut, l’en-tête de l’outil expose son titre complet au survol. Une f
 4. Ajoutez un test dans `test/tool-calls.test.ts` pour la présentation spécifique et pour son repli générique si les arguments sont invalides.
 
 N’ajoutez une présentation que lorsqu’un outil apporte réellement une information plus lisible sous une autre forme.
+
+## Remplacer la carte dans un fork
+
+Une extension frontend peut remplacer le rendu complet d’un outil depuis `src/custom/extensions.ts` :
+
+```ts
+import { MyToolCall } from './MyToolCall.tsx'
+import type { WorkbenchExtension } from '../extensions/frontend.ts'
+
+export const customExtensions: readonly WorkbenchExtension[] = [{
+  apiVersion: 1,
+  id: 'my-tools',
+  toolCalls: { my_tool: MyToolCall },
+}]
+```
+
+Le renderer reçoit une vue normalisée de l’appel ainsi que `renderDefault()`, qui permet d’encapsuler la carte officielle sans dépendre de ses propriétés internes. Si son rendu lève une erreur, le Workbench signale celle-ci puis affiche la carte officielle. Deux extensions ne peuvent pas déclarer le même outil.
+
+Préférez une présentation lorsque seul l’en-tête doit changer ; réservez le renderer à une structure ou une interaction réellement différente.
