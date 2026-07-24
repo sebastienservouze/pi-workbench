@@ -189,6 +189,7 @@ function App() {
 
   useLayoutEffect(() => {
     document.documentElement.style.setProperty('zoom', interfaceScale)
+    document.body.style.setProperty('min-height', `${100 / Number(interfaceScale)}dvh`)
   }, [interfaceScale])
 
   /** Applies and persists the interface scale selected in settings. */
