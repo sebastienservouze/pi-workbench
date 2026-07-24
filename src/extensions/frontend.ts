@@ -27,6 +27,24 @@ export interface CustomMessageRendererProps {
 
 export type CustomMessageRenderer = ComponentType<CustomMessageRendererProps>
 
+export interface RightSidebarWidgetProps {
+  workspacePath: string
+}
+
+export type RightSidebarWidgetRenderer = ComponentType<RightSidebarWidgetProps>
+
+export interface RightSidebarWidgetContribution {
+  icon: ReactNode
+  id: string
+  label: string
+  render: RightSidebarWidgetRenderer
+}
+
+export interface RegisteredRightSidebarWidget extends RightSidebarWidgetContribution {
+  extensionId: string
+  key: `extension:${string}`
+}
+
 export interface ToolCallView {
   id: string
   name: string
@@ -48,12 +66,14 @@ export interface WorkbenchExtension {
   id: string
   activity?: ActivityRenderer
   messages?: Record<string, CustomMessageRenderer>
+  rightSidebarWidgets?: readonly RightSidebarWidgetContribution[]
   toolCalls?: Record<string, ToolCallRenderer>
 }
 
 export interface FrontendExtensionRegistry {
   activity?: ActivityRenderer
   messages: ReadonlyMap<string, CustomMessageRenderer>
+  rightSidebarWidgets: ReadonlyMap<`extension:${string}`, RegisteredRightSidebarWidget>
   toolCalls: ReadonlyMap<string, ToolCallRenderer>
 }
 
@@ -64,6 +84,7 @@ export function createFrontendExtensionRegistry(extensions: readonly WorkbenchEx
   let activityOwner: string | undefined
   const messageOwners = new Map<string, string>()
   const messages = new Map<string, CustomMessageRenderer>()
+  const rightSidebarWidgets = new Map<`extension:${string}`, RegisteredRightSidebarWidget>()
   const toolCallOwners = new Map<string, string>()
   const toolCalls = new Map<string, ToolCallRenderer>()
 
@@ -84,6 +105,12 @@ export function createFrontendExtensionRegistry(extensions: readonly WorkbenchEx
       messages.set(customType, renderer)
     }
 
+    for (const widget of extension.rightSidebarWidgets ?? []) {
+      const key = `extension:${encodeURIComponent(extension.id)}/${encodeURIComponent(widget.id)}` as const
+      if (rightSidebarWidgets.has(key)) throw new Error(`Widget de sidebar dupliqué : ${extension.id}/${widget.id}`)
+      rightSidebarWidgets.set(key, { ...widget, extensionId: extension.id, key })
+    }
+
     for (const [toolName, renderer] of Object.entries(extension.toolCalls ?? {})) {
       const owner = toolCallOwners.get(toolName)
       if (owner) throw new Error(`Renderer de l'outil ${toolName} fourni par ${owner} et ${extension.id}`)
@@ -92,5 +119,5 @@ export function createFrontendExtensionRegistry(extensions: readonly WorkbenchEx
     }
   }
 
-  return { activity, messages, toolCalls }
+  return { activity, messages, rightSidebarWidgets, toolCalls }
 }

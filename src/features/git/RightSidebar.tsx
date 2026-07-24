@@ -1,5 +1,7 @@
 import { useState, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import type { GitActionResult, GitFileDiff, GitRevertResult, GitSnapshot, QuotaSnapshot } from '../../../shared/types.ts'
+import { customExtensionRegistry } from '../../custom/extensions.ts'
+import { ExtensionRendererBoundary } from '../../extensions/ExtensionRendererBoundary.tsx'
 import { QuotaWidget } from '../quotas/QuotaWidget.tsx'
 import { railQuota, type QuotaProvider } from '../quotas/quota-display.ts'
 import { SessionAnalysisWidget } from '../session-analysis/SessionAnalysisWidget.tsx'
@@ -8,7 +10,8 @@ import { TerminalWidget } from '../terminal/TerminalWidget.tsx'
 import { TodoWidget } from '../todo/TodoWidget.tsx'
 import { maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff } from './git-sidebar.ts'
 
-export type RightWidget = 'analysis' | 'git' | 'quotas' | 'terminal' | 'todo'
+type BuiltInRightWidget = 'analysis' | 'git' | 'quotas' | 'terminal' | 'todo'
+export type RightWidget = BuiltInRightWidget | `extension:${string}`
 
 export interface RailAction {
   key: string
@@ -45,7 +48,9 @@ export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onA
   const [fileDiff, setFileDiff] = useState<GitFileDiff | null>(null)
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const hasChanges = snapshot?.files.length ? snapshot.files.length > 0 : false
-  const collapsed = activeWidget === null || (activeWidget === 'analysis' && !analysis) || (activeWidget === 'git' && !snapshot)
+  const extensionWidget = isExtensionWidgetKey(activeWidget) ? customExtensionRegistry.rightSidebarWidgets.get(activeWidget) : undefined
+  const ExtensionWidget = extensionWidget?.render
+  const collapsed = activeWidget === null || (activeWidget === 'analysis' && !analysis) || (activeWidget === 'git' && !snapshot) || (isExtensionWidgetKey(activeWidget) && !extensionWidget)
   const quotaSummary = railQuota(quotas, currentQuotaProvider)
 
   /** Charge le diff demandé avant de remplacer la liste de fichiers du widget. */
@@ -137,7 +142,7 @@ export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onA
         role="separator"
         tabIndex={0}
       />
-      <section aria-label={activeWidget === 'analysis' ? 'Analyse de la session' : activeWidget === 'todo' ? 'Tâches du workspace' : activeWidget === 'terminal' ? 'Terminal du workspace' : activeWidget === 'quotas' ? 'Quotas des fournisseurs' : fileDiff || selectedPath ? 'Diff Git' : 'Informations Git'} className="git-panel" id={`${activeWidget}-panel`}>
+      <section aria-label={extensionWidget?.label ?? (activeWidget === 'analysis' ? 'Analyse de la session' : activeWidget === 'todo' ? 'Tâches du workspace' : activeWidget === 'terminal' ? 'Terminal du workspace' : activeWidget === 'quotas' ? 'Quotas des fournisseurs' : fileDiff || selectedPath ? 'Diff Git' : 'Informations Git')} className="git-panel" id={`${activeWidget}-panel`}>
         {activeWidget === 'analysis' && analysis && <WidgetLayout header={<div><strong>Analyse de session</strong><span>{analysis.requests.length} requête{analysis.requests.length > 1 ? 's' : ''} analysée{analysis.requests.length > 1 ? 's' : ''}</span></div>}><SessionAnalysisWidget analysis={analysis} onNavigate={onAnalysisNavigate} /></WidgetLayout>}
         {activeWidget === 'git' && snapshot && <WidgetLayout
           footer={activeWidget === 'git' && !selectedPath && (hasChanges || snapshot.ahead > 0) && <form className="git-actions" onSubmit={(event) => { event.preventDefault(); void action() }}>
@@ -170,6 +175,9 @@ export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onA
         {activeWidget === 'quotas' && <QuotaWidget onRefresh={onQuotaRefresh} quotas={quotas} />}
         {activeWidget === 'terminal' && <TerminalWidget workspacePath={workspacePath} />}
         {activeWidget === 'todo' && <TodoWidget onOpenCountChange={setTodoOpenCount} onStartSession={onTodoStartSession} workspacePath={workspacePath} />}
+        {ExtensionWidget && <ExtensionRendererBoundary fallback={<p className="git-empty" role="alert">Ce widget est indisponible.</p>} onError={onError}>
+          <ExtensionWidget workspacePath={workspacePath} />
+        </ExtensionRendererBoundary>}
       </section>
     </div>}
     <div className="git-rail">
@@ -232,6 +240,17 @@ export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onA
         <span aria-hidden="true">☑</span>
         {todoOpenCount !== null && todoOpenCount > 0 && <small>{todoOpenCount}</small>}
       </button>
+      {[...customExtensionRegistry.rightSidebarWidgets.values()].map((widget) => <ExtensionRendererBoundary fallback={null} key={widget.key} onError={onError}>
+        <button
+          aria-controls={activeWidget === widget.key ? `${widget.key}-panel` : undefined}
+          aria-expanded={activeWidget === widget.key}
+          aria-label={`${activeWidget === widget.key ? 'Réduire' : 'Développer'} ${widget.label}`}
+          className="rail-tab"
+          onClick={() => onWidgetSelect(widget.key)}
+          title={widget.label}
+          type="button"
+        ><span aria-hidden="true">{widget.icon}</span></button>
+      </ExtensionRendererBoundary>)}
       {railActions.map((action) => <button
         aria-label={action.label}
         className="rail-tab"
@@ -276,6 +295,10 @@ function GitDiff({ diff }: { diff: string }) {
       <code>{line.content}</code>
     </div>)}
   </section>
+}
+
+function isExtensionWidgetKey(widget: RightWidget | null): widget is `extension:${string}` {
+  return widget?.startsWith('extension:') ?? false
 }
 
 function gitStatusLabel(status: 'added' | 'deleted' | 'modified' | 'renamed'): string {

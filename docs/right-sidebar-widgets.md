@@ -75,7 +75,24 @@ La structure CSS actuelle est volontairement minimale : `.git-sidebar` aligne `.
 
 ## Ajouter un widget
 
-N’ajoutez ni registre, ni système de plugins, ni gestionnaire d’état pour un widget supplémentaire. Étendez l’union `RightWidget` et les rendus conditionnels existants.
+Un widget officiel qui dépend fortement de l’état central peut encore étendre les rendus conditionnels existants. Un fork ajoute de préférence ses widgets isolés dans la zone réservée `src/custom/extensions.ts`, sans modifier `App.tsx` ni `RightSidebar.tsx` :
+
+```tsx
+const StatusWidget = ({ workspacePath }: RightSidebarWidgetProps) => <p>{workspacePath}</p>
+
+export const customExtensions: readonly WorkbenchExtension[] = [{
+  apiVersion: 1,
+  id: 'my-workbench',
+  rightSidebarWidgets: [{
+    id: 'status',
+    label: 'Statut du workspace',
+    icon: <span aria-hidden="true">●</span>,
+    render: StatusWidget,
+  }],
+}]
+```
+
+La clé persistée est dérivée de l’identifiant de l’extension et de celui du widget. Deux widgets portant le même identifiant dans une extension provoquent une erreur explicite. Une erreur de rendu est isolée : le panneau affiche un repli et le reste du shell demeure utilisable.
 
 ### Widget à panneau
 
