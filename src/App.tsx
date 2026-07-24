@@ -8,7 +8,6 @@ import { Composer } from './features/composer/Composer.tsx'
 import { promptSessionTitle } from './features/composer/prompt-title.ts'
 import { ToastStack, type Toast } from './features/notifications/ToastStack.tsx'
 import { activityForPiEvent, sessionActivity, type Activity, type PiConnection } from './features/conversation/activity.ts'
-import { Confetti } from './features/conversation/Confetti.tsx'
 import { Conversation } from './features/conversation/Conversation.tsx'
 import { applyToolCallUpdate, interruptToolCallGeneration, toolCallInUpdate, type ToolExecution, type ToolResult } from './features/conversation/tool-calls.ts'
 import { AskUserQuestionDialog, ExtensionDialog } from './features/dialogs/Dialogs.tsx'
@@ -100,7 +99,6 @@ function App() {
   const [requestedSelect, setRequestedSelect] = useState<'agent' | 'model' | 'thinking' | null>(null)
   const [submitRequest, setSubmitRequest] = useState(0)
   const [focusComposerRequest, setFocusComposerRequest] = useState(0)
-  const [celebration, setCelebration] = useState<{ id: number; sessionId: string }>()
   const [composerDraftRequest, setComposerDraftRequest] = useState<{ id: string; message: string; sessionId: string }>()
   const [scrollToBottomRequest, setScrollToBottomRequest] = useState(0)
   const [conversationNavigation, setConversationNavigation] = useState<{ id: number; target: SessionAnalysisTarget }>()
@@ -114,7 +112,6 @@ function App() {
   const agentIntentsRef = useRef(new Map<string, AgentIntent>())
   const toolStartedAtRef = useRef(new Map<string, number>())
   const requestStartedAtRef = useRef<number | undefined>(undefined)
-  const celebrationIdRef = useRef(0)
   const queueUpdateVersionRef = useRef(0)
   const pendingLiveUpdatesRef = useRef({ text: '', thinking: '' })
   const liveUpdateFrameRef = useRef<number | undefined>(undefined)
@@ -208,16 +205,7 @@ function App() {
       next.delete(selectedId)
       return next
     })
-    setCelebration(undefined)
   }, [selectedId])
-
-  useEffect(() => {
-    if (!celebration) return
-    const timeout = window.setTimeout(() => {
-      setCelebration((current) => current?.id === celebration.id ? undefined : current)
-    }, 3200)
-    return () => window.clearTimeout(timeout)
-  }, [celebration])
 
   /** Reloads sessions and their UI requests while discarding stale responses. */
   const refreshSessions = useCallback(async (cwd = workspacePath) => {
@@ -363,8 +351,7 @@ function App() {
       if (event.type === 'agent_start') updateSessionStatus(sessionId, 'running')
       if (event.type === 'agent_settled') {
         updateSessionStatus(sessionId, 'idle')
-        if (sessionId === selectedIdRef.current) setCelebration({ id: ++celebrationIdRef.current, sessionId })
-        else setCompletedSessionIds((current) => new Set(current).add(sessionId))
+        if (sessionId !== selectedIdRef.current) setCompletedSessionIds((current) => new Set(current).add(sessionId))
       }
       if (event.type === 'auto_retry_end' && event.success === false && typeof event.finalError === 'string') {
         showToast('error', `Provider connection failed after retries: ${event.finalError}`, sessionId)
@@ -804,7 +791,6 @@ function App() {
       {dialog && !questionnaire && <ExtensionDialog dialog={dialog} onClose={() => closeDialog(dialog)} onError={(cause) => showToast('error', messageOf(cause))} />}
       {commandPaletteOpen && <CommandPalette commands={paletteCommands} onClose={() => setCommandPaletteOpen(false)} />}
       {settingsOpen && <SettingsPanel definitions={commandDefinitions} shortcuts={shortcuts} onChange={(id, shortcut) => { const next = { ...shortcuts, [id]: shortcut }; setShortcuts(next); window.localStorage.setItem('pi-livecraft.shortcuts', JSON.stringify(next)) }} onReset={() => { setShortcuts(defaultShortcuts); window.localStorage.setItem('pi-livecraft.shortcuts', JSON.stringify(defaultShortcuts)) }} onClose={() => setSettingsOpen(false)} />}
-      {celebration?.sessionId === selectedId && <Confetti celebrationKey={celebration.id} />}
     </div>
   )
 }
