@@ -69,6 +69,7 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
 
   useEffect(() => () => {
     if (scrollFrameRef.current !== undefined) window.cancelAnimationFrame(scrollFrameRef.current)
+    scrollFrameRef.current = undefined
   }, [])
 
   useEffect(() => {
