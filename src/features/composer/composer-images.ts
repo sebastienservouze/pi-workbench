@@ -8,7 +8,7 @@ export interface ComposerImage {
   mimeType: 'image/jpeg'
 }
 
-/** Réduit chaque image collée sous la limite HTTP tout en préservant une résolution utile au modèle. */
+/** Reduces each pasted image below the HTTP limit while preserving useful model resolution. */
 export async function prepareComposerImage(file: File): Promise<ComposerImage | null> {
   const source = await loadImageSource(file)
   let width = Math.min(source.width, maxComposerImageDimension)
@@ -20,7 +20,7 @@ export async function prepareComposerImage(file: File): Promise<ComposerImage | 
 
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
-  if (!context) throw new Error("La compression d'image n'est pas disponible dans ce navigateur.")
+  if (!context) throw new Error("Image compression is unavailable in this browser.")
   for (;;) {
     canvas.width = width
     canvas.height = height
@@ -37,28 +37,28 @@ export async function prepareComposerImage(file: File): Promise<ComposerImage | 
   }
 }
 
-/** Charge un fichier image dans un élément compatible Canvas et libère son URL temporaire dès le décodage. */
+/** Loads an image file into a Canvas-compatible element and releases its temporary URL after decoding. */
 function loadImageSource(file: File): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file)
     const image = new Image()
     image.onload = () => { URL.revokeObjectURL(url); resolve(image) }
-    image.onerror = () => { URL.revokeObjectURL(url); reject(new Error("L'image collée est illisible.")) }
+    image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('The pasted image cannot be read.')) }
     image.src = url
   })
 }
 
-/** Encode le canvas en JPEG afin d'éviter que les captures PNG ne dépassent la limite de requête locale. */
+/** Encodes the canvas as JPEG so PNG captures do not exceed the local request limit. */
 function canvasToBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
-  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("L'image n'a pas pu être compressée.")), 'image/jpeg', quality))
+  return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('The image could not be compressed.')), 'image/jpeg', quality))
 }
 
-/** Retire l'en-tête data URL, absent du format base64 attendu par le protocole RPC de Pi. */
+/** Removes the data URL header, which is not part of the base64 format expected by Pi's RPC protocol. */
 async function blobToBase64(blob: Blob): Promise<string> {
   const dataUrl = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error("L'image n'a pas pu être lue."))
-    reader.onerror = () => reject(reader.error ?? new Error("L'image n'a pas pu être lue."))
+    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('The image could not be read.'))
+    reader.onerror = () => reject(reader.error ?? new Error('The image could not be read.'))
     reader.readAsDataURL(blob)
   })
   return dataUrl.slice(dataUrl.indexOf(',') + 1)

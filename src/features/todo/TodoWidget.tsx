@@ -3,7 +3,7 @@ import type { TodoItem } from '../../../shared/types.ts'
 import { getTodos, updateTodos } from '../../api.ts'
 import { reorderTodoItems } from './todo-order.ts'
 
-/** Affiche et modifie la liste de tâches persistante du workspace courant. */
+/** Displays and edits the persistent task list for the current workspace. */
 export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }: {
   onOpenCountChange: (count: number | null) => void
   onStartSession: (message: string) => Promise<void>
@@ -23,7 +23,7 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
   const dragTodos = useRef<TodoItem[] | null>(null)
   const dragMoved = useRef(false)
 
-  /** Recharge la liste lorsque le workspace change et ignore les réponses devenues obsolètes. */
+  /** Reloads the list when the workspace changes and ignores stale responses. */
   useEffect(() => {
     let cancelled = false
     setLoading(true)
@@ -45,7 +45,7 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
     return () => { cancelled = true }
   }, [onOpenCountChange, reloadRequest, workspacePath])
 
-  /** Persiste une nouvelle liste avant de remplacer l’état visible. */
+  /** Persists a new list before replacing the visible state. */
   async function save(nextTodos: TodoItem[]): Promise<boolean> {
     setBusy(true)
     setError('')
@@ -62,7 +62,7 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
     }
   }
 
-  /** Ajoute une tâche non vide tout en conservant la saisie si la sauvegarde échoue. */
+  /** Adds a non-empty task while keeping the input if saving fails. */
   async function addTodo(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
     const text = newText.trim()
@@ -70,7 +70,7 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
     if (await save([...todos, { id: crypto.randomUUID(), text, completed: false }])) setNewText('')
   }
 
-  /** Enregistre le texte édité ou annule l’édition lorsqu’il n’a pas changé. */
+  /** Saves edited text or cancels editing when it has not changed. */
   async function commitEdit(todo: TodoItem): Promise<void> {
     const text = editingText.trim()
     if (!text || busy) return
@@ -90,12 +90,12 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
     }
   }
 
-  /** Supprime définitivement une tâche sans interrompre le flux par une confirmation. */
+  /** Permanently removes a task without interrupting the flow with a confirmation. */
   async function removeTodo(todo: TodoItem): Promise<void> {
     await save(todos.filter((item) => item.id !== todo.id))
   }
 
-  /** Initialise un déplacement tout en conservant l’ordre à restaurer en cas d’échec. */
+  /** Starts a drag while retaining the order to restore if saving fails. */
   function beginDrag(event: ReactPointerEvent<HTMLSpanElement>, todoId: string): void {
     if (busy || editingId !== null || startingId !== null) return
     event.preventDefault()
@@ -106,7 +106,7 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
     setDraggedId(todoId)
   }
 
-  /** Réordonne visuellement la liste selon la tâche survolée par le pointeur capturé. */
+  /** Visually reorders the list according to the task under the captured pointer. */
   function moveDraggedTodo(event: ReactPointerEvent<HTMLSpanElement>): void {
     if (!draggedId || !dragTodos.current) return
     const target = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-todo-id]')
@@ -120,7 +120,7 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
     setTodos(nextTodos)
   }
 
-  /** Persiste l’ordre déposé et rétablit l’ordre précédent si l’écriture échoue. */
+  /** Persists the dropped order and restores the previous order if writing fails. */
   async function finishDrag(event: ReactPointerEvent<HTMLSpanElement>): Promise<void> {
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
     const nextTodos = dragTodos.current
@@ -135,7 +135,7 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
     onOpenCountChange(openCount(previousTodos))
   }
 
-  /** Annule le déplacement en cours et restaure l’ordre initial sans le persister. */
+  /** Cancels the current drag and restores the initial order without persisting it. */
   function cancelDrag(): void {
     if (dragOriginalTodos.current) setTodos(dragOriginalTodos.current)
     setDraggedId(null)
@@ -144,7 +144,7 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
     dragMoved.current = false
   }
 
-  /** Lance une nouvelle session avec le texte de la tâche comme premier message. */
+  /** Starts a new session with the task text as its first message. */
   async function startSession(todo: TodoItem): Promise<void> {
     setStartingId(todo.id)
     try {
@@ -159,12 +159,12 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
 
   return <>
     <header className="widget-header">
-      <div><strong>À faire</strong><span>{loading ? 'Chargement…' : `${remaining} restante${remaining > 1 ? 's' : ''}`}</span></div>
+      <div><strong>Todo</strong><span>{loading ? 'Loading…' : `${remaining} remaining`}</span></div>
     </header>
     <div className="widget-content todo-content">
-      {loading ? <div aria-label="Chargement des tâches" className="todo-skeleton" role="status"><i /><i /><i /></div> : <>
-        {error && <div className="todo-error" role="alert"><span>{error}</span><button onClick={() => setReloadRequest((current) => current + 1)} type="button">Réessayer</button></div>}
-        {visibleTodos.length === 0 && !error ? <div className="todo-empty"><strong>Aucune tâche</strong><span>Notez ici une idée à reprendre dans ce workspace.</span></div> : <ul className="todo-list">
+      {loading ? <div aria-label="Loading tasks" className="todo-skeleton" role="status"><i /><i /><i /></div> : <>
+        {error && <div className="todo-error" role="alert"><span>{error}</span><button onClick={() => setReloadRequest((current) => current + 1)} type="button">Retry</button></div>}
+        {visibleTodos.length === 0 && !error ? <div className="todo-empty"><strong>No tasks</strong><span>Write down an idea to pick up later in this workspace.</span></div> : <ul className="todo-list">
           {visibleTodos.map((todo) => <li className={draggedId === todo.id ? 'dragging' : undefined} data-todo-id={todo.id} key={todo.id}>
             <span
               aria-hidden="true"
@@ -173,11 +173,11 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
               onPointerDown={(event) => beginDrag(event, todo.id)}
               onPointerMove={moveDraggedTodo}
               onPointerUp={(event) => void finishDrag(event)}
-              title="Déplacer"
+              title="Move"
             >⠿</span>
-            <input aria-label={`Marquer « ${todo.text} » comme terminée`} checked={false} disabled={busy} onChange={() => void save(todos.map((item) => item.id === todo.id ? { ...item, completed: true } : item))} type="checkbox" />
+            <input aria-label={`Mark “${todo.text}” as complete`} checked={false} disabled={busy} onChange={() => void save(todos.map((item) => item.id === todo.id ? { ...item, completed: true } : item))} type="checkbox" />
             {editingId === todo.id ? <input
-              aria-label={`Modifier « ${todo.text} »`}
+              aria-label={`Edit “${todo.text}”`}
               autoFocus
               className="todo-edit"
               disabled={busy}
@@ -186,17 +186,17 @@ export function TodoWidget({ onOpenCountChange, onStartSession, workspacePath }:
               onChange={(event) => setEditingText(event.target.value)}
               onKeyDown={(event) => editWithKeyboard(event, todo)}
               value={editingText}
-            /> : <button className="todo-text" disabled={busy || startingId !== null} onClick={() => { setEditingId(todo.id); setEditingText(todo.text) }} title="Modifier" type="button">{todo.text}</button>}
-            <button aria-label={`Démarrer une session avec « ${todo.text} »`} className="todo-start" disabled={busy || editingId !== null || startingId !== null} onClick={() => void startSession(todo)} title="Démarrer une session avec cette tâche" type="button">{startingId === todo.id ? '…' : '↗'}</button>
-            <button aria-label={`Supprimer « ${todo.text} »`} className="todo-delete" disabled={busy || startingId !== null} onClick={() => void removeTodo(todo)} title="Supprimer" type="button">×</button>
+            /> : <button className="todo-text" disabled={busy || startingId !== null} onClick={() => { setEditingId(todo.id); setEditingText(todo.text) }} title="Edit" type="button">{todo.text}</button>}
+            <button aria-label={`Start a session with “${todo.text}”`} className="todo-start" disabled={busy || editingId !== null || startingId !== null} onClick={() => void startSession(todo)} title="Start a session with this task" type="button">{startingId === todo.id ? '…' : '↗'}</button>
+            <button aria-label={`Delete “${todo.text}”`} className="todo-delete" disabled={busy || startingId !== null} onClick={() => void removeTodo(todo)} title="Delete" type="button">×</button>
           </li>)}
         </ul>}
       </>}
     </div>
     <footer className="widget-footer">
       <form className="todo-add" onSubmit={(event) => void addTodo(event)}>
-        <input aria-label="Nouvelle tâche" disabled={busy || loading} maxLength={500} onChange={(event) => setNewText(event.target.value)} placeholder="Ajouter une tâche…" value={newText} />
-        <button aria-label="Ajouter la tâche" disabled={busy || loading || !newText.trim()} title="Ajouter" type="submit">+</button>
+        <input aria-label="New task" disabled={busy || loading} maxLength={500} onChange={(event) => setNewText(event.target.value)} placeholder="Add a task…" value={newText} />
+        <button aria-label="Add task" disabled={busy || loading || !newText.trim()} title="Add" type="submit">+</button>
       </form>
     </footer>
   </>

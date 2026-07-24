@@ -17,7 +17,7 @@ interface WorkspaceSidebarProps {
   onError: (cause: unknown) => void
 }
 
-/** Affiche le workspace courant et ouvre ou sélectionne ses sessions Pi récentes. */
+/** Displays the current workspace and opens or selects its recent Pi sessions. */
 export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspacePath, theme, onChooseWorkspace, onCreate, onOpenSession, onSelectSession, onToggleTheme, onOpenSettings, onError }: WorkspaceSidebarProps) {
   const [openingSessionPath, setOpeningSessionPath] = useState('')
   const visibleSessions = useMemo(() => sidebarSessions(recentSessions, sessions, workspacePath), [recentSessions, sessions, workspacePath])
@@ -26,20 +26,20 @@ export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspa
     <div className="brand">
       <span className="brand-mark">π</span>
       <div><strong>Pi Workbench</strong><small>Local workspace</small></div>
-      <button aria-label={theme === 'dark' ? 'Passer au thème clair' : 'Passer au thème sombre'} className="theme-toggle" onClick={onToggleTheme} title={theme === 'dark' ? 'Thème clair' : 'Thème sombre'} type="button">
+      <button aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'} className="theme-toggle" onClick={onToggleTheme} title={theme === 'dark' ? 'Light theme' : 'Dark theme'} type="button">
         {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
       </button>
-      <button aria-label="Ouvrir les paramètres" className="theme-toggle" onClick={onOpenSettings} title="Paramètres" type="button">
+      <button aria-label="Open settings" className="theme-toggle" onClick={onOpenSettings} title="Settings" type="button">
         <SettingsIcon />
       </button>
     </div>
     <div className="workspace-group">
       <button className="workspace-path" onClick={onChooseWorkspace} title={workspacePath} type="button">
-        <span>Dossier courant</span><strong>{workspacePath}</strong>
+        <span>Current directory</span><strong>{workspacePath}</strong>
       </button>
     </div>
     <NewSessionButton onCreate={onCreate} onError={onError} />
-    <nav className="session-list" aria-label="Sessions Pi récentes">
+    <nav className="session-list" aria-label="Recent Pi sessions">
       {visibleSessions.map((recentSession) => {
         const activeSession = sessions.find((session) => session.sessionPath === recentSession.sessionPath && session.status !== 'exited')
         return (
@@ -57,17 +57,17 @@ export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspa
             }}
             type="button"
           >
-            {activeSession?.status === 'running' && <span className="status-dot" aria-label="Agent en cours de travail" role="img" />}
-            <span><strong>{openingSessionPath === recentSession.sessionPath ? 'Ouverture…' : recentSession.name}</strong><small>{new Date(recentSession.updatedAt).toLocaleString('fr-FR')}</small></span>
+            {activeSession?.status === 'running' && <span className="status-dot" aria-label="Agent is working" role="img" />}
+            <span><strong>{openingSessionPath === recentSession.sessionPath ? 'Opening…' : recentSession.name}</strong><small>{new Date(recentSession.updatedAt).toLocaleString('en-US')}</small></span>
           </button>
         )
       })}
-      {visibleSessions.length === 0 && <p className="empty-sidebar">Aucune session Pi dans ce dossier.</p>}
+      {visibleSessions.length === 0 && <p className="empty-sidebar">No Pi sessions in this directory.</p>}
     </nav>
   </aside>
 }
 
-/** Empêche les doubles créations de session et remonte les erreurs au conteneur. */
+/** Prevents duplicate session creation and reports errors to the container. */
 function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>; onError: (cause: unknown) => void }) {
   const [busy, setBusy] = useState(false)
 
@@ -82,7 +82,7 @@ function NewSessionButton({ onCreate, onError }: { onCreate: () => Promise<void>
     }
   }
 
-  return <button className="new-session" disabled={busy} onClick={() => void create()} type="button">{busy ? 'Démarrage…' : '＋ Nouvelle session'}</button>
+  return <button className="new-session" disabled={busy} onClick={() => void create()} type="button">{busy ? 'Starting…' : '＋ New session'}</button>
 }
 
 function MoonIcon() {

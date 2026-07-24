@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import type { QuotaProviderSnapshot, QuotaSnapshot } from '../../../shared/types.ts'
 
-/** Présente les relevés normalisés sans déduire de quota absent des réponses fournisseurs. */
+/** Displays normalized quota readings without deducing absent quota from provider responses. */
 export function QuotaWidget({ quotas, onRefresh }: { quotas: QuotaSnapshot | null; onRefresh: () => Promise<void> }) {
   const [refreshing, setRefreshing] = useState(false)
   const updatedAt = Math.max(quotas?.openai.updatedAt ?? 0, quotas?.copilot.updatedAt ?? 0)
 
-  /** Garde le bouton inactif jusqu'à la fin de la requête manuelle, succès ou erreur. */
+  /** Keeps the button disabled until the manual refresh completes, whether success or error. */
   async function refresh(): Promise<void> {
     setRefreshing(true)
     try {
@@ -30,15 +30,15 @@ export function QuotaWidget({ quotas, onRefresh }: { quotas: QuotaSnapshot | nul
         <ProviderSection name="OpenAI Codex" provider={quotas.openai}>
           {quotas.openai.data.map((window) => <div className="quota-row" key={window.period}>
             <div className="quota-row-copy"><strong>{window.period === '5h' ? 'Fenêtre 5 heures' : 'Fenêtre 7 jours'}</strong><b>{formatPercent(window.remainingPercent)} restant</b></div>
-            <QuotaBar label={`${formatPercent(window.remainingPercent)} restant`} value={window.remainingPercent} />
-            {window.resetsAt && <small>Réinitialisation {formatReset(window.resetsAt)}</small>}
+            <QuotaBar label={`${formatPercent(window.remainingPercent)} remaining`} value={window.remainingPercent} />
+            {window.resetsAt && <small>Reset {formatReset(window.resetsAt)}</small>}
           </div>)}
         </ProviderSection>
         <ProviderSection name="GitHub Copilot" provider={quotas.copilot}>
           {quotas.copilot.data.map((window) => <div className="quota-row" key={window.name}>
             <div className="quota-row-copy"><strong>{window.name}</strong><b>{formatNumber(window.used)} / {formatNumber(window.limit)}</b></div>
-            <QuotaBar label={`${formatNumber(window.used)} consommé sur ${formatNumber(window.limit)}`} value={window.used / window.limit * 100} />
-            {window.resetsAt && <small>Réinitialisation {formatReset(window.resetsAt)}</small>}
+            <QuotaBar label={`${formatNumber(window.used)} used of ${formatNumber(window.limit)}`} value={window.used / window.limit * 100} />
+            {window.resetsAt && <small>Reset {formatReset(window.resetsAt)}</small>}
           </div>)}
         </ProviderSection>
       </>}
@@ -66,19 +66,19 @@ function QuotaSkeleton() {
 
 function formatRelativeDate(timestamp: number): string {
   const elapsedMinutes = Math.max(0, Math.round((Date.now() - timestamp) / 60_000))
-  if (elapsedMinutes < 1) return 'à l’instant'
-  if (elapsedMinutes < 60) return `il y a ${elapsedMinutes} min`
-  return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(timestamp)
+  if (elapsedMinutes < 1) return 'just now'
+  if (elapsedMinutes < 60) return `${elapsedMinutes} min ago`
+  return new Intl.DateTimeFormat(navigator.language, { dateStyle: 'short', timeStyle: 'short' }).format(timestamp)
 }
 
 function formatReset(timestamp: number): string {
-  return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(timestamp)
+  return new Intl.DateTimeFormat(navigator.language, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(timestamp)
 }
 
 function formatPercent(value: number): string {
-  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(value)} %`
+  return `${new Intl.NumberFormat(navigator.language, { maximumFractionDigits: 1 }).format(value)} %`
 }
 
 function formatNumber(value: number): string {
-  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(value)
+  return new Intl.NumberFormat(navigator.language, { maximumFractionDigits: 0 }).format(value)
 }

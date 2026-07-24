@@ -12,7 +12,7 @@ interface PiSessionHeader {
   cwd: string
 }
 
-/** Lit uniquement les métadonnées nécessaires à la reprise d'une session Pi. */
+/** Reads only the metadata required to resume a Pi session. */
 export async function listRecentPiSessions(cwd: string, directory = sessionDirectory): Promise<RecentSession[]> {
   const paths = await listSessionFiles(directory)
   const sessions = await Promise.all(paths.map(async (path) => readPiSession(path, (await stat(path)).mtimeMs)))
@@ -22,7 +22,7 @@ export async function listRecentPiSessions(cwd: string, directory = sessionDirec
     .sort((left, right) => right.updatedAt - left.updatedAt)
 }
 
-/** Vérifie qu'un fichier appartient au répertoire de sessions Pi avant d'en charger les métadonnées. */
+/** Verifies that a file belongs to the Pi session directory before loading its metadata. */
 export async function loadPiSession(path: string): Promise<RecentSession> {
   const [canonicalPath, canonicalDirectory] = await Promise.all([realpath(path), realpath(sessionDirectory)])
   const relativePath = relative(canonicalDirectory, canonicalPath)
@@ -32,7 +32,7 @@ export async function loadPiSession(path: string): Promise<RecentSession> {
   return session
 }
 
-/** Parcourt récursivement le stockage Pi en ne retenant que les fichiers JSONL de session. */
+/** Recursively scans Pi storage while retaining only session JSONL files. */
 async function listSessionFiles(directory: string): Promise<string[]> {
   let entries
   try {
@@ -50,7 +50,7 @@ async function listSessionFiles(directory: string): Promise<string[]> {
   return paths.flat()
 }
 
-/** Extrait l'identité, le nom et la dernière activité d'une session sans charger son historique complet. */
+/** Extracts a session's identity, name, and latest activity without loading its full history. */
 async function readPiSession(path: string, updatedAt: number): Promise<RecentSession | null> {
   let lines: string[]
   try {
@@ -71,7 +71,7 @@ async function readPiSession(path: string, updatedAt: number): Promise<RecentSes
   return {
     id: header.id,
     cwd: header.cwd,
-    name: name || prompt || 'Nouvelle session',
+    name: name || prompt || 'New session',
     sessionPath: path,
     updatedAt: lastMessageAt ?? (Number.isNaN(createdAt) ? updatedAt : createdAt),
   }

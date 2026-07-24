@@ -1,10 +1,10 @@
-/** Prépare une référence de fichier absolue que l’utilisateur peut compléter avant envoi. */
+/** Prepares an absolute file reference that the user can complete before sending. */
 export function fileContextDraft(path: string): string {
-  return `Fichier à examiner : \`${path}\`\n\n`
+  return `File to inspect: \`${path}\`\n\n`
 }
 
-/** Cite une sortie Markdown complète sans perdre sa structure interne. */
+/** Quotes complete Markdown output without losing its internal structure. */
 export function outputContextDraft(output: string): string {
   const quote = output.split('\n').map((line) => `> ${line}`).join('\n')
-  return `Sortie de la session précédente :\n\n${quote}\n\n`
+  return `Previous session output:\n\n${quote}\n\n`
 }

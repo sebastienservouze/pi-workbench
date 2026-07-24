@@ -28,7 +28,7 @@ export class ManagerClient extends EventEmitter {
     this.#connect()
   }
 
-  /** Envoie une requête au manager connecté et associe sa réponse à un délai d'expiration. */
+  /** Sends a request to the connected manager and associates its response with a timeout. */
   request(request: Omit<ManagerRequest, 'id'>, timeoutMs = 35_000): Promise<unknown> {
     if (!this.#socket?.writable || !this.connected) return Promise.reject(new Error('Pi manager is unavailable'))
     const id = randomUUID()
@@ -42,7 +42,7 @@ export class ManagerClient extends EventEmitter {
     })
   }
 
-  /** Établit la connexion locale et réinstalle les écouteurs nécessaires après chaque reconnexion. */
+  /** Establishes the local connection and reinstalls the required listeners after each reconnect. */
   #connect(): void {
     if (this.#socket) return
     const socket = connect({ host: this.#host, port: this.#port })
@@ -80,7 +80,7 @@ export class ManagerClient extends EventEmitter {
     }, 500)
   }
 
-  /** Distribue les événements et résout les requêtes à partir de leur identifiant RPC. */
+  /** Dispatches events and resolves requests from their RPC identifier. */
   #receive(value: unknown): void {
     if (!isManagerMessage(value)) return
     if (value.kind === 'event') {
@@ -95,7 +95,7 @@ export class ManagerClient extends EventEmitter {
     else pending.reject(new Error(value.error ?? 'Manager request failed'))
   }
 
-  /** Échoue les requêtes encore ouvertes lorsque la connexion du manager disparaît. */
+  /** Rejects open requests when the manager connection disappears. */
   #rejectPending(error: Error): void {
     for (const pending of this.#pending.values()) {
       clearTimeout(pending.timeout)

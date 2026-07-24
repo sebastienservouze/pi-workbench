@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 
-/** Vérifie la présence du lanceur sans exécuter VS Code ni déclencher son installation WSL. */
+/** Checks for the launcher without running VS Code or triggering its WSL installation. */
 export async function isVsCodeAvailable(command = 'code'): Promise<boolean> {
   return new Promise((resolve) => {
     const process = spawn('which', [command], { stdio: 'ignore' })
@@ -9,17 +9,17 @@ export async function isVsCodeAvailable(command = 'code'): Promise<boolean> {
   })
 }
 
-/** Lance VS Code de façon détachée afin que le backend ne soit pas lié à la durée de l'éditeur. */
+/** Launches VS Code detached so the backend is not tied to the editor's lifetime. */
 export function openVsCode(workspacePath: string): Promise<void> {
   return openApplication('code', workspacePath)
 }
 
-/** Ouvre le dossier WSL dans l'Explorateur Windows sans lier sa durée de vie au backend. */
+/** Opens the WSL directory in Windows Explorer without tying its lifetime to the backend. */
 export async function openExplorer(workspacePath: string): Promise<void> {
   await openApplication('explorer.exe', await windowsWorkspacePath(workspacePath))
 }
 
-/** Convertit un chemin WSL en chemin Windows, seul format interprété correctement par l'Explorateur. */
+/** Converts a WSL path to the Windows format understood by Explorer. */
 export function windowsWorkspacePath(workspacePath: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const process = spawn('wslpath', ['-w', workspacePath], { stdio: ['ignore', 'pipe', 'pipe'] })
@@ -36,7 +36,7 @@ export function windowsWorkspacePath(workspacePath: string): Promise<string> {
   })
 }
 
-/** Détache l'application Windows pour que le redémarrage du backend ne la ferme jamais. */
+/** Detaches the Windows application so restarting the backend never closes it. */
 function openApplication(command: string, workspacePath: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const process = spawn(command, [workspacePath], { detached: true, stdio: 'ignore' })

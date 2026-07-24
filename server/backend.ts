@@ -49,7 +49,7 @@ server.listen(port, host, () => {
   console.log(`Pi backend listening on http://${host}:${port}`)
 })
 
-/** Centralise le routage HTTP afin que les validations et les réponses restent cohérentes entre les endpoints. */
+/** Centralizes HTTP routing so validation and responses remain consistent across endpoints. */
 async function route(request: IncomingMessage, response: ServerResponse): Promise<void> {
   const method = request.method ?? 'GET'
   const url = new URL(request.url ?? '/', `http://${host}`)
@@ -84,7 +84,7 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
 
   if (method === 'POST' && url.pathname === '/api/quotas/refresh') {
     const body = await readJsonBody(request)
-    if (typeof body.sessionId !== 'string' || !body.sessionId) throw new HttpError(409, 'Une session Pi ouverte est nécessaire pour actualiser les quotas.')
+    if (typeof body.sessionId !== 'string' || !body.sessionId) throw new HttpError(409, 'An open Pi session is required to refresh quotas.')
     sendJson(response, 200, await refreshQuotas(body.sessionId, body.automatic === true))
     return
   }
@@ -276,7 +276,7 @@ async function piCommand(sessionId: string, command: JsonObject): Promise<JsonOb
   return response
 }
 
-/** Déduplique les demandes concurrentes et laisse l'extension appliquer la temporisation automatique. */
+/** Deduplicates concurrent requests and lets the extension apply its automatic delay. */
 function refreshQuotas(sessionId: string, automatic = false): Promise<QuotaSnapshot> {
   quotaRefresh ??= (async () => {
     quotaCache.setRefreshing(true)
@@ -290,7 +290,7 @@ function refreshQuotas(sessionId: string, automatic = false): Promise<QuotaSnaps
   return quotaRefresh
 }
 
-/** Restaure le cache après un redémarrage du backend sans interrompre une session en cours. */
+/** Restores the cache after a backend restart without interrupting an active session. */
 async function restoreQuotasFromIdleSession(): Promise<void> {
   try {
     const sessions = await manager.request({ action: 'list' })
@@ -298,7 +298,7 @@ async function restoreQuotasFromIdleSession(): Promise<void> {
     const idleSession = sessions.find((session) => isObject(session) && session.status === 'idle' && typeof session.id === 'string')
     if (isObject(idleSession) && typeof idleSession.id === 'string') await refreshQuotas(idleSession.id, true)
   } catch {
-    // Un relevé manuel restera possible une fois le manager disponible.
+    // A manual refresh remains possible once the manager is available.
   }
 }
 
@@ -311,7 +311,7 @@ function arrayData(response: JsonObject, key: string): JsonObject[] {
   return response.data[key].filter(isObject)
 }
 
-/** Canonicalise un chemin fourni par le client et refuse les entrées inexistantes ou non répertoires. */
+/** Canonicalizes a client-provided path and rejects missing paths or non-directories. */
 async function resolveWorkingDirectory(input: string): Promise<string> {
   const trimmed = input.trim()
   if (!trimmed) throw new HttpError(400, 'Working directory is required')
@@ -326,7 +326,7 @@ async function resolveWorkingDirectory(input: string): Promise<string> {
   return canonical
 }
 
-/** Retourne uniquement les sous-répertoires accessibles, avec un parent navigable pour le sélecteur. */
+/** Returns only accessible subdirectories, with a navigable parent for the picker. */
 async function listDirectories(path: string): Promise<DirectoryListing> {
   const canonicalPath = await resolveWorkingDirectory(path)
   const entries = await readdir(canonicalPath, { withFileTypes: true })
@@ -338,7 +338,7 @@ async function listDirectories(path: string): Promise<DirectoryListing> {
   return { path: canonicalPath, parentPath: parent === canonicalPath ? null : parent, directories }
 }
 
-/** Lit le corps JSON avec une limite de taille pour protéger le backend des requêtes excessives. */
+/** Reads the JSON body with a size limit to protect the backend from oversized requests. */
 async function readJsonBody(request: IncomingMessage): Promise<JsonObject> {
   const chunks: Buffer[] = []
   let size = 0
@@ -357,7 +357,7 @@ async function readJsonBody(request: IncomingMessage): Promise<JsonObject> {
   }
 }
 
-/** Sert le build frontend tout en empêchant qu'un chemin HTTP sorte du répertoire de distribution. */
+/** Serves the frontend build while preventing an HTTP path from escaping the distribution directory. */
 async function serveStatic(pathname: string, method: string, response: ServerResponse): Promise<void> {
   const requestedPath = pathname === '/' ? 'index.html' : pathname.slice(1)
   let filePath = resolve(distDirectory, requestedPath)

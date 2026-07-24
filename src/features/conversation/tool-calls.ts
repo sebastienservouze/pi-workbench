@@ -51,7 +51,7 @@ export function toolCallsInMessage(message: JsonObject): ToolCall[] {
   })
 }
 
-/** Extrait chaque étape d’un appel d’outil afin de suivre ses paramètres bruts pendant leur génération. */
+/** Extracts each step of a tool call to track its raw arguments while they are generated. */
 export function toolCallInUpdate(event: JsonObject): ToolCallUpdate | null {
   if (event.type !== 'message_update' || !isObject(event.assistantMessageEvent)) return null
   const update = event.assistantMessageEvent
@@ -71,7 +71,7 @@ export function toolCallInUpdate(event: JsonObject): ToolCallUpdate | null {
   }
 }
 
-/** Applique une étape de streaming en conservant le JSON brut et l’identité finale de l’appel. */
+/** Applies a streaming step while preserving raw JSON and the call's final identity. */
 export function applyToolCallUpdate(executions: ToolExecution[], update: ToolCallUpdate, draftId: string): ToolExecution[] {
   if (update.phase === 'start') {
     const previousInterrupted = executions.map((execution) => execution.status === 'generating' && execution.contentIndex === update.contentIndex
@@ -109,7 +109,7 @@ export function applyToolCallUpdate(executions: ToolExecution[], update: ToolCal
   }]
 }
 
-/** Fige les appels dont la génération n’a pas produit d’événement de fin. */
+/** Freezes calls whose generation produced no end event. */
 export function interruptToolCallGeneration(executions: ToolExecution[]): ToolExecution[] {
   return executions.map((execution) => execution.status === 'generating'
     ? { ...execution, status: 'interrupted' }
@@ -137,7 +137,7 @@ export function toolContentText(content: unknown): string {
   return content.flatMap((part) => isObject(part) && part.type === 'text' && typeof part.text === 'string' ? [part.text] : []).join('\n')
 }
 
-/** Extrait les remplacements valides fournis à l’outil d’édition. */
+/** Extracts valid replacements provided to the edit tool. */
 export function toolEditChanges(args: unknown): ToolEditChange[] {
   if (!isObject(args) || !Array.isArray(args.edits)) return []
   return args.edits.flatMap((edit) => isObject(edit) && typeof edit.oldText === 'string' && typeof edit.newText === 'string'
@@ -154,7 +154,7 @@ export function toolDataLength(value: unknown): number {
 }
 
 export function formatToolCallTooltip(title: string, inputLength: number, outputLength?: number): string {
-  return `${title}\nAppel : ${inputLength} caractères${outputLength === undefined ? '' : ` · Résultat : ${outputLength} caractères`}`
+  return `${title}\nCall: ${inputLength} characters${outputLength === undefined ? '' : ` · Result: ${outputLength} characters`}`
 }
 
 export function truncateToolText(text: string, maxLength = 140): { text: string; truncated: boolean } {
@@ -162,7 +162,7 @@ export function truncateToolText(text: string, maxLength = 140): { text: string;
   return { text: `${text.slice(0, maxLength)}…`, truncated: true }
 }
 
-/** Limite une sortie à ses premières lignes en réservant une indication pour son contenu restant. */
+/** Limits output to its first lines while reserving an indicator for the remaining content. */
 export function toolTextPreview(text: string, maxLines = 4): { text: string; remainingLineCount: number } {
   const lines = text.endsWith('\n') ? text.slice(0, -1).split('\n') : text.split('\n')
   const remainingLineCount = Math.max(0, lines.length - maxLines)
@@ -170,7 +170,7 @@ export function toolTextPreview(text: string, maxLines = 4): { text: string; rem
   return { text: `${lines.slice(0, maxLines).join('\n')}…`, remainingLineCount }
 }
 
-/** Construit une URL file:// compatible avec les chemins Windows et les partages WSL. */
+/** Builds a file:// URL compatible with Windows paths and WSL shares. */
 export function windowsFileUrl(path: string): string {
   const normalizedPath = path.replaceAll('\\', '/')
   return normalizedPath.startsWith('//') ? `file:${encodeURI(normalizedPath)}` : `file:///${encodeURI(normalizedPath)}`
@@ -180,12 +180,12 @@ export function toolCallPresentation(call: ToolCall, repositoryRoot?: string | n
   return toolCallPresentations[call.name]?.(call.args, repositoryRoot) ?? {}
 }
 
-/** Retourne le chemin cible des outils qui manipulent directement un fichier. */
+/** Returns the target path for tools that manipulate a file directly. */
 export function toolFilePath(args: unknown): string | null {
   return isObject(args) && typeof args.path === 'string' && args.path.length > 0 ? args.path : null
 }
 
-/** Détermine le rendu du fichier à partir de l'extension de son chemin. */
+/** Determines file rendering from its path extension. */
 export function readContentDisplay(args: unknown): ReadContentDisplay {
   const path = toolFilePath(args)
   if (!path) return { kind: 'text' }
@@ -227,7 +227,7 @@ const toolCallPresentations: Record<string, ToolCallPresenter> = {
   write: filePresentation,
 }
 
-/** Adapte Bash en plaçant sa commande dans l'en-tête et son timeout dans le statut. */
+/** Adapts Bash by placing its command in the header and its timeout in the status. */
 function bashPresentation(args: unknown): ToolCallPresentation {
   if (!isObject(args) || typeof args.command !== 'string') return {}
 
@@ -235,11 +235,11 @@ function bashPresentation(args: unknown): ToolCallPresentation {
   const timeout = typeof args.timeout === 'number' && Number.isFinite(args.timeout) ? args.timeout : undefined
   return {
     headerDetail: { text: truncateToolText(command, 80).text, title: command },
-    pendingDetail: timeout === undefined ? undefined : `timeout : ${timeout}s`,
+    pendingDetail: timeout === undefined ? undefined : `timeout: ${timeout}s`,
   }
 }
 
-/** Affiche un chemin de fichier relatif au dépôt sans masquer un accès extérieur au dépôt. */
+/** Displays a file path relative to the repository without hiding access outside it. */
 function filePresentation(args: unknown, repositoryRoot?: string | null): ToolCallPresentation {
   if (!isObject(args) || typeof args.path !== 'string') return {}
 
@@ -247,7 +247,7 @@ function filePresentation(args: unknown, repositoryRoot?: string | null): ToolCa
   return { headerDetail: { text: truncateToolText(path, 80).text, title: path } }
 }
 
-/** Expose le motif et son périmètre facultatif sans dupliquer la présentation des deux outils de recherche. */
+/** Exposes the pattern and optional scope without duplicating the two search tools' presentation. */
 function searchPresentation(args: unknown, repositoryRoot?: string | null): ToolCallPresentation {
   if (!isObject(args) || typeof args.pattern !== 'string') return {}
 
@@ -256,7 +256,7 @@ function searchPresentation(args: unknown, repositoryRoot?: string | null): Tool
   return { headerDetail: { text: truncateToolText(detail, 80).text, title: detail } }
 }
 
-/** Complète le chemin lu avec une plage toujours visible, distincte du texte tronqué. */
+/** Completes the read path with an always-visible range distinct from truncated text. */
 function readPresentation(args: unknown, repositoryRoot?: string | null): ToolCallPresentation {
   const presentation = filePresentation(args, repositoryRoot)
   if (!presentation.headerDetail || !isObject(args)) return presentation

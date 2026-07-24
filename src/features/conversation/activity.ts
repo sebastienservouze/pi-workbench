@@ -5,7 +5,7 @@ export interface Activity {
   thinking?: string
 }
 
-/** Convertit les événements Pi en un état d'activité stable pour l'indicateur de conversation. */
+/** Converts Pi events into a stable activity state for the conversation indicator. */
 export function activityForPiEvent(current: Activity | null, event: JsonObject): Activity | null {
   if (event.type === 'agent_start' || event.type === 'message_start') return { kind: 'working' }
   if (event.type === 'agent_settled') return null
@@ -28,19 +28,19 @@ export function waitingActivity(): Activity {
   return { kind: 'waiting' }
 }
 
-/** Produit un libellé enjoué qui décrit précisément l'activité courante. */
+/** Produces a playful label that precisely describes the current activity. */
 export function activityText(activity: Activity, agentName: string | undefined): string {
   return `${activityAgentName(agentName)} ${activityActionText(activity)}`
 }
 
-/** Produit la partie variable du libellé pour permettre de l'animer indépendamment du nom. */
+/** Produces the variable part of the label so it can be animated independently of the name. */
 export function activityActionText(activity: Activity): string {
-  if (activity.kind === 'thinking') return 'fait chauffer ses neurones…'
-  if (activity.kind === 'tool-preparing') return 'prépare un appel d’outil aux petits oignons…'
-  if (activity.kind === 'tool-waiting') return 'attend le verdict de l’outil…'
-  if (activity.kind === 'writing') return 'fait danser les mots…'
-  if (activity.kind === 'waiting') return 'vous passe le micro 🎤'
-  return 'met les rouages en marche…'
+  if (activity.kind === 'thinking') return 'is thinking hard…'
+  if (activity.kind === 'tool-preparing') return 'is preparing a tool call…'
+  if (activity.kind === 'tool-waiting') return 'is waiting for the tool…'
+  if (activity.kind === 'writing') return 'is writing…'
+  if (activity.kind === 'waiting') return 'is waiting for you 🎤'
+  return 'is getting things moving…'
 }
 
 export function activityAgentName(agentName: string | undefined): string {

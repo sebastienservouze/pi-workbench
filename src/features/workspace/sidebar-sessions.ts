@@ -1,6 +1,6 @@
 import type { RecentSession, SessionSummary } from '../../../shared/types.ts'
 
-/** Ajoute aux sessions persistées les sessions actives que Pi n’a pas encore écrites sur disque. */
+/** Adds active sessions that Pi has not written to disk yet to persisted sessions. */
 export function sidebarSessions(recentSessions: RecentSession[], sessions: SessionSummary[], workspacePath: string, now = Date.now()): RecentSession[] {
   const recentPaths = new Set(recentSessions.map(({ sessionPath }) => sessionPath))
   const activeSessions = sessions

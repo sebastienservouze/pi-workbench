@@ -30,7 +30,7 @@ export function Markdown({ children }: { children: string }) {
   return <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
 }
 
-/** Ouvre une session avec un brouillon contextuel sans envoyer celui-ci immédiatement. */
+/** Opens a session with a context draft without sending it immediately. */
 export function ContextSessionButton({ onClick, onError }: { onClick: () => Promise<void>; onError?: (cause: unknown) => void }) {
   const [busy, setBusy] = useState(false)
 
@@ -45,7 +45,7 @@ export function ContextSessionButton({ onClick, onError }: { onClick: () => Prom
     }
   }
 
-  return <button aria-label="Continuer dans une nouvelle session" className="context-session-button" disabled={busy} onClick={() => void activate()} title="Continuer dans une nouvelle session" type="button">
+  return <button aria-label="Continue in a new session" className="context-session-button" disabled={busy} onClick={() => void activate()} title="Continue in a new session" type="button">
     <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.5" /></svg>
   </button>
 }
@@ -69,7 +69,7 @@ interface ToolCallCardProps {
   workspacePath: string
 }
 
-/** Sélectionne le renderer personnalisé d’un outil et revient à la carte officielle en cas d’échec. */
+/** Selects a custom tool renderer and falls back to the official card on failure. */
 export const ToolCallCard = memo(function ToolCallCard(props: ToolCallCardProps) {
   const Renderer = customExtensionRegistry.toolCalls.get(props.name)
   const renderDefault = () => <DefaultToolCallCard {...props} />
@@ -89,7 +89,7 @@ export const ToolCallCard = memo(function ToolCallCard(props: ToolCallCardProps)
   </ExtensionRendererBoundary>
 })
 
-/** Affiche la carte officielle dont le résultat complet remplace l’aperçu au dépliage. */
+/** Displays the official card whose full result replaces the preview when expanded. */
 const DefaultToolCallCard = memo(function DefaultToolCallCard({ animateLiveChanges = false, args, hasResult, id, interrupted = false, name, onError, onStartSession, rawArgs, repositoryRoot, resultContent, resultError, revealRequest, streaming = false, targeted = false, workspacePath }: ToolCallCardProps) {
   const pending = !hasResult
   const active = pending && !interrupted
@@ -106,11 +106,11 @@ const DefaultToolCallCard = memo(function DefaultToolCallCard({ animateLiveChang
   const inputLength = toolDataLength(args)
   const output = hasResult ? toolContentText(resultContent) : ''
   const outputLength = output.length
-  const displayedOutput = output || 'Aucune sortie.'
+  const displayedOutput = output || 'No output.'
   const presentation = toolCallPresentation({ id, name, args }, repositoryRoot)
   const tooltip = formatToolCallTooltip(presentation.headerDetail?.title ?? input, inputLength, hasResult ? outputLength : undefined)
-  const resolvedSizeLabel = `Entrée : ${inputLength} caractères. Sortie : ${outputLength} caractères.`
-  const content = htmlOpenError ?? writtenContentError ?? (name === 'write' && writtenContent === undefined && loadingWrittenContent ? 'Chargement du fichier…' : name === 'write' ? writtenContent ?? displayedOutput : displayedOutput)
+  const resolvedSizeLabel = `Input: ${inputLength} characters. Output: ${outputLength} characters.`
+  const content = htmlOpenError ?? writtenContentError ?? (name === 'write' && writtenContent === undefined && loadingWrittenContent ? 'Loading file…' : name === 'write' ? writtenContent ?? displayedOutput : displayedOutput)
   const contentError = resultError || Boolean(writtenContentError) || Boolean(htmlOpenError)
   const preview = toolTextPreview(content)
   const renderingCode = display.kind === 'code' && canHighlightFile(content) && expanded && !loadingWrittenContent && !writtenContentError && !codeRendered
@@ -138,7 +138,7 @@ const DefaultToolCallCard = memo(function DefaultToolCallCard({ animateLiveChang
     if (revealRequest !== undefined && hasResult && !htmlFile) setExpanded(true)
   }, [hasResult, htmlFile, revealRequest])
 
-  /** Ouvre les lectures HTML dans le navigateur et développe les autres sorties dans l'historique. */
+  /** Opens HTML reads in the browser and expands other output in the history. */
   const activate = () => {
     if (filePath && htmlFile) {
       const tab = window.open('', '_blank')
@@ -162,13 +162,13 @@ const DefaultToolCallCard = memo(function DefaultToolCallCard({ animateLiveChang
   return <article className={`tool-call${animateLiveChanges && streaming ? ' entering' : ''}${contentError ? ' error' : ''}${interrupted ? ' interrupted' : ''}${targeted ? ' conversation-target' : ''}`} data-tool-call-id={id}>
     <button aria-expanded={htmlFile ? undefined : hasResult ? expanded : undefined} className="tool-call-heading tool-call-tooltip" data-tooltip={tooltip} disabled={!hasResult} onClick={activate} type="button">
       <span aria-hidden="true">⌘</span>
-      <span><strong aria-label={tooltip}>{name || 'Outil'}</strong></span>
-      {presentation.headerDetail && <span className="tool-call-command"><code aria-label={`Commande complète : ${presentation.headerDetail.title}`}>{presentation.headerDetail.text}</code></span>}
-      {presentation.headerDetail?.suffix && <span className="tool-call-range"><code aria-label={`Plage lue : ${presentation.headerDetail.suffix}`}>{presentation.headerDetail.suffix}</code></span>}
+      <span><strong aria-label={tooltip}>{name || 'Tool'}</strong></span>
+      {presentation.headerDetail && <span className="tool-call-command"><code aria-label={`Full command: ${presentation.headerDetail.title}`}>{presentation.headerDetail.text}</code></span>}
+      {presentation.headerDetail?.suffix && <span className="tool-call-range"><code aria-label={`Read range: ${presentation.headerDetail.suffix}`}>{presentation.headerDetail.suffix}</code></span>}
       <small aria-label={hasResult && !contentError ? resolvedSizeLabel : undefined}>
         {active && presentation.pendingDetail && `${presentation.pendingDetail} · `}
-        {hasResult ? contentError ? 'Échec' : <span aria-hidden="true">↘ {inputLength} car. · ↗ {outputLength} car.</span> : interrupted ? 'Génération interrompue' : streaming ? 'Génération…' : 'En cours…'}
-        {active && <span aria-label={streaming ? 'Paramètres en cours de génération' : 'Outil en cours'} className="spinner tool-call-spinner" role="status" />}
+        {hasResult ? contentError ? 'Failed' : <span aria-hidden="true">↘ {inputLength} car. · ↗ {outputLength} car.</span> : interrupted ? 'Generation interrupted' : streaming ? 'Generating…' : 'In progress…'}
+        {active && <span aria-label={streaming ? 'Arguments are being generated' : 'Tool in progress'} className="spinner tool-call-spinner" role="status" />}
       </small>
     </button>
     {filePath && (name === 'read' || name === 'write') && hasResult && <ContextSessionButton onClick={async () => {
@@ -177,7 +177,7 @@ const DefaultToolCallCard = memo(function DefaultToolCallCard({ animateLiveChang
     }} onError={onError} />}
     <div className={`tool-call-body${hasBody ? ' visible' : ''}`}>
       <div>
-        {(streaming || interrupted) && <pre aria-label={interrupted ? 'Paramètres JSON interrompus' : 'Paramètres JSON en cours'} className="tool-call-raw-args">{rawArgs || 'Paramètres en attente…'}</pre>}
+        {(streaming || interrupted) && <pre aria-label={interrupted ? 'Interrupted JSON arguments' : 'JSON arguments in progress'} className="tool-call-raw-args">{rawArgs || 'Waiting for arguments…'}</pre>}
         {hasResult && <div className={animateLiveChanges ? 'tool-call-result entering' : 'tool-call-result'}>
           {expanded && !htmlFile
             ? <ToolCallContent call={{ name, args }} content={content} onCollapse={() => setExpanded(false)} renderingCode={renderingCode || loadingWrittenContent} showEditDiff={!contentError} />
@@ -188,9 +188,9 @@ const DefaultToolCallCard = memo(function DefaultToolCallCard({ animateLiveChang
   </article>
 })
 
-/** Affiche un aperçu cliquable, colorisé pour les fichiers de code pris en charge. */
+/** Displays a clickable, highlighted preview for supported code files. */
 function ToolCallPreview({ call, content, htmlFile, onClick, remainingLineCount }: { call: { name: string; args: unknown }; content: string; htmlFile: boolean; onClick: () => void; remainingLineCount: number }) {
-  const remainingLabel = `Cliquer pour voir ${remainingLineCount} ${remainingLineCount === 1 ? 'ligne' : 'lignes'} de plus`
+  const remainingLabel = `Click to view ${remainingLineCount} more ${remainingLineCount === 1 ? 'line' : 'lines'}`
   const display = call.name === 'read' || call.name === 'write' ? readContentDisplay(call.args) : { kind: 'text' as const }
   const highlightedCode = display.kind === 'code' && canHighlightFile(content)
 
@@ -199,13 +199,13 @@ function ToolCallPreview({ call, content, htmlFile, onClick, remainingLineCount 
       ? <SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px 4px' }} language={display.language} PreTag="div" style={oneLight} wrapLongLines>{content}</SyntaxHighlighter>
       : <pre>{content}</pre>}
     {remainingLineCount > 0 && <span>{remainingLabel}</span>}
-    {htmlFile && <span>Cliquer pour ouvrir dans le navigateur</span>}
+    {htmlFile && <span>Click to open in browser</span>}
   </button>
 }
 
-/** Affiche le résultat complet dans son format adapté à la place de l’aperçu. */
+/** Displays the full result in its appropriate format instead of the preview. */
 function ToolCallContent({ call, content, onCollapse, renderingCode, showEditDiff }: { call: { name: string; args: unknown }; content: string; onCollapse: () => void; renderingCode: boolean; showEditDiff: boolean }) {
-  if (renderingCode) return <section className="tool-call-content tool-call-loading" role="status" onClick={onCollapse}><span aria-hidden="true" className="spinner" />Colorisation du fichier…</section>
+  if (renderingCode) return <section className="tool-call-content tool-call-loading" role="status" onClick={onCollapse}><span aria-hidden="true" className="spinner" />Highlighting file…</section>
 
   const changes = showEditDiff && call.name === 'edit' ? toolEditChanges(call.args) : []
   if (changes.length > 0) return <ToolCallEditDiff changes={changes} onCollapse={onCollapse} />
@@ -213,16 +213,16 @@ function ToolCallContent({ call, content, onCollapse, renderingCode, showEditDif
   const display = call.name === 'read' || call.name === 'write' ? readContentDisplay(call.args) : { kind: 'text' as const }
   if (display.kind === 'markdown') return <section className="tool-call-content tool-call-markdown" onClick={onCollapse}><Markdown>{content}</Markdown></section>
   if (display.kind === 'code' && canHighlightFile(content)) return <section className="tool-call-content" onClick={onCollapse}><SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px' }} language={display.language} PreTag="div" style={oneLight} wrapLongLines>{content}</SyntaxHighlighter></section>
-  if (display.kind === 'code') return <section className="tool-call-content" onClick={onCollapse}><p className="tool-call-notice">Colorisation désactivée au-delà de 50 000 caractères.</p><pre>{content}</pre></section>
+  if (display.kind === 'code') return <section className="tool-call-content" onClick={onCollapse}><p className="tool-call-notice">Highlighting disabled beyond 50,000 characters.</p><pre>{content}</pre></section>
   return <section className="tool-call-content" onClick={onCollapse}><pre>{content}</pre></section>
 }
 
 
-/** Affiche chaque remplacement d’un appel edit dans un bloc de diff distinct. */
+/** Displays each replacement from an edit call in a separate diff block. */
 function ToolCallEditDiff({ changes, onCollapse }: { changes: ReturnType<typeof toolEditChanges>; onCollapse: () => void }) {
   return <section className="tool-call-content tool-call-edit-diff" onClick={onCollapse}>
     {changes.map((change, index) => <section className="tool-call-edit-change" key={index}>
-      <h4>Modification {index + 1}</h4>
+      <h4>Change {index + 1}</h4>
       <div className="tool-call-edit-line removed"><i aria-hidden="true">−</i><pre>{change.oldText}</pre></div>
       <div className="tool-call-edit-line added"><i aria-hidden="true">+</i><pre>{change.newText}</pre></div>
     </section>)}

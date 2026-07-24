@@ -5,7 +5,7 @@ import type { AnalyzedToolCall, AnalyzedTurn, SessionAnalysis, SessionAnalysisTa
 type ToolRanking = 'duration' | 'failure' | 'output'
 type ToolUsageRanking = 'duration' | 'input' | 'output'
 
-/** Présente les mesures déterministes de la session et relie chaque anomalie à la conversation. */
+/** Presents deterministic session metrics and links each anomaly to the conversation. */
 export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: SessionAnalysis; onNavigate: (target: SessionAnalysisTarget) => void }) {
   const [toolRanking, setToolRanking] = useState<ToolRanking>('output')
   const [toolUsageRanking, setToolUsageRanking] = useState<ToolUsageRanking>('output')
@@ -26,66 +26,66 @@ export function SessionAnalysisWidget({ analysis, onNavigate }: { analysis: Sess
 
   return <div className="session-analysis">
     <dl className="analysis-summary">
-      <Metric label="Coût total" value={analysis.costAvailable ? formatTurnCost(analysis.totalCost) : '—'} />
-      <Metric label="Coût moyen / tour" value={turnCostAvailable ? formatTurnCost(analysis.averageTurnCost) : '—'} />
-      <Metric label="Tours" value={String(analysis.turnCount)} />
-      <Metric label="Outils moyens / tour" value={turnCostAvailable ? formatAverage(analysis.averageToolCallsPerTurn) : '—'} />
-      <Metric label="Appels outils" value={String(analysis.totalToolCalls)} />
-      <Metric label="Échecs" value={`${analysis.failedToolCalls} · ${formatPercent(failureRate)}`} danger={analysis.failedToolCalls > 0} />
+      <Metric label="Total cost" value={analysis.costAvailable ? formatTurnCost(analysis.totalCost) : '—'} />
+      <Metric label="Average cost / turn" value={turnCostAvailable ? formatTurnCost(analysis.averageTurnCost) : '—'} />
+      <Metric label="Turns" value={String(analysis.turnCount)} />
+      <Metric label="Average tools / turn" value={turnCostAvailable ? formatAverage(analysis.averageToolCallsPerTurn) : '—'} />
+      <Metric label="Tool calls" value={String(analysis.totalToolCalls)} />
+      <Metric label="Failures" value={`${analysis.failedToolCalls} · ${formatPercent(failureRate)}`} danger={analysis.failedToolCalls > 0} />
     </dl>
 
-    <section className="analysis-context" aria-label="Utilisation du contexte">
-      <header><strong>Contexte</strong>{analysis.contextPercent !== undefined && <span>{formatPercent(analysis.contextPercent / 100)}</span>}</header>
-      {analysis.contextPercent !== undefined && <progress aria-label={`${analysis.contextPercent.toFixed(1)} % du contexte utilisé`} max="100" value={analysis.contextPercent} />}
+    <section className="analysis-context" aria-label="Context usage">
+      <header><strong>Context</strong>{analysis.contextPercent !== undefined && <span>{formatPercent(analysis.contextPercent / 100)}</span>}</header>
+      {analysis.contextPercent !== undefined && <progress aria-label={`${analysis.contextPercent.toFixed(1)}% of context used`} max="100" value={analysis.contextPercent} />}
       <dl className="analysis-tokens">
         <div><dt>Cache miss</dt><dd>{formatAnalysisTokens(analysis.tokens.cacheMiss, analysis.tokensAvailable)}</dd></div>
         <div><dt>Cache read</dt><dd>{formatAnalysisTokens(analysis.tokens.cacheRead, analysis.tokensAvailable)}</dd></div>
         <div><dt>Output</dt><dd>{formatAnalysisTokens(analysis.tokens.output, analysis.tokensAvailable)}</dd></div>
-        <div><dt>Médiane</dt><dd>{turnCostAvailable ? formatTurnCost(analysis.medianTurnCost) : '—'}</dd></div>
+        <div><dt>Median</dt><dd>{turnCostAvailable ? formatTurnCost(analysis.medianTurnCost) : '—'}</dd></div>
       </dl>
       {analysis.turns.length > 0 && <TokenUsageChart onNavigate={onNavigate} turns={analysis.turns} />}
     </section>
 
-    {analysis.unattributedCost > 0.000001 && <p className="analysis-note"><strong>{formatTurnCost(analysis.unattributedCost)}</strong> non attribué aux requêtes visibles.</p>}
+    {analysis.unattributedCost > 0.000001 && <p className="analysis-note"><strong>{formatTurnCost(analysis.unattributedCost)}</strong> not attributed to visible requests.</p>}
 
     <section className="analysis-section">
-      <header><h2>Coût par tour assistant</h2><span>chronologique</span></header>
+      <header><h2>Cost per assistant turn</h2><span>chronological</span></header>
       {analysis.turns.length > 0
         ? <TurnCostChart onNavigate={onNavigate} turns={analysis.turns} />
-        : <EmptyState>Les coûts apparaîtront après la première réponse.</EmptyState>}
+        : <EmptyState>Costs will appear after the first response.</EmptyState>}
     </section>
 
     <section className="analysis-section">
-      <header><h2>Usage cumulé par outil</h2><select aria-label="Classer l’usage cumulé des outils" onChange={(event) => setToolUsageRanking(event.target.value as ToolUsageRanking)} value={toolUsageRanking}><option value="output">sortie cumulée</option><option value="input">entrée cumulée</option><option value="duration">durée cumulée</option></select></header>
+      <header><h2>Cumulative usage by tool</h2><select aria-label="Rank cumulative tool usage" onChange={(event) => setToolUsageRanking(event.target.value as ToolUsageRanking)} value={toolUsageRanking}><option value="output">cumulative output</option><option value="input">cumulative input</option><option value="duration">cumulative duration</option></select></header>
       {rankedTools.length > 0 ? <ol className="tool-usage-ranking">
         {rankedTools.map((tool) => <ToolUsageRow key={tool.name} maxValue={maxToolUsage} metric={toolUsageRanking} tool={tool} />)}
-      </ol> : <EmptyState>{toolUsageRanking === 'duration' ? 'Les durées sont mesurées pendant cette ouverture du Workbench.' : 'Aucun appel d’outil dans cette session.'}</EmptyState>}
+      </ol> : <EmptyState>{toolUsageRanking === 'duration' ? 'Durations are measured during this Workbench session.' : 'No tool calls in this session.'}</EmptyState>}
     </section>
 
     <section className="analysis-section">
-      <header><h2>Appels consommateurs</h2><select aria-label="Classer les appels d’outils" onChange={(event) => setToolRanking(event.target.value as ToolRanking)} value={toolRanking}><option value="output">sortie</option><option value="duration">durée observée</option><option value="failure">échecs</option></select></header>
+      <header><h2>Costliest calls</h2><select aria-label="Rank tool calls" onChange={(event) => setToolRanking(event.target.value as ToolRanking)} value={toolRanking}><option value="output">sortie</option><option value="duration">observed duration</option><option value="failure">failures</option></select></header>
       {rankedCalls.length > 0 ? <ol className="analysis-ranking tool-ranking">
         {rankedCalls.map((call) => <ToolCallRow call={call} key={call.id} metric={toolRanking} onNavigate={onNavigate} />)}
-      </ol> : <EmptyState>{toolRanking === 'duration' ? 'Les durées sont mesurées pendant cette ouverture du Workbench.' : toolRanking === 'failure' ? 'Aucun échec explicite dans cette session.' : 'Aucun appel d’outil dans cette session.'}</EmptyState>}
+      </ol> : <EmptyState>{toolRanking === 'duration' ? 'Durations are measured during this Workbench session.' : toolRanking === 'failure' ? 'No explicit failures in this session.' : 'No tool calls in this session.'}</EmptyState>}
     </section>
 
     {analysis.tools.length > 0 && <section className="analysis-section">
-      <header><h2>Répartition</h2><span>appels · échecs</span></header>
+      <header><h2>Distribution</h2><span>calls · failures</span></header>
       <ul className="analysis-tools">
         {analysis.tools.map((tool) => <li key={tool.name}><code>{tool.name}</code><span>{tool.count}{tool.failed > 0 && <b> · {tool.failed}</b>}</span></li>)}
       </ul>
     </section>}
 
     <section className="analysis-section">
-      <header><h2>Tours utilisateur coûteux</h2><span>coût</span></header>
+      <header><h2>Costliest user turns</h2><span>cost</span></header>
       {costlyRequests.length > 0 ? <ol className="analysis-ranking">
         {costlyRequests.map((request) => <li key={request.messageIndex}>
           <button disabled={request.messageIndex < 0} onClick={() => onNavigate({ kind: 'message', index: request.messageIndex })} type="button">
-            <span><strong>{request.title}</strong><small>{request.modelCallCount} appel{request.modelCallCount > 1 ? 's' : ''} modèle · {request.toolCalls.length} outil{request.toolCalls.length > 1 ? 's' : ''}{request.durationMs !== undefined && ` · ${formatDuration(request.durationMs)}`}</small></span>
+            <span><strong>{request.title}</strong><small>{request.modelCallCount} model call{request.modelCallCount > 1 ? 's' : ''} · {request.toolCalls.length} tool{request.toolCalls.length > 1 ? 's' : ''}{request.durationMs !== undefined && ` · ${formatDuration(request.durationMs)}`}</small></span>
             <b>{formatTurnCost(request.cost)}</b>
           </button>
         </li>)}
-      </ol> : <EmptyState>Les coûts apparaîtront après la première réponse.</EmptyState>}
+      </ol> : <EmptyState>Costs will appear after the first response.</EmptyState>}
     </section>
   </div>
 }
@@ -102,7 +102,7 @@ const TOKEN_SERIES = [
 
 type TokenSeriesKey = typeof TOKEN_SERIES[number]['key']
 
-/** Compare les volumes de tokens de chaque tour avec des séries distinctes et navigables. */
+/** Compares token volumes for each turn with distinct, navigable series. */
 function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAnalysisTarget) => void; turns: AnalyzedTurn[] }) {
   const [activePointIndex, setActivePointIndex] = useState<number>()
   const [hiddenSeries, setHiddenSeries] = useState<Set<TokenSeriesKey>>(() => new Set())
@@ -135,7 +135,7 @@ function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAn
   })
 
   return <div className="token-usage-chart-block">
-    <div aria-label="Séries de tokens affichées" className="token-chart-legend" role="group">
+    <div aria-label="Displayed token series" className="token-chart-legend" role="group">
       {TOKEN_SERIES.map((series) => {
         const visible = !hiddenSeries.has(series.key)
         return <button aria-pressed={visible} className={`${series.className}${visible ? '' : ' is-hidden'}`} key={series.key} onClick={() => toggleSeries(series.key)} type="button"><i />{series.label}</button>
@@ -146,7 +146,7 @@ function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAn
         {yTicks.map((tick) => <span key={tick.y} style={{ top: tick.y + 2 }}>{tick.label}</span>)}
       </div>
       <div className="token-chart-scroll" ref={chartRef}>
-        <svg aria-label="Tokens par tour agent, dans l’ordre chronologique" className="token-chart" role="group" viewBox={`0 0 ${width} ${height}`}>
+        <svg aria-label="Tokens per agent turn, in chronological order" className="token-chart" role="group" viewBox={`0 0 ${width} ${height}`}>
           {yTicks.map((tick) => <line className="chart-grid" key={tick.y} x1={padding.left} x2={width - padding.right} y1={tick.y} y2={tick.y} />)}
           {visibleSeries.map((series, seriesIndex) => <polyline className={`chart-line ${series.className}`} key={series.key} points={points.map((point) => `${point.x},${point.values[seriesIndex]?.y}`).join(' ')} />)}
           {points.map(({ turn, values, x }) => <g
@@ -181,7 +181,7 @@ function TokenUsageChart({ onNavigate, turns }: { onNavigate: (target: SessionAn
   </div>
 }
 
-/** Trace tous les coûts dans l’ordre et conserve chaque tour comme cible de navigation accessible. */
+/** Plots all costs in order and keeps each turn as an accessible navigation target. */
 function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnalysisTarget) => void; turns: AnalyzedTurn[] }) {
   const [activePointIndex, setActivePointIndex] = useState<number>()
   const [chartRef, width] = useChartWidth()
@@ -209,12 +209,12 @@ function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnal
       {yTicks.map((tick) => <span key={tick.y} style={{ top: tick.y + 2 }}>{tick.label}</span>)}
     </div>
     <div className="turn-cost-chart-scroll" ref={chartRef}>
-      <svg aria-label="Coût de chaque tour assistant, dans l’ordre chronologique" className="turn-cost-chart" role="group" viewBox={`0 0 ${width} ${height}`}>
+      <svg aria-label="Cost of each assistant turn, in chronological order" className="turn-cost-chart" role="group" viewBox={`0 0 ${width} ${height}`}>
       {yTicks.map((tick) => <line className="chart-grid" key={tick.y} x1={padding.left} x2={width - padding.right} y1={tick.y} y2={tick.y} />)}
       {points.length > 1 && <polygon className="chart-area" points={areaPoints} />}
       {points.length > 1 && <polyline className="chart-line" points={linePoints} />}
       {points.map(({ turn, x, y }) => <g
-        aria-label={`Tour ${turn.number}, ${formatTurnCost(turn.cost)}, ${turn.toolCallCount} outil${turn.toolCallCount !== 1 ? 's' : ''}`}
+        aria-label={`Turn ${turn.number}, ${formatTurnCost(turn.cost)}, ${turn.toolCallCount} tool${turn.toolCallCount !== 1 ? 's' : ''}`}
         className="chart-point"
         key={turn.messageIndex}
         onBlur={() => setActivePointIndex(undefined)}
@@ -237,14 +237,14 @@ function TurnCostChart({ onNavigate, turns }: { onNavigate: (target: SessionAnal
         <text className="chart-axis-title" x={padding.left + plotWidth / 2} y={height - 1}>Tour</text>
         {activePoint && <g aria-hidden="true" className="chart-tooltip" transform={`translate(${Math.min(width - padding.right - tooltipWidth, Math.max(padding.left, activePoint.x - tooltipWidth / 2))} ${activePoint.y < padding.top + 48 ? activePoint.y + 13 : activePoint.y - 47})`}>
           <rect height="38" rx="6" width={tooltipWidth} />
-          <text x="10" y="15"><tspan className="chart-tooltip-cost">{formatTurnCost(activePoint.turn.cost)}</tspan><tspan className="chart-tooltip-tools" x="10" dy="14">{activePoint.turn.toolCallCount} outil{activePoint.turn.toolCallCount !== 1 ? 's' : ''} appelé{activePoint.turn.toolCallCount !== 1 ? 's' : ''}</tspan></text>
+          <text x="10" y="15"><tspan className="chart-tooltip-cost">{formatTurnCost(activePoint.turn.cost)}</tspan><tspan className="chart-tooltip-tools" x="10" dy="14">{activePoint.turn.toolCallCount} tool call{activePoint.turn.toolCallCount !== 1 ? 's' : ''}</tspan></text>
         </g>}
       </svg>
     </div>
   </div>
 }
 
-/** Suit la largeur réellement allouée au tracé pour densifier ses points sans défilement horizontal. */
+/** Tracks the actual width allocated to the chart to densify points without horizontal scrolling. */
 function useChartWidth() {
   const chartRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(248)
@@ -262,14 +262,14 @@ function useChartWidth() {
   return [chartRef, width] as const
 }
 
-/** Compare les volumes cumulés d’un type d’outil sans leur attribuer de coût monétaire. */
+/** Compares cumulative volumes for a tool type without assigning monetary cost. */
 function ToolUsageRow({ maxValue, metric, tool }: { maxValue: number; metric: ToolUsageRanking; tool: ToolSummary }) {
   const value = toolSummaryValue(tool, metric)
-  const calls = `${tool.count} appel${tool.count !== 1 ? 's' : ''}`
+  const calls = `${tool.count} call${tool.count !== 1 ? 's' : ''}`
   const measured = metric === 'duration' && tool.measuredDurationCount < tool.count
-    ? ` · ${tool.measuredDurationCount}/${tool.count} durée${tool.measuredDurationCount !== 1 ? 's' : ''} mesurée${tool.measuredDurationCount !== 1 ? 's' : ''}`
+    ? ` · ${tool.measuredDurationCount}/${tool.count} duration${tool.measuredDurationCount !== 1 ? 's' : ''} measured`
     : ''
-  const failures = tool.failed > 0 ? ` · ${tool.failed} échec${tool.failed > 1 ? 's' : ''}` : ''
+  const failures = tool.failed > 0 ? ` · ${tool.failed} failure${tool.failed > 1 ? 's' : ''}` : ''
 
   return <li>
     <div><code>{tool.name}</code><b>{metric === 'duration' ? formatDuration(value) : formatCharacters(value)}</b></div>
@@ -278,12 +278,12 @@ function ToolUsageRow({ maxValue, metric, tool }: { maxValue: number; metric: To
   </li>
 }
 
-/** Rend un appel classé et conserve sa cible de navigation dans la conversation. */
+/** Renders a ranked call and keeps its navigation target in the conversation. */
 function ToolCallRow({ call, metric, onNavigate }: { call: AnalyzedToolCall; metric: ToolRanking; onNavigate: (target: SessionAnalysisTarget) => void }) {
   return <li>
     <button onClick={() => onNavigate({ kind: 'tool', id: call.id })} type="button">
-      <span><strong><code>{call.name}</code>{call.isError && <i className="error">Échec</i>}{call.pending && <i>En cours</i>}</strong><small>{formatCharacters(call.inputLength)} en entrée · {formatCharacters(call.outputLength)} en sortie</small></span>
-      <b>{metric === 'duration' ? formatDuration(call.durationMs ?? 0) : metric === 'failure' ? 'échec' : formatCharacters(call.outputLength)}</b>
+      <span><strong><code>{call.name}</code>{call.isError && <i className="error">Failed</i>}{call.pending && <i>In progress</i>}</strong><small>{formatCharacters(call.inputLength)} input · {formatCharacters(call.outputLength)} output</small></span>
+      <b>{metric === 'duration' ? formatDuration(call.durationMs ?? 0) : metric === 'failure' ? 'failure' : formatCharacters(call.outputLength)}</b>
     </button>
   </li>
 }
@@ -305,18 +305,18 @@ function formatAnalysisTokens(value: number, available: boolean): string {
 }
 
 function formatCharacters(value: number): string {
-  return value >= 1000 ? `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(value / 1000)} k car.` : `${value} car.`
+  return value >= 1000 ? `${new Intl.NumberFormat(navigator.language, { maximumFractionDigits: 1 }).format(value / 1000)}k char.` : `${value} char.`
 }
 
 function formatDuration(value: number): string {
   if (value < 1000) return `${Math.round(value)} ms`
-  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(value / 1000)} s`
+  return `${new Intl.NumberFormat(navigator.language, { maximumFractionDigits: 1 }).format(value / 1000)} s`
 }
 
 function formatPercent(value: number): string {
-  return new Intl.NumberFormat('fr-FR', { style: 'percent', maximumFractionDigits: 1 }).format(value)
+  return new Intl.NumberFormat(navigator.language, { style: 'percent', maximumFractionDigits: 1 }).format(value)
 }
 
 function formatAverage(value: number): string {
-  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(value)
+  return new Intl.NumberFormat(navigator.language, { maximumFractionDigits: 1 }).format(value)
 }

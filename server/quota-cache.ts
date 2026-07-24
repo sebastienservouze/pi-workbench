@@ -2,7 +2,7 @@ import type { CopilotQuotaWindow, JsonObject, OpenAiQuotaWindow, QuotaProviderRe
 
 const emptyProvider = <T>(): QuotaProviderSnapshot<T> => ({ data: [], stale: false })
 
-/** Conserve le dernier relevé valide de chaque fournisseur lorsque le suivant échoue. */
+/** Keeps each provider's last valid snapshot when the next one fails. */
 export class QuotaCache {
   #openai = emptyProvider<OpenAiQuotaWindow>()
   #copilot = emptyProvider<CopilotQuotaWindow>()
@@ -16,7 +16,7 @@ export class QuotaCache {
     this.#refreshing = refreshing
   }
 
-  /** Accepte uniquement le statut privé versionné de l'extension de quotas. */
+  /** Accepts only the private, versioned status emitted by the quota extension. */
   receiveManagerEvent(event: unknown): boolean {
     const data = object(object(event)?.data)
     if (object(event)?.event !== 'pi' || data?.type !== 'extension_ui_request' || data.method !== 'setStatus' || data.statusKey !== 'pi-workbench.quotas' || typeof data.statusText !== 'string') return false

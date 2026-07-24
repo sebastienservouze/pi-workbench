@@ -7,7 +7,7 @@ interface GitCommandResult {
   stdout: string
 }
 
-/** Agrège l'état Git, les statistiques de fichiers et le nombre de commits en attente de push. */
+/** Aggregates Git state, file statistics, and the number of commits waiting to be pushed. */
 export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
   const repository = await runGit(cwd, ['rev-parse', '--is-inside-work-tree'], [0, 128])
   if (repository.exitCode !== 0 || repository.stdout.trim() !== 'true') return { repository: false, root: null, branch: null, files: [], ahead: 0, commits: [] }
@@ -44,19 +44,19 @@ export async function getGitSnapshot(cwd: string): Promise<GitSnapshot> {
   }
 }
 
-/** Retourne le diff unifié d'un fichier modifié ou ajouté dans l'arbre ou un commit non poussé. */
+/** Returns the unified diff for a modified or added file in the tree or an unpushed commit. */
 export async function getGitFileDiff(cwd: string, path: string, commitHash?: string): Promise<GitFileDiff> {
   const snapshot = await getGitSnapshot(cwd)
   if (commitHash) {
     const commit = snapshot.commits.find(({ hash }) => hash === commitHash)
     const file = commit?.files.find((change) => change.path === path)
-    if (!file || (file.status !== 'added' && file.status !== 'modified')) throw new Error('Ce fichier ne peut pas être affiché.')
+    if (!file || (file.status !== 'added' && file.status !== 'modified')) throw new Error('This file cannot be displayed.')
     const result = await runGit(cwd, ['diff-tree', '--no-commit-id', '--root', '--first-parent', '-m', '-p', commitHash, '--', path])
     return { path, diff: result.stdout }
   }
 
   const file = snapshot.files.find((change) => change.path === path)
-  if (!file || (file.status !== 'added' && file.status !== 'modified')) throw new Error('Ce fichier ne peut pas être affiché.')
+  if (!file || (file.status !== 'added' && file.status !== 'modified')) throw new Error('This file cannot be displayed.')
 
   const trackedDiff = await runGit(cwd, ['diff', 'HEAD', '--', path], [0, 128])
   if (trackedDiff.stdout) return { path, diff: trackedDiff.stdout }
@@ -65,7 +65,7 @@ export async function getGitFileDiff(cwd: string, path: string, commitHash?: str
   return { path, diff: untrackedDiff.stdout }
 }
 
-/** Liste les commits présents après la branche suivie et les fichiers de chacun. */
+/** Lists commits after the tracked branch and each commit's files. */
 async function unpushedCommits(cwd: string): Promise<GitCommit[]> {
   const result = await runGit(cwd, ['log', '--format=%H%x00%s%x00', '@{upstream}..HEAD'])
   const fields = result.stdout.split('\0')
@@ -93,24 +93,24 @@ async function unpushedCommits(cwd: string): Promise<GitCommit[]> {
   return commits
 }
 
-/** Annule un commit local affiché en créant son commit inverse, sans réécrire l'historique. */
+/** Reverts a displayed local commit by creating its inverse without rewriting history. */
 export async function revertGitCommit(cwd: string, hash: string): Promise<GitRevertResult> {
   const snapshot = await getGitSnapshot(cwd)
-  if (!snapshot.repository) throw new Error('Le dossier courant n’est pas un dépôt Git.')
-  if (snapshot.files.length > 0) throw new Error('Le dépôt doit être propre avant de revert un commit.')
-  if (!snapshot.commits.some((commit) => commit.hash === hash)) throw new Error('Ce commit ne peut pas être revert.')
+  if (!snapshot.repository) throw new Error('The current directory is not a Git repository.')
+  if (snapshot.files.length > 0) throw new Error('The repository must be clean before reverting a commit.')
+  if (!snapshot.commits.some((commit) => commit.hash === hash)) throw new Error('This commit cannot be reverted.')
 
   await runGit(cwd, ['revert', '--no-edit', hash])
   return { hash }
 }
 
-/** Committe les changements présents puis tente de pousser, ou pousse les commits déjà en avance. */
+/** Commits current changes and tries to push, or pushes commits already ahead. */
 export async function commitAndPush(cwd: string, message: string): Promise<{ committed: boolean; pushed: boolean; pushError?: string }> {
   const snapshot = await getGitSnapshot(cwd)
-  if (!snapshot.repository) throw new Error('Le dossier courant n’est pas un dépôt Git.')
+  if (!snapshot.repository) throw new Error('The current directory is not a Git repository.')
 
   if (snapshot.files.length > 0) {
-    if (!message.trim()) throw new Error('Un message de commit est requis.')
+    if (!message.trim()) throw new Error('A commit message is required.')
     await runGit(cwd, ['add', '-A'])
     await runGit(cwd, ['commit', '-m', message.trim()])
     const push = await runGit(cwd, ['push'], [0, 1])
@@ -119,7 +119,7 @@ export async function commitAndPush(cwd: string, message: string): Promise<{ com
       : { committed: true, pushed: false, pushError: gitError(push) }
   }
 
-  if (snapshot.ahead === 0) throw new Error('Aucun changement ou commit à pousser.')
+  if (snapshot.ahead === 0) throw new Error('There are no changes or commits to push.')
   const push = await runGit(cwd, ['push'], [0, 1])
   return push.exitCode === 0
     ? { committed: false, pushed: true }
@@ -220,5 +220,5 @@ async function runGit(cwd: string, args: string[], allowedExitCodes = [0]): Prom
 }
 
 function gitError(result: GitCommandResult): string {
-  return result.stderr.trim() || result.stdout.trim() || 'La commande Git a échoué.'
+  return result.stderr.trim() || result.stdout.trim() || 'The Git command failed.'
 }

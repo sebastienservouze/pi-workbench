@@ -4,7 +4,7 @@ export interface DirectoryCompletionTarget {
   namePrefix: string
 }
 
-/** Isole le dossier à parcourir et le fragment de nom à compléter pour les chemins absolus et ~/…. */
+/** Isolates the directory to scan and the name fragment to complete for absolute and ~/… paths. */
 export function directoryCompletionTarget(input: string): DirectoryCompletionTarget | null {
   const path = input.trim()
   if (!path) return { parentPath: '~', pathPrefix: '~/', namePrefix: '' }

@@ -9,16 +9,16 @@ export interface CommandDefinition {
 }
 
 export const commandDefinitions: CommandDefinition[] = [
-  { id: 'new-session', label: 'Nouvelle session' },
-  { id: 'send', label: 'Envoyer le message' },
-  { id: 'abort', label: 'Interrompre Pi' },
-  { id: 'toggle-git', label: 'Afficher ou masquer Git' },
-  { id: 'open-thinking', label: 'Ouvrir le niveau de réflexion' },
-  { id: 'open-model', label: 'Ouvrir le sélecteur de modèle' },
-  { id: 'open-agent', label: 'Ouvrir le sélecteur d’agent' },
-  { id: 'copy-last-response', label: 'Copier la dernière réponse' },
-  { id: 'open-palette', label: 'Ouvrir la palette de commandes' },
-  { id: 'open-settings', label: 'Ouvrir les paramètres' },
+  { id: 'new-session', label: 'New session' },
+  { id: 'send', label: 'Send message' },
+  { id: 'abort', label: 'Abort Pi' },
+  { id: 'toggle-git', label: 'Show or hide Git' },
+  { id: 'open-thinking', label: 'Open thinking level' },
+  { id: 'open-model', label: 'Open model picker' },
+  { id: 'open-agent', label: 'Open agent picker' },
+  { id: 'copy-last-response', label: 'Copy last response' },
+  { id: 'open-palette', label: 'Open command palette' },
+  { id: 'open-settings', label: 'Open settings' },
 ]
 
 export const defaultShortcuts: Partial<Record<CommandId, string>> = {
@@ -28,14 +28,14 @@ export const defaultShortcuts: Partial<Record<CommandId, string>> = {
   abort: 'escape',
 }
 
-/** Normalise une combinaison clavier pour la comparer et la stocker de façon stable. */
+/** Normalizes a keyboard combination for stable comparison and storage. */
 export function shortcutFromEvent(event: { key: string; metaKey?: boolean; ctrlKey?: boolean; altKey?: boolean; shiftKey?: boolean }): string {
   const modifiers = [event.metaKey || event.ctrlKey ? 'mod' : '', event.altKey ? 'alt' : '', event.shiftKey ? 'shift' : ''].filter(Boolean)
   const key = event.key.toLowerCase() === ' ' ? 'space' : event.key.toLowerCase()
   return [...modifiers, key].join('+')
 }
 
-/** Retourne les raccourcis en conflit, en ignorant les commandes sans raccourci. */
+/** Returns conflicting shortcuts while ignoring commands without a shortcut. */
 export function shortcutConflicts(shortcuts: Partial<Record<CommandId, string>>): Set<CommandId> {
   const seen = new Map<string, CommandId>()
   const conflicts = new Set<CommandId>()
@@ -48,7 +48,7 @@ export function shortcutConflicts(shortcuts: Partial<Record<CommandId, string>>)
   return conflicts
 }
 
-/** Extrait le texte copiable d’une réponse assistant sans modifier son Markdown. */
+/** Extracts copyable text from an assistant response without changing its Markdown. */
 export function lastAssistantText(messages: JsonObject[]): string {
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index]

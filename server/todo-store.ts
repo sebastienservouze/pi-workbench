@@ -13,7 +13,7 @@ const maxTodoCount = 500
 const maxTodoTextLength = 500
 let saveQueue = Promise.resolve()
 
-/** Charge les tâches associées à un workspace sans exposer celles des autres dossiers. */
+/** Loads tasks associated with a workspace without exposing tasks from other directories. */
 export async function loadWorkspaceTodos(workspacePath: string, path = defaultTodoStorePath): Promise<TodoItem[]> {
   try {
     return parseTodoStore(await readFile(path, 'utf8')).workspaces[workspacePath] ?? []
@@ -23,7 +23,7 @@ export async function loadWorkspaceTodos(workspacePath: string, path = defaultTo
   }
 }
 
-/** Remplace atomiquement les tâches d’un workspace en sérialisant les écritures du registre partagé. */
+/** Atomically replaces a workspace's tasks by serializing writes to the shared registry. */
 export function saveWorkspaceTodos(workspacePath: string, todos: TodoItem[], path = defaultTodoStorePath): Promise<void> {
   const validatedTodos = parseTodoItems(todos)
   const operation = saveQueue.then(async () => {

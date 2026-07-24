@@ -78,7 +78,7 @@ interface MutableRequest extends AnalyzedRequest {
 
 const emptyUsage = (): MessageUsage => ({ cacheMiss: 0, cacheRead: 0, cacheWrite: 0, cost: 0, output: 0 })
 
-/** Reconstruit les tours assistant, les cycles utilisateur et leurs appels à partir du contrat public de Pi. */
+/** Reconstructs assistant turns, user cycles, and their calls from Pi's public contract. */
 export function analyzeSession(messages: JsonObject[], stats: SessionStats | null, running: boolean, telemetry: AnalysisTelemetry = {}): SessionAnalysis {
   const resultsByCallId = new Map(messages.flatMap((message) => {
     const result = toolResultInMessage(message)
@@ -203,7 +203,7 @@ export function analyzeSession(messages: JsonObject[], stats: SessionStats | nul
 }
 
 function createActiveRequest(): MutableRequest {
-  return { messageIndex: -1, title: 'Requête en cours', cost: 0, usage: emptyUsage(), modelCallCount: 0, toolCalls: [], failedToolCalls: 0, complete: false }
+  return { messageIndex: -1, title: 'Request in progress', cost: 0, usage: emptyUsage(), modelCallCount: 0, toolCalls: [], failedToolCalls: 0, complete: false }
 }
 
 function addUsage(target: MessageUsage, usage: MessageUsage): MessageUsage {
@@ -251,7 +251,7 @@ function messageTitle(message: JsonObject): string {
       ? content.flatMap((part) => isObject(part) && part.type === 'text' && typeof part.text === 'string' ? [part.text] : []).join(' ')
       : ''
   const normalized = text.replace(/\s+/g, ' ').trim()
-  return normalized.length > 90 ? `${normalized.slice(0, 89)}…` : normalized || 'Requête sans texte'
+  return normalized.length > 90 ? `${normalized.slice(0, 89)}…` : normalized || 'Untitled request'
 }
 
 function quantile(sortedValues: number[], proportion: number): number {

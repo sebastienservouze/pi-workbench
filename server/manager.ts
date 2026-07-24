@@ -120,7 +120,7 @@ async function openSession(request: ManagerRequest): Promise<SessionSummary> {
   return { ...summary, pendingUi: [] }
 }
 
-/** Enregistre une session dès le lancement de Pi afin que ses premiers événements puissent être interrogés sans course. */
+/** Records a session as soon as Pi starts so its early events can be queried without a race condition. */
 async function startSession(summary: SessionSummary): Promise<void> {
   const pi = new PiProcess(summary.cwd, summary.id, summary.sessionPath)
   const session: ManagedSession = { summary, pi, pendingUi: new Map() }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent }
 import { listDirectories } from '../../api.ts'
 import { directoryCompletionTarget } from './directory-completion.ts'
 
-/** Permet de compléter puis valider un chemin local avant de changer l'espace de travail. */
+/** Completes and validates a local path before changing the workspace. */
 export function DirectoryPicker({ initialPath, recentPaths, onClose, onError, onSelect }: {
   initialPath: string
   recentPaths: string[]
@@ -15,7 +15,7 @@ export function DirectoryPicker({ initialPath, recentPaths, onClose, onError, on
   const [activeSuggestion, setActiveSuggestion] = useState(-1)
   const completionVersionRef = useRef(0)
 
-  // Les requêtes obsolètes ne doivent pas remplacer les suggestions du chemin actuellement saisi.
+  // Stale requests must not replace suggestions for the path currently being entered.
   useEffect(() => {
     const version = ++completionVersionRef.current
     const target = directoryCompletionTarget(path)
@@ -38,12 +38,12 @@ export function DirectoryPicker({ initialPath, recentPaths, onClose, onError, on
 
   const visibleRecentPaths = recentPaths.filter((recentPath) => recentPath !== initialPath)
 
-  /** Valide que le chemin est toujours accessible avant de l'adopter comme workspace. */
+  /** Verifies that the path is still accessible before adopting it as the workspace. */
   function selectDirectory(nextPath: string): void {
     void listDirectories(nextPath).then((directory) => onSelect(directory.path)).catch(onError)
   }
 
-  /** Applique les raccourcis habituels d'une liste de complétion sans intercepter la saisie normale. */
+  /** Applies standard completion-list shortcuts without intercepting normal input. */
   function handlePathKeyDown(event: ReactKeyboardEvent<HTMLInputElement>): void {
     if (event.key === 'Escape') {
       event.preventDefault()
@@ -75,8 +75,8 @@ export function DirectoryPicker({ initialPath, recentPaths, onClose, onError, on
   return (
     <div className="modal-backdrop" role="presentation">
       <section aria-labelledby="directory-picker-title" aria-modal="true" className="modal directory-picker" role="dialog">
-        <h2 id="directory-picker-title">Choisir un dossier</h2>
-        <label className="directory-path-label" htmlFor="directory-path">Chemin du dossier</label>
+        <h2 id="directory-picker-title">Choose a directory</h2>
+        <label className="directory-path-label" htmlFor="directory-path">Directory path</label>
         <input
           aria-activedescendant={activeSuggestion >= 0 ? `directory-suggestion-${activeSuggestion}` : undefined}
           autoComplete="off"
@@ -92,8 +92,8 @@ export function DirectoryPicker({ initialPath, recentPaths, onClose, onError, on
           role="combobox"
           value={path}
         />
-        <p className="directory-path-hint">Tab complète · ↑↓ parcourent · Entrée valide · Échap annule</p>
-        {suggestions.length > 0 && <div aria-label="Suggestions de dossiers" className="directory-suggestions" id="directory-suggestions" role="listbox">
+        <p className="directory-path-hint">Tab completes · ↑↓ navigate · Enter selects · Escape cancels</p>
+        {suggestions.length > 0 && <div aria-label="Directory suggestions" className="directory-suggestions" id="directory-suggestions" role="listbox">
           {suggestions.map((suggestion, index) => <div
             aria-selected={index === activeSuggestion}
             className={index === activeSuggestion ? 'active' : undefined}
@@ -104,11 +104,11 @@ export function DirectoryPicker({ initialPath, recentPaths, onClose, onError, on
             role="option"
           >{suggestion}</div>)}
         </div>}
-        {visibleRecentPaths.length > 0 && <section aria-label="Workspaces récents" className="recent-workspaces">
-          <strong>Workspaces récents</strong>
+        {visibleRecentPaths.length > 0 && <section aria-label="Recent workspaces" className="recent-workspaces">
+          <strong>Recent workspaces</strong>
           <div>{visibleRecentPaths.map((recentPath) => <button key={recentPath} onClick={() => selectDirectory(recentPath)} type="button">{recentPath}</button>)}</div>
         </section>}
-        <div className="modal-actions"><button onClick={onClose} type="button">Annuler</button><button className="primary" onClick={() => selectDirectory(path)} type="button">Ouvrir</button></div>
+        <div className="modal-actions"><button onClick={onClose} type="button">Cancel</button><button className="primary" onClick={() => selectDirectory(path)} type="button">Open</button></div>
       </section>
     </div>
   )

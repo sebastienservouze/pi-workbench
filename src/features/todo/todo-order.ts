@@ -1,6 +1,6 @@
 import type { TodoItem } from '../../../shared/types.ts'
 
-/** Déplace une tâche avant ou après une autre sans altérer le contenu des éléments. */
+/** Moves a task before or after another without changing item contents. */
 export function reorderTodoItems(todos: TodoItem[], movedId: string, targetId: string, placeAfter: boolean): TodoItem[] {
   if (movedId === targetId || !todos.some(({ id }) => id === movedId) || !todos.some(({ id }) => id === targetId)) return todos
 

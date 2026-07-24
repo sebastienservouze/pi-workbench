@@ -16,7 +16,7 @@ export class PiProcess extends EventEmitter {
   readonly #pending = new Map<string, PendingRequest>()
   #stderr = ''
 
-  /** Démarre Pi en RPC et relie son flux JSONL au cycle de vie de cette instance. */
+  /** Starts Pi in RPC mode and connects its JSONL stream to this instance's lifecycle. */
   constructor(cwd: string, sessionId: string, sessionPath?: string) {
     super()
     const questionExtensionPath = fileURLToPath(new URL('../extensions/ask-user-question.ts', import.meta.url))
@@ -49,7 +49,7 @@ export class PiProcess extends EventEmitter {
     })
   }
 
-  /** Associe une commande à une réponse RPC et rejette la promesse si Pi tarde trop. */
+  /** Associates a command with an RPC response and rejects the promise if Pi takes too long. */
   request(command: JsonObject, timeoutMs = command.type === 'prompt' ? 10 * 60_000 : 30_000): Promise<JsonObject> {
     const id = randomUUID()
     return new Promise((resolve, reject) => {
@@ -71,7 +71,7 @@ export class PiProcess extends EventEmitter {
     this.child.kill('SIGTERM')
   }
 
-  /** Distingue les réponses attendues des événements asynchrones émis par Pi. */
+  /** Distinguishes expected responses from asynchronous events emitted by Pi. */
   #receive(value: unknown): void {
     if (!isObject(value)) return
     if (value.type === 'response' && typeof value.id === 'string') {
@@ -87,7 +87,7 @@ export class PiProcess extends EventEmitter {
     this.emit('event', value)
   }
 
-  /** Réveille toutes les commandes en attente lorsqu'une erreur rend le processus inutilisable. */
+  /** Rejects all pending commands when an error makes the process unusable. */
   #fail(cause: unknown): void {
     const error = cause instanceof Error ? cause : new Error(String(cause))
     for (const pending of this.#pending.values()) {

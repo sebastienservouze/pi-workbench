@@ -5,7 +5,7 @@ export interface Toast {
   sessionId: string | null
 }
 
-/** Affiche les notifications temporaires au-dessus de la zone de saisie. */
+/** Displays temporary notifications above the input area. */
 export function ToastStack({ onDismiss, standalone = false, toasts }: {
   onDismiss: (id: string) => void
   standalone?: boolean
@@ -18,10 +18,10 @@ export function ToastStack({ onDismiss, standalone = false, toasts }: {
   </div>
 }
 
-/** Présente le contenu et la commande de fermeture d'une notification. */
+/** Presents a notification's content and dismiss action. */
 function ToastItem({ onDismiss, toast }: { onDismiss: (id: string) => void; toast: Toast }) {
   return <div className={`toast ${toast.kind}`} role={toast.kind === 'error' ? 'alert' : 'status'}>
     <span className="toast-message">{toast.message}</span>
-    <button aria-label="Fermer la notification" className="toast-dismiss" onClick={() => onDismiss(toast.id)} type="button">×</button>
+    <button aria-label="Dismiss notification" className="toast-dismiss" onClick={() => onDismiss(toast.id)} type="button">×</button>
   </div>
 }

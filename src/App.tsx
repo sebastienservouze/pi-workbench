@@ -29,10 +29,10 @@ interface AgentIntent {
 
 const emptySnapshot: SessionSnapshot = { state: null, messages: [], models: [], commands: [], stats: null }
 const conversationViewDetails = {
-  simple: { label: 'Vue simplifiée', description: 'Messages uniquement, sans appels d’outils' },
-  detailed: { label: 'Vue détaillée', description: 'Appels visibles avec aperçu extensible' },
+  simple: { label: 'Simplified view', description: 'Messages only, without tool calls' },
+  detailed: { label: 'Detailed view', description: 'Visible calls with expandable preview' },
 } as const
-/** Orchestre l'état de l'espace de travail, les événements Pi et les panneaux de l'interface. */
+/** Orchestrates workspace state, Pi events, and UI panels. */
 function App() {
   const [sessions, setSessions] = useState<SessionSummary[]>([])
   const [recentSessions, setRecentSessions] = useState<RecentSession[]>([])
@@ -95,7 +95,7 @@ function App() {
     if (kind !== 'error') window.setTimeout(() => setToasts((current) => current.filter((item) => item.id !== toast.id)), 3000)
   }, [])
 
-  /** Retire un toast après sa fermeture explicite ou automatique. */
+  /** Removes a toast after explicit dismissal or automatic timeout. */
   const dismissToast = useCallback((id: string) => {
     setToasts((current) => current.filter((toast) => toast.id !== id))
   }, [])
@@ -108,7 +108,7 @@ function App() {
     setGitSidebarWidth(nextWidth)
   }, [])
 
-  /** Bascule le thème clair / sombre et persiste le choix dans le stockage local. */
+  /** Toggles light/dark theme and persists the choice in local storage. */
   const toggleTheme = useCallback(() => {
     setTheme((current) => {
       const next = current === 'dark' ? 'light' : 'dark'
@@ -121,7 +121,7 @@ function App() {
     document.documentElement.dataset.theme = theme
   }, [theme])
 
-  /** Recharge les sessions et leurs demandes UI en ignorant les réponses obsolètes. */
+  /** Reloads sessions and their UI requests while discarding stale responses. */
   const refreshSessions = useCallback(async (cwd = workspacePath) => {
     const version = ++refreshVersionRef.current
     try {
@@ -139,7 +139,7 @@ function App() {
     }
   }, [showToast, workspacePath])
 
-  /** Actualise l'état Git du dossier courant sans afficher les erreurs des rafraîchissements silencieux. */
+  /** Refreshes Git state for the current directory without showing silent refresh errors. */
   const refreshGit = useCallback(async (cwd = workspacePath, notifyOnError = false) => {
     const version = ++gitRefreshVersionRef.current
     try {
@@ -150,7 +150,7 @@ function App() {
     }
   }, [showToast, workspacePath])
 
-  /** Synchronise l'instantané de session et efface le texte diffusé lorsqu'un tour est terminé. */
+  /** Synchronizes the session snapshot and clears streamed text when a turn completes. */
   const refreshSnapshot = useCallback(async (sessionId: string, clearLiveText = false) => {
     if (!sessionId) {
       setSnapshot(emptySnapshot)
@@ -168,9 +168,9 @@ function App() {
     }
   }, [showToast])
 
-  /** Actualise les quotas en laissant les clics manuels contourner la temporisation automatique. */
+  /** Refreshes quotas, allowing manual clicks to bypass automatic throttling. */
   const refreshSessionQuotas = useCallback(async (sessionId: string, automatic: boolean): Promise<void> => {
-    if (!sessionId) throw new Error('Une session Pi ouverte est nécessaire pour actualiser les quotas.')
+    if (!sessionId) throw new Error('An open Pi session is required to refresh quotas.')
     if (automatic) {
       const provider = currentQuotaProviderRef.current
       if (!provider) return
@@ -188,7 +188,7 @@ function App() {
     }
   }, [showToast])
 
-  /** Demande la sélection d'un agent en évitant les requêtes concurrentes pour une session. */
+  /** Requests agent selection while avoiding concurrent requests for a session. */
   const requestAgent = useCallback((sessionId: string, value?: string) => {
     if (agentIntentsRef.current.has(sessionId)) return
     agentIntentsRef.current.set(sessionId, value ? { value } : {})
@@ -231,13 +231,13 @@ function App() {
       if (event.event !== 'pi' || !isObject(event.data)) return
       handlePiEvent(event.sessionId, event.data)
     }
-    events.onerror = () => showToast('error', 'Connexion au backend interrompue; nouvelle tentative en cours.')
+    events.onerror = () => showToast('error', 'Connection to backend lost; retrying.')
     return () => events.close()
 
-    /** Traduit les événements reçus en mises à jour d'interface et en réponses UI éventuelles. */
+    /** Translates received events into UI updates and possible UI responses. */
     function handlePiEvent(sessionId: string, event: JsonObject): void {
       if (event.type === 'session_info_changed') {
-        const name = typeof event.name === 'string' && event.name.trim() ? event.name.trim() : 'Nouvelle session'
+        const name = typeof event.name === 'string' && event.name.trim() ? event.name.trim() : 'New session'
         setSessions((current) => current.map((session) => session.id === sessionId ? { ...session, name } : session))
         void refreshSessions()
       }
@@ -274,7 +274,7 @@ function App() {
           void sendPiCommand(sessionId, { type: 'extension_ui_response', id: event.id, ...response })
             .then(() => refreshSnapshot(sessionId))
             .catch((cause) => showToast('error', messageOf(cause)))
-          if (agentIntent?.value && !selectedAgent) showToast('error', 'L’agent sélectionné n’est plus disponible.')
+          if (agentIntent?.value && !selectedAgent) showToast('error', 'Selected agent is no longer available.')
           return
         }
         if (isBlockingDialog(event)) setDialog({ sessionId, request: event })
@@ -337,7 +337,7 @@ function App() {
         if (event.type === 'agent_settled') setFocusComposerRequest((current) => current + 1)
       }
 
-      /** Remplace une exécution existante afin de conserver un seul état par appel d'outil. */
+      /** Replaces an existing execution to keep a single state per tool call. */
       function startToolExecution(call: { id: string; name: string; args: unknown }): void {
         setToolExecutions((current) => [
           ...current.filter((execution) => execution.id !== call.id),
@@ -372,7 +372,7 @@ function App() {
     : null, [observedRequestDurations, observedToolDurations, selectedSession, snapshot.messages, snapshot.stats, snapshotSessionId, toolExecutions])
   const questionnaire = dialog && dialog.sessionId === selectedId && isAskUserQuestionDialog(dialog.request) ? dialog : null
 
-  /** Lance et sélectionne une session, puis lui transmet un message ou prépare un brouillon selon l’action source. */
+  /** Launches and selects a session, then sends a message or prepares a draft depending on the source action. */
   const startAndSelectSession = useCallback(async (start: () => Promise<SessionSummary>, initialMessage?: string, draftMessage?: string): Promise<void> => {
     creatingSessionRef.current = true
     setCreatingSession(true)
@@ -400,7 +400,7 @@ function App() {
     setComposerDraftRequest((current) => current?.id === id ? undefined : current)
   }, [])
 
-  /** Exécute une commande de productivité dans le contexte de la session active. */
+  /** Executes a productivity command in the context of the active session. */
   const executeCommand = useCallback((id: CommandId): void => {
     if (id === 'open-palette') { setCommandPaletteOpen(true); return }
     if (id === 'open-settings') { setSettingsOpen(true); return }
@@ -411,8 +411,8 @@ function App() {
     if (id === 'open-agent' || id === 'open-model' || id === 'open-thinking') { setRequestedSelect(id === 'open-agent' ? 'agent' : id === 'open-model' ? 'model' : 'thinking'); return }
     if (id === 'copy-last-response') {
       const text = lastAssistantText(snapshot.messages)
-      if (!text) { showToast('notice', 'Aucune réponse assistant à copier.'); return }
-      void navigator.clipboard.writeText(text).then(() => showToast('notice', 'Dernière réponse copiée.')).catch((cause) => showToast('error', messageOf(cause)))
+      if (!text) { showToast('notice', 'No assistant response to copy.'); return }
+      void navigator.clipboard.writeText(text).then(() => showToast('notice', 'Last response copied.')).catch((cause) => showToast('error', messageOf(cause)))
     }
   }, [selectedId, showToast, snapshot.messages, startAndSelectSession, workspacePath])
 
@@ -450,7 +450,7 @@ function App() {
     return () => { cancelled = true }
   }, [])
 
-  /** Positionne la conversation sur l’élément choisi depuis l’analyse de session. */
+  /** Positions the conversation on the element chosen from session analysis. */
   const navigateToAnalysisTarget = useCallback((target: SessionAnalysisTarget): void => {
     if (target.kind === 'tool' || target.kind === 'turn') {
       setConversationView('detailed')
@@ -459,18 +459,18 @@ function App() {
     setConversationNavigation((current) => ({ id: (current?.id ?? 0) + 1, target }))
   }, [])
 
-  /** Actions épinglées dans le rail droit, sans panneau associé. */
+  /** Actions pinned to the right rail without an associated panel. */
   const railActions = useMemo(() => [
     {
       key: 'explorer',
       icon: <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path d="M3 6.5A2.5 2.5 0 0 1 5.5 4h4l2 2h7A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" /><path d="M3 9h18" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" /></svg>,
-      label: 'Ouvrir le dossier dans l\'Explorateur',
+      label: 'Open folder in Explorer',
       onClick: () => { void openExplorer(workspacePath).catch((cause) => showToast('error', messageOf(cause))) },
     },
     {
       key: 'vscode',
       icon: <span aria-hidden="true" className="code-symbol code-symbol-rail">{'<>'}</span>,
-      label: vsCodeAvailable === null ? 'Vérification de VS Code…' : vsCodeAvailable ? 'Ouvrir le dossier dans VS Code' : 'VS Code indisponible',
+      label: vsCodeAvailable === null ? 'Checking VS Code…' : vsCodeAvailable ? 'Open folder in VS Code' : 'VS Code unavailable',
       disabled: vsCodeAvailable !== true,
       onClick: () => { void openVsCode(workspacePath).catch((cause) => { setVsCodeAvailable(false); showToast('error', messageOf(cause)) }) },
     },
@@ -505,7 +505,7 @@ function App() {
         {selectedSession ? (
           <>
             <Conversation activity={activity} agentName={selectedSession.activeAgent} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} navigationRequest={conversationNavigation} onError={(cause) => showToast('error', messageOf(cause))} onStartSession={(draft) => startAndSelectSession(() => createSession(workspacePath), undefined, draft)} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
-            <button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Cliquer pour changer de vue.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
+            <button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Click to toggle view.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
                 const next = current === 'simple' ? 'detailed' : 'simple'
                 window.localStorage.setItem('pi-workbench.conversation-view', next)
                 return next
@@ -554,8 +554,8 @@ function App() {
           <>
             <section className="welcome" aria-busy="true">
               <span className="brand-mark large">π</span>
-              <h1>Nouvelle session en cours…</h1>
-              <p>Initialisation de Pi et de ses agents.</p>
+              <h1>Starting new session…</h1>
+              <p>Initializing Pi and its agents.</p>
             </section>
             <ToastStack onDismiss={dismissToast} standalone toasts={visibleToasts} />
           </>
@@ -563,8 +563,8 @@ function App() {
           <>
             <section className="welcome">
               <span className="brand-mark large">π</span>
-              <h1>Pilotez Pi depuis votre navigateur</h1>
-              <p>Créez une session locale pour retrouver vos modèles, agents, outils et commandes.</p>
+              <h1>Control Pi from your browser</h1>
+              <p>Create a local session to access your models, agents, tools, and commands.</p>
             </section>
             <ToastStack onDismiss={dismissToast} standalone toasts={visibleToasts} />
           </>
@@ -585,8 +585,8 @@ function App() {
         onAction={async (message) => {
           const result = await commitAndPush(workspacePath, message)
           await refreshGit(workspacePath, true)
-          if (result.pushError) showToast('error', `${result.committed ? 'Commit créé, mais' : 'Push'} échoué : ${result.pushError}`)
-          else showToast('notice', result.committed ? 'Commit créé et poussé.' : 'Commits poussés.')
+          if (result.pushError) showToast('error', `${result.committed ? 'Commit created, but' : 'Push'} failed: ${result.pushError}`)
+          else showToast('notice', result.committed ? 'Commit created and pushed.' : 'Commits pushed.')
           return result
         }}
         onError={(cause) => showToast('error', messageOf(cause))}

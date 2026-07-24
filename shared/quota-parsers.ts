@@ -24,7 +24,7 @@ export function parseCopilotUsage(value: unknown): CopilotQuotaWindow[] {
   const snapshots = object(root?.quota_snapshots)
   const resetsAt = dateValue(root?.quota_reset_date ?? root?.quota_reset_date_utc ?? root?.limited_user_reset_date)
   if (snapshots) {
-    const labels: [string, string][] = [['premium_interactions', 'Interactions premium'], ['chat', 'Chat'], ['completions', 'Complétions']]
+    const labels: [string, string][] = [['premium_interactions', 'Premium interactions'], ['chat', 'Chat'], ['completions', 'Completions']]
     return labels.flatMap(([key, name]) => {
       const quota = object(snapshots[key])
       if (!quota || quota.unlimited === true) return []
@@ -38,7 +38,7 @@ export function parseCopilotUsage(value: unknown): CopilotQuotaWindow[] {
   const limits = object(root?.monthly_quotas)
   const remaining = object(root?.limited_user_quotas)
   if (!limits || !remaining) return []
-  return ([['chat', 'Chat'], ['completions', 'Complétions']] as const).flatMap(([key, name]) => {
+  return ([['chat', 'Chat'], ['completions', 'Completions']] as const).flatMap(([key, name]) => {
     const limit = numberField(limits, key)
     const left = numberField(remaining, key)
     return limit && left !== undefined ? [{ name, used: Math.max(0, limit - left), limit, ...(resetsAt ? { resetsAt } : {}) }] : []

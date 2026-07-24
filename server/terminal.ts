@@ -4,7 +4,7 @@ import type { TerminalCommandResult } from '../shared/types.ts'
 const maxOutputBytes = 1_000_000
 const timeoutMs = 10 * 60_000
 
-/** Exécute une commande isolée dans le workspace sans conserver d’état de shell entre deux appels. */
+/** Runs an isolated workspace command without preserving shell state between calls. */
 export function runTerminalCommand(cwd: string, command: string): Promise<TerminalCommandResult> {
   return new Promise((resolve) => {
     exec(command, { cwd, encoding: 'utf8', maxBuffer: maxOutputBytes, timeout: timeoutMs }, (error, stdout, stderr) => {

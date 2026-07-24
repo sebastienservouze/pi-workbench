@@ -13,7 +13,7 @@ export class WorkspaceFileError extends Error {
   }
 }
 
-/** Lit un fichier texte existant sans autoriser une sortie du répertoire de travail, y compris via un lien symbolique. */
+/** Reads an existing text file without allowing access outside the working directory, including through a symbolic link. */
 export async function readWorkspaceFile(workspacePath: string, requestedPath: string): Promise<WorkspaceFile> {
   const root = await realpath(workspacePath)
   let path: string

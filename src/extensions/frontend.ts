@@ -115,7 +115,7 @@ export function createFrontendExtensionRegistry(extensions: readonly WorkbenchEx
 
     for (const [toolName, renderer] of Object.entries(extension.toolCalls ?? {})) {
       const owner = toolCallOwners.get(toolName)
-      if (owner) throw new Error(`Renderer de l'outil ${toolName} fourni par ${owner} et ${extension.id}`)
+      if (owner) throw new Error(`Tool renderer ${toolName} provided by both ${owner} and ${extension.id}`)
       toolCallOwners.set(toolName, extension.id)
       toolCalls.set(toolName, renderer)
     }

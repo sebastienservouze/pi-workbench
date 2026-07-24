@@ -8,7 +8,7 @@ export interface MessageUsage {
   output: number
 }
 
-/** Extrait les compteurs définitifs associés à une réponse ou un résultat d’outil de Pi. */
+/** Extracts final counters associated with a Pi response or tool result. */
 export function messageUsage(message: JsonObject): MessageUsage | null {
   const usage = isObject(message.usage) ? message.usage : null
   const cost = usage && isObject(usage.cost) ? usage.cost : null
@@ -25,7 +25,7 @@ export function formatTokens(value: number): string {
   return value >= 1000 ? `${Math.round(value / 1000)}k` : String(value)
 }
 
-/** Associe à chaque tour agentique les compteurs facturés de sa réponse assistant. */
+/** Associates each agent turn with the billed counters from its assistant response. */
 export function turnUsageByMessage(messages: JsonObject[]): Map<number, MessageUsage> {
   return new Map(messages.flatMap((message, index) => {
     const usage = message.role === 'assistant' ? messageUsage(message) : null

@@ -28,18 +28,18 @@ export interface BackendExtensionRouteMatch {
   path: string
 }
 
-/** Assemble les namespaces backend et refuse qu’une extension puisse en remplacer une autre. */
+/** Builds backend namespaces and prevents one extension from replacing another. */
 export function createBackendExtensionRegistry(extensions: readonly WorkbenchBackendExtension[]): BackendExtensionRegistry {
   const registered = new Map<string, WorkbenchBackendExtension>()
   for (const extension of extensions) {
-    if (!extension.id.trim()) throw new Error('Un identifiant d’extension backend est requis')
-    if (registered.has(extension.id)) throw new Error(`Extension backend dupliquée : ${extension.id}`)
+    if (!extension.id.trim()) throw new Error('A backend extension identifier is required')
+    if (registered.has(extension.id)) throw new Error(`Duplicate backend extension: ${extension.id}`)
     registered.set(extension.id, extension)
   }
   return { extensions: registered }
 }
 
-/** Décode une route namespacée sans laisser un chemin d’extension intercepter les routes du cœur. */
+/** Decodes a namespaced route without allowing an extension path to intercept core routes. */
 export function matchBackendExtensionRoute(registry: BackendExtensionRegistry, pathname: string): BackendExtensionRouteMatch | undefined {
   const match = pathname.match(/^\/api\/extensions\/([^/]+)(?:\/(.*))?$/)
   if (!match) return undefined

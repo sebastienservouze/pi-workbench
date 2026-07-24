@@ -10,7 +10,7 @@ import type { SessionAnalysisTarget } from '../session-analysis/session-analysis
 import { outputContextDraft } from './context-session.ts'
 import { ContextSessionButton, Markdown, ToolCallCard } from './ToolCallCard.tsx'
 
-/** Assemble l'historique, le flux en cours et les exécutions d'outils selon le niveau de détail choisi. */
+/** Assembles history, the live stream, and tool executions according to the selected detail level. */
 export function Conversation({ activity, agentName, messages, liveText, liveThinking, detailedView, navigationRequest, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath, onError, onStartSession }: {
   activity: Activity | null
   agentName?: string
@@ -42,7 +42,7 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
   const [showScrollToBottom, setShowScrollToBottom] = useState(false)
   const [highlightedTarget, setHighlightedTarget] = useState<string>()
 
-  // Défile automatiquement vers le bas quand du nouveau contenu arrive, sauf si l'utilisateur est remonté.
+  // Scrolls automatically when new content arrives unless the user has scrolled up.
   useEffect(() => {
     if (!autoScrollRef.current) return
     const behavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'
@@ -70,7 +70,7 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
     return () => window.clearTimeout(timeout)
   }, [navigationRequest])
 
-  /** Détecte si l'utilisateur est en bas de la conversation pour activer ou suspendre le défilement automatique. */
+  /** Detects whether the user is at the bottom to enable or suspend automatic scrolling. */
   function handleConversationScroll(): void {
     const el = conversationRef.current
     if (!el) return
@@ -99,7 +99,7 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
     if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key)) markUserScrollIntent()
   }
 
-  /** Reprend le défilement automatique et ramène au bas de la conversation. */
+  /** Resumes automatic scrolling and returns to the bottom of the conversation. */
   function resumeAutoScroll(): void {
     userScrollIntentRef.current = false
     autoScrollRef.current = true
@@ -134,10 +134,10 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
       {liveThinking && <ReasoningBlock live>{liveThinking}</ReasoningBlock>}
       {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard animateLiveChanges args={execution.args} hasResult={execution.result !== undefined} id={execution.id} interrupted={execution.status === 'interrupted'} key={execution.id} name={execution.name} onError={onError} onStartSession={onStartSession} rawArgs={execution.rawArgs} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} revealRequest={navigationRequest?.target.kind === 'tool' && navigationRequest.target.id === execution.id ? navigationRequest.id : undefined} streaming={execution.status === 'generating'} targeted={highlightedTarget === `tool:${execution.id}`} workspacePath={workspacePath} />)}
       {liveText && <article className="message assistant streaming conversation-entry"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
-      {visibleMessages.length === 0 && !liveText && !liveThinking && <div className="empty-conversation"><h2>Session prête</h2><p>Envoyez un message ou utilisez une commande de votre installation Pi.</p></div>}
+      {visibleMessages.length === 0 && !liveText && !liveThinking && <div className="empty-conversation"><h2>Session ready</h2><p>Send a message or use a command from your Pi installation.</p></div>}
       {activity && <div className="conversation-activity"><ActivityIndicator activity={activity} agentName={agentName} onError={onError} /></div>}
       <button
-        aria-label="Reprendre le défilement automatique"
+        aria-label="Resume automatic scrolling"
         className={`scroll-to-bottom${showScrollToBottom ? ' visible' : ''}`}
         onClick={resumeAutoScroll}
         type="button"
@@ -177,11 +177,11 @@ const DefaultMessageCard = memo(function DefaultMessageCard({ message, onStartSe
     <div className="content">{renderContent(message.content ?? message.output)}</div>
     {output && <ContextSessionButton onClick={() => onStartSession(outputContextDraft(output))} />}
     {usage && <TurnUsage usage={usage} />}
-    {role === 'user' && time && <time className="message-time" dateTime={time.toISOString()}>{time.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time>}
+    {role === 'user' && time && <time className="message-time" dateTime={time.toISOString()}>{time.toLocaleTimeString(navigator.language, { hour: '2-digit', minute: '2-digit' })}</time>}
   </article>
 })
 
-/** Rend un message personnalisé inconnu sans interpréter ses détails propres à l’extension. */
+/** Renders an unknown custom message without interpreting extension-specific details. */
 function DefaultCustomMessage({ message }: { message: JsonObject & { customType?: unknown } }) {
   const content = hasVisibleContent(message.content) ? renderContent(message.content) : <p>Message sans contenu affichable.</p>
   return <article className="message custom-message">
@@ -190,17 +190,17 @@ function DefaultCustomMessage({ message }: { message: JsonObject & { customType?
   </article>
 }
 
-/** Affiche les compteurs facturés par Pi pour une réponse assistant terminée. */
+/** Displays counters billed by Pi for a completed assistant response. */
 function TurnUsage({ usage }: { usage: MessageUsage }) {
   return <dl className="turn-usage">
-    <div><dt>Coût</dt><dd>{formatTurnCost(usage.cost)}</dd></div>
+    <div><dt>Cost</dt><dd>{formatTurnCost(usage.cost)}</dd></div>
     <div><dt>Cache read</dt><dd>{formatTokens(usage.cacheRead)}</dd></div>
     <div><dt>Cache miss</dt><dd>{formatTokens(usage.cacheMiss)}</dd></div>
     <div><dt>Output</dt><dd>{formatTokens(usage.output)}</dd></div>
   </dl>
 }
 
-/** Isole le renderer d’activité du fork et conserve l’indicateur officiel comme repli. */
+/** Isolates the fork's activity renderer and keeps the official indicator as a fallback. */
 export function ActivityIndicator({ activity, agentName, onError }: { activity: Activity; agentName?: string; onError: (cause: unknown) => void }) {
   const renderDefault = () => <DefaultActivityIndicator activity={activity} agentName={agentName} />
   const Renderer = customExtensionRegistry.activity
@@ -212,7 +212,7 @@ export function ActivityIndicator({ activity, agentName, onError }: { activity: 
   </ExtensionRendererBoundary>
 }
 
-/** Affiche l’état de travail courant de Pi dans le fil de conversation. */
+/** Displays Pi's current work state in the conversation thread. */
 function DefaultActivityIndicator({ activity, agentName }: { activity: Activity; agentName?: string }) {
   return <div className="pi-activity" role="status"><span aria-hidden="true" className="activity-signal"><i /><i /><i /></span><span className="activity-text"><span>{activityAgentName(agentName)}</span>{' '}<span className="activity-action" key={activity.kind}>{activityActionText(activity)}</span></span></div>
 }
@@ -238,7 +238,7 @@ function visibleText(content: unknown): string {
   return content.flatMap((part) => isObject(part) && part.type === 'text' && typeof part.text === 'string' ? [part.text] : []).join('')
 }
 
-/** Rend les contenus assistant dans leur ordre, dont les réflexions visibles. */
+/** Renders assistant content in order, including visible thinking. */
 function renderContent(content: unknown): ReactNode {
   if (typeof content === 'string') return <Markdown>{content}</Markdown>
   if (!Array.isArray(content)) return null
@@ -251,7 +251,7 @@ function renderContent(content: unknown): ReactNode {
   })}</>
 }
 
-/** Présente une réflexion directement dans le fil avec une hiérarchie discrète. */
+/** Presents thinking directly in the thread with a subtle hierarchy. */
 function ReasoningBlock({ children, live = false }: { children: string; live?: boolean }) {
   return <div className={`reasoning${live ? ' conversation-entry' : ''}`}><Markdown>{children}</Markdown></div>
 }

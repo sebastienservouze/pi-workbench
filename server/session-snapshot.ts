@@ -1,6 +1,6 @@
 import type { JsonObject } from '../shared/types.ts'
 
-/** Conserve les messages utiles à l’interface sans exposer les messages personnalisés marqués comme cachés. */
+/** Keeps messages useful to the interface without exposing hidden custom messages. */
 export function visibleSessionMessages(messages: JsonObject[]): JsonObject[] {
   return messages.filter((message) => message.role === 'user'
     || message.role === 'assistant'

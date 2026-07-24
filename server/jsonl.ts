@@ -3,8 +3,8 @@ import { StringDecoder } from 'node:string_decoder'
 const MAX_BUFFER_SIZE = 4 * 1024 * 1024
 
 /**
- * Décode un flux JSONL strict sans considérer les séparateurs Unicode comme des
- * fins de ligne, conformément au protocole RPC de Pi.
+ * Decodes a strict JSONL stream without treating Unicode separators as line
+ * endings, according to Pi's RPC protocol.
  */
 export class JsonLineDecoder {
   readonly #decoder = new StringDecoder('utf8')
