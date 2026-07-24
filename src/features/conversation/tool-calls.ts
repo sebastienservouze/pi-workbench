@@ -121,8 +121,11 @@ export function applyToolCallUpdate(executions: ToolExecution[], update: ToolCal
   }]
 }
 
+const MAX_STREAMED_FILE_ARGUMENT_LENGTH = 400
+
 function streamingArgumentsPreview(name: string, rawArgs: string): string {
-  return name === 'write' || name === 'edit' ? toolTextPreview(rawArgs).text : rawArgs
+  if ((name !== 'write' && name !== 'edit') || rawArgs.length <= MAX_STREAMED_FILE_ARGUMENT_LENGTH) return rawArgs
+  return `${rawArgs.slice(0, MAX_STREAMED_FILE_ARGUMENT_LENGTH)}…`
 }
 
 /** Freezes calls whose generation produced no end event. */

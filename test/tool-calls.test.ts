@@ -80,9 +80,9 @@ test('accumulates raw arguments and preserves interrupted generations', () => {
   assert.deepEqual(completed[0]?.args, { path: 'note.md' })
 })
 
-test('freezes streamed write and edit arguments after four lines while counting characters', () => {
+test('freezes long streamed write and edit arguments while counting characters', () => {
   const start = { call: { id: 'call_1', name: 'write', args: { path: 'note.md' } }, contentIndex: 0, delta: '', phase: 'start' as const }
-  const firstDelta = 'one\ntwo\nthree\nfour\nfive'
+  const firstDelta = 'a'.repeat(401)
   const executions = applyToolCallUpdate(applyToolCallUpdate([], start, 'unused'), {
     call: { id: 'call_1', name: 'write', args: { path: 'note.md', content: firstDelta } },
     contentIndex: 0,
@@ -96,7 +96,7 @@ test('freezes streamed write and edit arguments after four lines while counting 
     phase: 'delta',
   }, 'unused')
 
-  assert.equal(continued[0]?.rawArgs, 'one\ntwo\nthree\nfour…')
+  assert.equal(continued[0]?.rawArgs, `${'a'.repeat(400)}…`)
   assert.equal(continued[0]?.rawArgsLength, firstDelta.length + 4)
   assert.equal(continued[0]?.rawArgsTruncated, true)
   assert.deepEqual(continued[0]?.args, { path: 'note.md', content: firstDelta })
@@ -107,7 +107,7 @@ test('freezes streamed write and edit arguments after four lines while counting 
     delta: firstDelta,
     phase: 'delta',
   }, 'unused')
-  assert.equal(edit[0]?.rawArgs, 'one\ntwo\nthree\nfour…')
+  assert.equal(edit[0]?.rawArgs, `${'a'.repeat(400)}…`)
   assert.equal(edit[0]?.rawArgsTruncated, true)
 })
 
