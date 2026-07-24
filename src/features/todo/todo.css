@@ -2,20 +2,23 @@
 .todo-heading { min-width: 0; }
 .todo-count { display: grid !important; flex: 0 0 auto; place-items: center; min-width: 24px; height: 24px; margin: 0 !important; border-radius: 8px; padding: 0 6px; background: var(--teal-soft); color: var(--teal) !important; font: 700 11px ui-monospace, monospace; }
 .todo-list { display: grid; gap: 4px; margin: 0; padding: 10px; list-style: none; }
-.todo-list li { display: grid; grid-template-columns: 18px 22px minmax(0, 1fr) 30px 30px; align-items: center; gap: 5px; min-height: 42px; border: 1px solid transparent; border-radius: 9px; padding: 3px 4px; transition: background 140ms ease, border-color 140ms ease; }
+.todo-list li { display: grid; grid-template-columns: 18px 22px minmax(0, 1fr) 30px 30px 30px; align-items: center; gap: 5px; min-height: 42px; border: 1px solid transparent; border-radius: 9px; padding: 3px 4px; transition: background 140ms ease, border-color 140ms ease; }
 .todo-list li:hover { border-color: color-mix(in srgb, var(--teal) 18%, var(--line)); background: color-mix(in srgb, var(--teal) 7%, transparent); }
 .todo-list li.dragging { background: color-mix(in srgb, var(--teal) 12%, transparent); opacity: .72; }
 .todo-drag { display: grid; place-items: center; width: 18px; height: 30px; color: var(--subtle); cursor: grab; font-size: 15px; line-height: 1; touch-action: none; user-select: none; }
 .todo-drag:active { cursor: grabbing; }
 .todo-list input[type='checkbox'] { width: 16px; height: 16px; margin: 0; accent-color: var(--teal); }
 .todo-text { min-width: 0; border: 0; padding: 5px 2px; background: transparent; color: var(--ink); font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; text-align: left; }
-.todo-text:focus-visible, .todo-start:focus-visible, .todo-delete:focus-visible, .todo-add button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+.todo-text:focus-visible, .todo-start:focus-visible, .todo-send:focus-visible, .todo-delete:focus-visible, .todo-add button:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+.todo-tooltip[data-tooltip]:focus-visible::after { opacity: 1; transform: translateY(0); visibility: visible; }
 .todo-list .completed .todo-text { color: var(--muted); text-decoration: line-through; }
 .todo-edit { width: 100%; min-width: 0; border: 1px solid var(--teal); border-radius: 6px; padding: 5px 6px; background: var(--surface); color: var(--ink); font-size: 12px; outline: 3px solid color-mix(in srgb, var(--teal) 16%, transparent); }
-.todo-start, .todo-delete { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 6px; padding: 0; background: transparent; color: var(--subtle); font-size: 18px; }
+.todo-start, .todo-send, .todo-delete { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 6px; padding: 0; background: transparent; color: var(--subtle); font-size: 18px; }
+.todo-send { font-size: 17px; }
+.todo-send:hover:not(:disabled) { background: color-mix(in srgb, var(--teal) 10%, transparent); color: var(--teal); }
 .todo-start:hover:not(:disabled) { background: color-mix(in srgb, var(--teal) 10%, transparent); color: var(--teal); }
 .todo-delete:hover:not(:disabled) { background: var(--danger-soft); color: var(--danger); }
-.todo-start:disabled, .todo-delete:disabled, .todo-text:disabled { cursor: default; opacity: .55; }
+.todo-start:disabled, .todo-send:disabled, .todo-delete:disabled, .todo-text:disabled { cursor: default; opacity: .55; }
 .todo-add { display: grid; grid-template-columns: minmax(0, 1fr) 34px; gap: 7px; padding: 10px; }
 .todo-add input { width: 100%; min-width: 0; border: 1px solid var(--line-strong); border-radius: 7px; padding: 8px 9px; background: var(--surface); color: var(--ink); font-size: 12px; outline: 0; }
 .todo-add input:focus { border-color: var(--teal); box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 13%, transparent); }

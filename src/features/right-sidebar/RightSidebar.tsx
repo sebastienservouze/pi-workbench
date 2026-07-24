@@ -20,7 +20,7 @@ export interface RailAction {
 }
 
 /** Coordinates the sidebar panels, their common rail, and resizing. */
-export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onAnalysisNavigate, onResize, snapshot, quotas, width, workspacePath, railActions, onAction, onError, onFileSelect, onQuotaRefresh, onRefresh, onRevert, onTodoStartSession, onWidgetSelect }: {
+export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onAnalysisNavigate, onResize, snapshot, quotas, width, workspacePath, railActions, onAction, onError, onFileSelect, onQuotaRefresh, onRefresh, onRevert, onTodoSendPrompt, onTodoStartSession, onWidgetSelect }: {
   activeWidget: RightWidget | null
   analysis: SessionAnalysis | null
   currentQuotaProvider: QuotaProvider | undefined
@@ -37,6 +37,7 @@ export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onA
   onQuotaRefresh: () => Promise<void>
   onRefresh: () => void
   onRevert: (hash: string) => Promise<GitRevertResult>
+  onTodoSendPrompt: (message: string) => Promise<void>
   onTodoStartSession: (message: string) => Promise<void>
   onWidgetSelect: (widget: RightWidget) => void
 }) {
@@ -113,7 +114,7 @@ export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onA
         {activeWidget === 'git' && snapshot && <GitWidget onAction={onAction} onError={onError} onFileSelect={onFileSelect} onRefresh={onRefresh} onRevert={onRevert} snapshot={snapshot} />}
         {activeWidget === 'quotas' && <QuotaWidget onRefresh={onQuotaRefresh} quotas={quotas} />}
         {activeWidget === 'terminal' && <TerminalWidget workspacePath={workspacePath} />}
-        {activeWidget === 'todo' && <TodoWidget onOpenCountChange={setTodoOpenCount} onStartSession={onTodoStartSession} workspacePath={workspacePath} />}
+        {activeWidget === 'todo' && <TodoWidget onOpenCountChange={setTodoOpenCount} onSendPrompt={onTodoSendPrompt} onStartSession={onTodoStartSession} workspacePath={workspacePath} />}
       </section>
     </div>}
     <div className="right-sidebar-rail">
