@@ -1,5 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="61" y="3" rx="17" fill="#8ba497"/>
-  <rect width="64" height="61" rx="17" fill="#1d2924"/>
-  <path d="M17 20h30M23 20v25M41 20v25" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="7"/>
+  <defs>
+    <linearGradient id="piGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="64" height="64" rx="16" fill="#0f172a"/>
+  <rect width="62" height="62" x="1" y="1" rx="15" fill="none" stroke="#1e293b" stroke-width="2"/>
+
+  <!-- Heart (top-left accent) -->
+  <path d="M14 9c-2.5-2-4.5-1-5.5 1s1 4.5 5.5 8c4.5-3.5 5.5-6 5.5-8s-3-3-5.5-1z" fill="#f43f5e"/>
+
+  <!-- Hammer (top-right accent) -->
+  <g fill="#f59e0b">
+    <rect x="46" y="10" width="9" height="5" rx="2"/>
+    <rect x="48.5" y="15" width="4" height="8" rx="2"/>
+  </g>
+
+  <!-- π symbol -->
+  <g fill="none" stroke="url(#piGrad)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="18" y1="36" x2="46" y2="36"/>
+    <line x1="24" y1="36" x2="24" y2="52"/>
+    <line x1="42" y1="36" x2="42" y2="52"/>
+  </g>
 </svg>
