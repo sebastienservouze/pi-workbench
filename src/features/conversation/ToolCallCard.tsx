@@ -174,8 +174,8 @@ export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = fa
 
 /** Displays a clickable preview for code files and resolved SVGs. */
 function ToolCallPreview({ call, content, darkMode, htmlFile, onClick, remainingLineCount }: { call: { name: string; args: unknown }; content: string; darkMode: boolean; htmlFile: boolean; onClick: () => void; remainingLineCount: number }) {
-  const remainingLabel = `Click to view ${remainingLineCount} more ${remainingLineCount === 1 ? 'line' : 'lines'}`
   const display = call.name === 'read' || call.name === 'write' ? readContentDisplay(call.args) : { kind: 'text' as const }
+  const remainingLabel = display.kind === 'svg' ? 'Click to view full code' : `Click to view ${remainingLineCount} more ${remainingLineCount === 1 ? 'line' : 'lines'}`
   const highlightedCode = display.kind === 'code' && canHighlightFile(content)
   const svgPreview = display.kind === 'svg' && content.trim().length > 0
   const filePath = toolFilePath(call.args)
