@@ -28,16 +28,11 @@
 Open a project and get to work as you would with any Pi client. The difference starts when the client itself no longer fits.
 
 - **Use Pi normally.** Run one or several sessions, reopen history, and follow responses, thinking, usage, and tool calls live.
+- **Build your workflow on top of Pi.** Quick action on a tool call, better tool presentation, session analytics, only limit is your imagination.
 - **Change absolutely everything.** Layout, styles, widgets, commands, persistence, backend, manager, Pi extensions, and docs are all fair game. The source code is the customization surface.
 - **Stay in flow.** Ask Pi to modify the workbench from an active session; frontend changes appear immediately and backend changes restart without closing the Pi process.
 
 Fork it. Delete half of it. Add the oddly specific button only you need. Paint it purple. It is your workbench now.
-
-## From todo to session
-
-Good ideas have terrible timing. Todos stay with the workspace, not buried in chat history: add, edit, reorder, and complete them while a session is running.
-
-Click **↗** on a task to create a new session, open it, and prefill the composer with the task as its prompt. You can adjust it before sending; direct submission is the obvious next trick, but is not wired yet.
 
 ## Quick start
 
@@ -76,12 +71,12 @@ That is the intended way to run it: `npm run dev` keeps the frontend, backend, a
 - **Provider quotas** — monitor OpenAI Codex windows and GitHub Copilot usage from the right rail.
 - **Git workspace** — review status, diffs, touched files, and unpushed commits; commit, push, or revert without changing context.
 - **Focused side tools** — keep todos and bounded workspace commands one click away.
-- **Pi-native controls** — use the models, thinking levels, agents, and commands exposed by Pi.
+- **Pi-native controls** — use the models, thinking levels, and commands exposed by Pi.
 - **Personal controls** — command palette, editable shortcuts, persistent drafts, resizable panels, and light or dark themes.
 
 ## Make it yours
 
-Forking is not a fallback—it is the intended product model. There is no canonical setup to converge on and no prize for keeping every feature.
+Forking is not a fallback. **It is the intended product model**. There is no canonical setup to converge on and no prize for keeping every feature.
 
 1. Fork the repository.
 2. Start it with `npm run dev`.
