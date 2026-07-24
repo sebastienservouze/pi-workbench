@@ -168,6 +168,7 @@ test('detects Markdown, HTML and supported code formats read from the repository
   assert.deepEqual(readContentDisplay({ path: 'docs/guide.md' }), { kind: 'markdown' })
   assert.deepEqual(readContentDisplay({ path: 'src/App.tsx' }), { kind: 'code', language: 'typescript' })
   assert.deepEqual(readContentDisplay({ path: 'public/preview.html' }), { kind: 'html' })
+  assert.deepEqual(readContentDisplay({ path: 'assets/icon.svg' }), { kind: 'svg', language: 'markup' })
   assert.deepEqual(readContentDisplay({ path: 'src/Program.cs' }), { kind: 'code', language: 'csharp' })
   assert.deepEqual(readContentDisplay({ path: 'notes.txt' }), { kind: 'text' })
   assert.deepEqual(readContentDisplay({}), { kind: 'text' })
