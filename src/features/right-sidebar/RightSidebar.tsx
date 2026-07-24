@@ -132,7 +132,7 @@ export function RightSidebar({ activeWidget, analysis, currentQuotaProvider, onA
       <button aria-controls={activeWidget === 'terminal' ? 'terminal-panel' : undefined} aria-expanded={activeWidget === 'terminal'} aria-label={activeWidget === 'terminal' ? 'Collapse terminal' : 'Expand terminal'} className="rail-tab" onClick={() => onWidgetSelect('terminal')} title="Terminal" type="button"><span aria-hidden="true">›_</span></button>
       <button aria-controls={activeWidget === 'todo' ? 'todo-panel' : undefined} aria-expanded={activeWidget === 'todo'} aria-label={activeWidget === 'todo' ? 'Collapse the task panel' : 'Expand the task panel'} className="rail-tab" onClick={() => onWidgetSelect('todo')} title="Todo" type="button">
         <span aria-hidden="true">☑</span>
-        {todoOpenCount !== null && <small aria-label={`${todoOpenCount} tasks remaining`}>{todoOpenCount}</small>}
+        {todoOpenCount !== null && todoOpenCount > 0 && <small aria-label={`${todoOpenCount} tasks remaining`}>{todoOpenCount}</small>}
       </button>
       {railActions.map((action) => <button aria-label={action.label} className="rail-tab" disabled={action.disabled} key={action.key} onClick={action.onClick} title={action.label} type="button">{action.icon}</button>)}
     </div>
