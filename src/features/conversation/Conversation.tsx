@@ -1,8 +1,5 @@
 import { memo, useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type WheelEvent } from 'react'
 import type { JsonObject } from '../../../shared/types.ts'
-import { customExtensionRegistry } from '../../custom/extensions.ts'
-import { ExtensionRendererBoundary } from '../../extensions/ExtensionRendererBoundary.tsx'
-import type { ActivityView, CustomMessageView } from '../../extensions/frontend.ts'
 import { activityActionText, activityAgentName, type Activity } from './activity.ts'
 import { formatTokens, formatTurnCost, turnUsageByMessage, type MessageUsage } from './message-usage.ts'
 import { toolCallsInMessage, toolResultInMessage, type ToolExecution } from './tool-calls.ts'
@@ -123,7 +120,7 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
         const calls = detailedView ? toolCallsInMessage(message) : []
         if (!isVisibleConversationMessage(message) && calls.length === 0) return null
         return <div className={highlightedTarget === `message:${index}` ? 'conversation-target' : undefined} data-message-index={index} key={`${String(message.timestamp ?? '')}-${index}`}>
-          {isVisibleConversationMessage(message) && <MessageCard message={message} onError={onError} onStartSession={onStartSession} usage={usagesByMessage.get(index)} />}
+          {isVisibleConversationMessage(message) && <MessageCard message={message} onStartSession={onStartSession} usage={usagesByMessage.get(index)} />}
           {calls.map((call) => {
             const execution = executionsByCallId.get(call.id)
             const result = resultsByCallId.get(call.id) ?? execution?.result
@@ -135,7 +132,7 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
       {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard animateLiveChanges args={execution.args} hasResult={execution.result !== undefined} id={execution.id} interrupted={execution.status === 'interrupted'} key={execution.id} name={execution.name} onError={onError} onStartSession={onStartSession} rawArgs={execution.rawArgs} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} revealRequest={navigationRequest?.target.kind === 'tool' && navigationRequest.target.id === execution.id ? navigationRequest.id : undefined} streaming={execution.status === 'generating'} targeted={highlightedTarget === `tool:${execution.id}`} workspacePath={workspacePath} />)}
       {liveText && <article className="message assistant streaming conversation-entry"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
       {visibleMessages.length === 0 && !liveText && !liveThinking && <div className="empty-conversation"><h2>Session ready</h2><p>Send a message or use a command from your Pi installation.</p></div>}
-      {activity && <div className="conversation-activity"><ActivityIndicator activity={activity} agentName={agentName} onError={onError} /></div>}
+      {activity && <div className="conversation-activity"><ActivityIndicator activity={activity} agentName={agentName} /></div>}
       <button
         aria-label="Resume automatic scrolling"
         className={`scroll-to-bottom${showScrollToBottom ? ' visible' : ''}`}
@@ -150,22 +147,9 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
   )
 }
 
-const MessageCard = memo(function MessageCard({ message, onError, onStartSession, usage }: { message: JsonObject; onError: (cause: unknown) => void; onStartSession: (draft: string) => Promise<void>; usage?: MessageUsage }) {
-  if (message.role !== 'custom' || typeof message.customType !== 'string') return <DefaultMessageCard message={message} onStartSession={onStartSession} usage={usage} />
-
-  const Renderer = customExtensionRegistry.messages.get(message.customType)
-  const renderDefault = () => <DefaultCustomMessage message={message} />
-  if (!Renderer) return renderDefault()
-
-  const customMessage: CustomMessageView = {
-    content: message.content,
-    customType: message.customType,
-    details: message.details,
-    timestamp: typeof message.timestamp === 'number' ? message.timestamp : undefined,
-  }
-  return <ExtensionRendererBoundary fallback={renderDefault()} onError={onError}>
-    <Renderer message={customMessage} renderDefault={renderDefault} />
-  </ExtensionRendererBoundary>
+const MessageCard = memo(function MessageCard({ message, onStartSession, usage }: { message: JsonObject; onStartSession: (draft: string) => Promise<void>; usage?: MessageUsage }) {
+  if (message.role === 'custom' && typeof message.customType === 'string') return <DefaultCustomMessage message={message} />
+  return <DefaultMessageCard message={message} onStartSession={onStartSession} usage={usage} />
 })
 
 const DefaultMessageCard = memo(function DefaultMessageCard({ message, onStartSession, usage }: { message: JsonObject; onStartSession: (draft: string) => Promise<void>; usage?: MessageUsage }) {
@@ -200,20 +184,8 @@ function TurnUsage({ usage }: { usage: MessageUsage }) {
   </dl>
 }
 
-/** Isolates the fork's activity renderer and keeps the official indicator as a fallback. */
-export function ActivityIndicator({ activity, agentName, onError }: { activity: Activity; agentName?: string; onError: (cause: unknown) => void }) {
-  const renderDefault = () => <DefaultActivityIndicator activity={activity} agentName={agentName} />
-  const Renderer = customExtensionRegistry.activity
-  if (!Renderer) return renderDefault()
-
-  const activityView: ActivityView = { ...activity, agentName }
-  return <ExtensionRendererBoundary fallback={renderDefault()} onError={onError}>
-    <Renderer activity={activityView} renderDefault={renderDefault} />
-  </ExtensionRendererBoundary>
-}
-
 /** Displays Pi's current work state in the conversation thread. */
-function DefaultActivityIndicator({ activity, agentName }: { activity: Activity; agentName?: string }) {
+export function ActivityIndicator({ activity, agentName }: { activity: Activity; agentName?: string }) {
   return <div className="pi-activity" role="status"><span aria-hidden="true" className="activity-signal"><i /><i /><i /></span><span className="activity-text"><span>{activityAgentName(agentName)}</span>{' '}<span className="activity-action" key={activity.kind}>{activityActionText(activity)}</span></span></div>
 }
 

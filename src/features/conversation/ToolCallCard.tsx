@@ -11,9 +11,6 @@ import markup from 'react-syntax-highlighter/dist/esm/languages/prism/markup'
 import typescript from 'react-syntax-highlighter/dist/esm/languages/prism/typescript'
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { getWorkspaceFile, getWorkspaceFilePath } from '../../api.ts'
-import { customExtensionRegistry } from '../../custom/extensions.ts'
-import { ExtensionRendererBoundary } from '../../extensions/ExtensionRendererBoundary.tsx'
-import type { ToolCallView } from '../../extensions/frontend.ts'
 import { fileContextDraft } from './context-session.ts'
 import { canHighlightFile } from './file-preview.ts'
 import { formatToolCallTooltip, formatToolData, readContentDisplay, toolCallPresentation, toolContentText, toolDataLength, toolEditChanges, toolFilePath, toolTextPreview, windowsFileUrl } from './tool-calls.ts'
@@ -69,28 +66,8 @@ interface ToolCallCardProps {
   workspacePath: string
 }
 
-/** Selects a custom tool renderer and falls back to the official card on failure. */
-export const ToolCallCard = memo(function ToolCallCard(props: ToolCallCardProps) {
-  const Renderer = customExtensionRegistry.toolCalls.get(props.name)
-  const renderDefault = () => <DefaultToolCallCard {...props} />
-  if (!Renderer) return renderDefault()
-
-  const toolCall: ToolCallView = {
-    id: props.id,
-    name: props.name,
-    args: props.args,
-    rawArgs: props.rawArgs,
-    result: props.hasResult ? { content: props.resultContent, isError: props.resultError === true } : undefined,
-    status: props.interrupted ? 'interrupted' : props.hasResult ? 'completed' : props.streaming ? 'generating' : 'running',
-  }
-
-  return <ExtensionRendererBoundary fallback={renderDefault()} onError={props.onError}>
-    <Renderer renderDefault={renderDefault} toolCall={toolCall} />
-  </ExtensionRendererBoundary>
-})
-
 /** Displays the official card whose full result replaces the preview when expanded. */
-const DefaultToolCallCard = memo(function DefaultToolCallCard({ animateLiveChanges = false, args, hasResult, id, interrupted = false, name, onError, onStartSession, rawArgs, repositoryRoot, resultContent, resultError, revealRequest, streaming = false, targeted = false, workspacePath }: ToolCallCardProps) {
+export const ToolCallCard = memo(function ToolCallCard({ animateLiveChanges = false, args, hasResult, id, interrupted = false, name, onError, onStartSession, rawArgs, repositoryRoot, resultContent, resultError, revealRequest, streaming = false, targeted = false, workspacePath }: ToolCallCardProps) {
   const pending = !hasResult
   const active = pending && !interrupted
   const filePath = name === 'read' || name === 'write' ? toolFilePath(args) : null

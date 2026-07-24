@@ -4,8 +4,6 @@ import { homedir } from 'node:os'
 import { dirname, extname, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
-import { customBackendExtensionRegistry } from './custom/extensions.ts'
-import { BackendExtensionHttpError, matchBackendExtensionRoute } from './extensions/backend.ts'
 import { ManagerClient } from './manager-client.ts'
 import { listRecentPiSessions, loadPiSession } from './pi-session-store.ts'
 import { commitAndPush, getGitFileDiff, getGitSnapshot, revertGitCommit } from './git.ts'
@@ -39,7 +37,7 @@ manager.start()
 
 const server = createServer((request, response) => {
   void route(request, response).catch((error) => {
-    const status = error instanceof HttpError || error instanceof BackendExtensionHttpError ? error.status : 500
+    const status = error instanceof HttpError ? error.status : 500
     if (!response.headersSent) sendJson(response, status, { error: errorMessage(error) })
     else response.end()
   })
@@ -240,25 +238,6 @@ async function route(request: IncomingMessage, response: ServerResponse): Promis
       10 * 60_000,
     )
     sendJson(response, 200, data)
-    return
-  }
-
-  const extensionRoute = matchBackendExtensionRoute(customBackendExtensionRegistry, url.pathname)
-  if (extensionRoute) {
-    if (!extensionRoute.extension) {
-      sendJson(response, 404, { error: 'Extension backend not found' })
-      return
-    }
-    const result = await extensionRoute.extension.handleRequest({
-      method,
-      path: extensionRoute.path,
-      readJsonBody: () => readJsonBody(request),
-      request,
-      resolveWorkingDirectory,
-      response,
-      url,
-    })
-    if (!response.headersSent && !response.writableEnded) sendJson(response, response.statusCode, result ?? {})
     return
   }
 

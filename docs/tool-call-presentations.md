@@ -14,21 +14,3 @@ By default, the tool header exposes its full title on hover. Once the call is re
 4. Add a test to `test/tool-calls.test.ts` for the specific presentation and its generic fallback when arguments are invalid.
 
 Add a presentation only when a tool genuinely provides information that is easier to understand in another form.
-
-## Replacing the card in a fork
-
-A frontend extension can replace an entire tool renderer from `src/custom/extensions.ts`:
-
-```tsx
-import { MyToolCall } from './MyToolCall.tsx'
-import type { WorkbenchExtension } from '../extensions/frontend.ts'
-
-export const customExtensions: readonly WorkbenchExtension[] = [{
-  id: 'my-tools',
-  toolCalls: { my_tool: MyToolCall },
-}]
-```
-
-The renderer receives a normalized call view and `renderDefault()`, which lets it wrap the official card without depending on its internal properties. If its rendering throws, Workbench reports the error and displays the official card. Two extensions cannot declare the same tool.
-
-Prefer a presentation when only the header needs to change; reserve a renderer for a genuinely different structure or interaction.

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import './App.css'
 import { commitAndPush, createSession, getGitFileDiff, getGitSnapshot, getQuotas, getSnapshot, getVsCodeStatus, listRecentSessions, listSessions, openExplorer, openSession, openVsCode, refreshQuotas, revertGitCommit, sendPiCommand } from './api.ts'
-import { customExtensionRegistry } from './custom/extensions.ts'
 import { quotaRefreshAllowed } from '../shared/quota-refresh.ts'
 import type { GitSnapshot, JsonObject, ManagerEvent, QuotaSnapshot, RecentSession, SessionSnapshot, SessionSummary } from '../shared/types.ts'
 import { Composer } from './features/composer/Composer.tsx'
@@ -479,7 +478,6 @@ function App() {
   const rightPanelVisible = activeRightWidget === 'terminal' || activeRightWidget === 'todo' || activeRightWidget === 'quotas'
     || (activeRightWidget === 'analysis' && sessionAnalysis !== null)
     || (activeRightWidget === 'git' && gitSnapshot?.repository === true)
-    || (activeRightWidget?.startsWith('extension:') === true && customExtensionRegistry.rightSidebarWidgets.has(activeRightWidget as `extension:${string}`))
 
   return (
     <div
@@ -652,7 +650,6 @@ function readRecentWorkspaces(): string[] {
 function readActiveRightWidget(): RightWidget | null {
   const stored = window.localStorage.getItem('pi-workbench.right-sidebar-widget')
   if (stored === 'analysis' || stored === 'git' || stored === 'quotas' || stored === 'terminal' || stored === 'todo') return stored
-  if (stored?.startsWith('extension:') && customExtensionRegistry.rightSidebarWidgets.has(stored as `extension:${string}`)) return stored as `extension:${string}`
   if (stored === 'none') return null
   return window.localStorage.getItem('pi-workbench.git-sidebar-collapsed') === 'true' ? null : 'git'
 }

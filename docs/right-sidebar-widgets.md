@@ -75,44 +75,7 @@ The current CSS structure is intentionally minimal: `.git-sidebar` aligns `.git-
 
 ## Adding a widget
 
-An official widget that strongly depends on central state may still extend existing conditional rendering. A fork should preferably add isolated widgets in the reserved `src/custom/extensions.ts` area, without modifying `App.tsx` or `RightSidebar.tsx`:
-
-```tsx
-const StatusWidget = ({ request, workspacePath }: RightSidebarWidgetProps) => {
-  // request('/status') always targets /api/extensions/my-workbench/status.
-  return <button onClick={() => void request('/status', { method: 'POST', body: JSON.stringify({ cwd: workspacePath }) })}>{workspacePath}</button>
-}
-
-export const customExtensions: readonly WorkbenchExtension[] = [{
-  id: 'my-workbench',
-  rightSidebarWidgets: [{
-    id: 'status',
-    label: 'Workspace status',
-    icon: <span aria-hidden="true">●</span>,
-    render: StatusWidget,
-  }],
-}]
-```
-
-The persisted key is derived from the extension and widget identifiers. Two widgets with the same identifier in one extension produce an explicit error. A rendering error is isolated: the panel displays a fallback and the rest of the shell remains usable.
-
-The `request()` prop calls a JSON response in the extension's backend namespace. The relative path cannot leave that namespace. Query string values must still be encoded with `URLSearchParams` or `encodeURIComponent`. For a non-JSON response, the widget can use `fetch` directly on its namespace.
-
-The corresponding Node.js capability is declared separately in `server/custom/extensions.ts`:
-
-```ts
-export const customBackendExtensions: readonly WorkbenchBackendExtension[] = [{
-  id: 'my-workbench',
-  handleRequest: async ({ method, path, readJsonBody, resolveWorkingDirectory }) => {
-    if (method !== 'POST' || path !== 'status') throw new BackendExtensionHttpError(404, 'Not found')
-    const body = await readJsonBody()
-    const cwd = await resolveWorkingDirectory(String(body.cwd ?? ''))
-    return { cwd, ok: true }
-  },
-}]
-```
-
-The same `id` connects the two contributions without coupling their modules. The handler must validate all received data. It may return JSON or write directly to the Node.js HTTP response for advanced use cases.
+Add an integrated widget directly to its feature and connect it to the sidebar without introducing a registry.
 
 ### Panel widget
 
