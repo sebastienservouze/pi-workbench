@@ -12,14 +12,29 @@ interface PiSessionHeader {
   cwd: string
 }
 
+const MAX_SESSIONS = 30
+const CANDIDATE_BUFFER = 100
+
 /** Reads only the metadata required to resume a Pi session. */
 export async function listRecentPiSessions(cwd: string, directory = sessionDirectory): Promise<RecentSession[]> {
   const paths = await listSessionFiles(directory)
-  const sessions = await Promise.all(paths.map(async (path) => readPiSession(path, (await stat(path)).mtimeMs)))
+
+  // stat is cheap, readFile is expensive: read only the most recent candidates
+  const withMtime = await Promise.all(
+    paths.map(async (path) => ({ path, mtime: (await stat(path)).mtimeMs })),
+  )
+  const candidates = withMtime
+    .sort((a, b) => b.mtime - a.mtime)
+    .slice(0, CANDIDATE_BUFFER)
+
+  const sessions = await Promise.all(
+    candidates.map(({ path, mtime }) => readPiSession(path, mtime)),
+  )
 
   return sessions
     .filter((session): session is RecentSession => session?.cwd === cwd)
     .sort((left, right) => right.updatedAt - left.updatedAt)
+    .slice(0, MAX_SESSIONS)
 }
 
 /** Verifies that a file belongs to the Pi session directory before loading its metadata. */
