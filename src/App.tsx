@@ -497,7 +497,7 @@ function App() {
       toolExecutions,
     })
     : null, [observedRequestDurations, observedToolDurations, selectedSession, snapshot.messages, snapshot.stats, snapshotSessionId, toolExecutions])
-  const questionnaire = dialog && dialog.sessionId === selectedId && isAskUserQuestionDialog(dialog.request) ? dialog : null
+  const questionnaire = dialog && isAskUserQuestionDialog(dialog.request) ? dialog : null
 
   /** Launches and selects a session, then sends a message or prepares a draft depending on the source action. */
   const startAndSelectSession = useCallback(async (start: () => Promise<SessionSummary>, initialMessage?: string, draftMessage?: string): Promise<void> => {
@@ -644,7 +644,6 @@ function App() {
               <span aria-hidden="true" className="chat-detail-toggle-icon">⌘</span>
               <span className="chat-detail-toggle-copy"><strong>{conversationViewDetail.label}</strong><small>{conversationViewDetail.description}</small></span>
             </button>
-            {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => closeDialog(questionnaire)} onError={(cause) => showToast('error', messageOf(cause))} />}
             <div className="composer-area">
               <ToastStack onDismiss={dismissToast} toasts={visibleToasts} />
               <Composer
@@ -748,6 +747,7 @@ function App() {
           void refreshSessions(path)
         }}
       />}
+      {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => closeDialog(questionnaire)} onError={(cause) => showToast('error', messageOf(cause))} />}
       {dialog && !questionnaire && <ExtensionDialog dialog={dialog} onClose={() => closeDialog(dialog)} onError={(cause) => showToast('error', messageOf(cause))} />}
       {commandPaletteOpen && <CommandPalette commands={paletteCommands} onClose={() => setCommandPaletteOpen(false)} />}
       {settingsOpen && <SettingsPanel definitions={commandDefinitions} shortcuts={shortcuts} onChange={(id, shortcut) => { const next = { ...shortcuts, [id]: shortcut }; setShortcuts(next); window.localStorage.setItem('pi-workbench.shortcuts', JSON.stringify(next)) }} onReset={() => { setShortcuts(defaultShortcuts); window.localStorage.setItem('pi-workbench.shortcuts', JSON.stringify(defaultShortcuts)) }} onClose={() => setSettingsOpen(false)} />}
