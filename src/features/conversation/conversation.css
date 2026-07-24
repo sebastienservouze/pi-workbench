@@ -158,7 +158,7 @@
 .tool-call:has(> .context-session-button) > .tool-call-heading { padding-right: 40px; }
 @media (hover: none) { .context-session-button { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .context-session-button { transition: none; } }
-.conversation-entry, .tool-call.entering, .tool-call-result.entering, .activity-text { animation: conversation-entry-in 180ms cubic-bezier(.25, 1, .5, 1); }
+.conversation-entry, .tool-call.entering, .tool-call-result.entering { animation: conversation-entry-in 180ms cubic-bezier(.25, 1, .5, 1); }
 @keyframes conversation-entry-in { from { opacity: 0; transform: translateY(2px); } }
 .tool-call.error { border-color: #e4beb7; background: var(--danger-soft); color: #843b31; }
 .tool-call.interrupted { border-color: #d8cbb0; background: #fffbf2; color: #675735; }
@@ -178,7 +178,7 @@
 .tool-call-body.visible { grid-template-rows: 1fr; opacity: 1; }
 .tool-call-body > div { min-height: 0; overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
-  .conversation-entry, .tool-call.entering, .tool-call-result.entering, .activity-text { animation: none; }
+  .conversation-entry, .tool-call.entering, .tool-call-result.entering, .activity-action { animation: none; }
   .tool-call-body { transition: none; }
 }
 .tool-call-raw-args { margin: 0; border: 0; border-top: 1px solid rgb(33 68 61 / 14%); padding: 9px 10px; background: rgb(255 255 255 / 56%); color: inherit; font: 11px/1.5 ui-monospace, monospace; overflow-wrap: anywhere; white-space: pre-wrap; }
@@ -210,6 +210,8 @@
 .pi-activity { display: flex; align-items: flex-start; gap: 9px; color: var(--teal); font: 12px/1.55 ui-monospace, monospace; white-space: nowrap; }
 .conversation-activity { margin: 0 2px 18px; }
 .activity-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.activity-action { display: inline-block; animation: activity-action-in 220ms cubic-bezier(.25, 1, .5, 1); }
+@keyframes activity-action-in { from { opacity: 0; transform: translateY(-5px); } }
 .activity-signal { display: inline-flex; align-items: center; justify-content: center; gap: 2px; width: 17px; height: 18px; }
 .activity-signal i { width: 3px; height: 3px; border-radius: 50%; background: currentColor; animation: activity-wave 900ms cubic-bezier(.25, 1, .5, 1) infinite; }
 .activity-signal i:nth-child(2) { animation-delay: 120ms; }

@@ -30,16 +30,20 @@ export function waitingActivity(): Activity {
 
 /** Produit un libellé enjoué qui décrit précisément l'activité courante. */
 export function activityText(activity: Activity, agentName: string | undefined): string {
-  const agent = displayAgentName(agentName)
-  if (activity.kind === 'thinking') return `${agent} fait chauffer ses neurones…`
-  if (activity.kind === 'tool-preparing') return `${agent} prépare un appel d’outil aux petits oignons…`
-  if (activity.kind === 'tool-waiting') return `${agent} attend le verdict de l’outil…`
-  if (activity.kind === 'writing') return `${agent} fait danser les mots…`
-  if (activity.kind === 'waiting') return `${agent} vous passe le micro 🎤`
-  return `${agent} met les rouages en marche…`
+  return `${activityAgentName(agentName)} ${activityActionText(activity)}`
 }
 
-function displayAgentName(agentName: string | undefined): string {
+/** Produit la partie variable du libellé pour permettre de l'animer indépendamment du nom. */
+export function activityActionText(activity: Activity): string {
+  if (activity.kind === 'thinking') return 'fait chauffer ses neurones…'
+  if (activity.kind === 'tool-preparing') return 'prépare un appel d’outil aux petits oignons…'
+  if (activity.kind === 'tool-waiting') return 'attend le verdict de l’outil…'
+  if (activity.kind === 'writing') return 'fait danser les mots…'
+  if (activity.kind === 'waiting') return 'vous passe le micro 🎤'
+  return 'met les rouages en marche…'
+}
+
+export function activityAgentName(agentName: string | undefined): string {
   const name = agentName?.trim()
   return name ? name[0].toUpperCase() + name.slice(1) : 'Pi'
 }

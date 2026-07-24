@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef, useState, type KeyboardEvent, type ReactNode, type WheelEvent } from 'react'
 import type { JsonObject } from '../../../shared/types.ts'
-import { activityText, type Activity } from './activity.ts'
+import { activityActionText, activityAgentName, type Activity } from './activity.ts'
 import { formatTokens, formatTurnCost, turnUsageByMessage, type MessageUsage } from './message-usage.ts'
 import { toolCallsInMessage, toolResultInMessage, type ToolExecution } from './tool-calls.ts'
 import type { SessionAnalysisTarget } from '../session-analysis/session-analysis.ts'
@@ -172,7 +172,7 @@ function TurnUsage({ usage }: { usage: MessageUsage }) {
 
 /** Affiche l'état de travail courant de Pi dans le fil de conversation. */
 export function ActivityIndicator({ activity, agentName }: { activity: Activity; agentName?: string }) {
-  return <div className="pi-activity" role="status"><span aria-hidden="true" className="activity-signal"><i /><i /><i /></span><span className="activity-text" key={activity.kind}>{activityText(activity, agentName)}</span></div>
+  return <div className="pi-activity" role="status"><span aria-hidden="true" className="activity-signal"><i /><i /><i /></span><span className="activity-text"><span>{activityAgentName(agentName)}</span>{' '}<span className="activity-action" key={activity.kind}>{activityActionText(activity)}</span></span></div>
 }
 
 function isVisibleConversationMessage(message: JsonObject): boolean {
