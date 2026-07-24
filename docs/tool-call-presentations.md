@@ -1,25 +1,25 @@
-# Présentations des appels d’outils
+# Tool call presentations
 
-Les appels d’outils sont affichés par `ToolCallCard` dans `src/features/conversation/ToolCallCard.tsx`. La présentation dépend de `toolCallPresentation()` dans `src/features/conversation/tool-calls.ts`.
+Tool calls are displayed by `ToolCallCard` in `src/features/conversation/ToolCallCard.tsx`. The presentation is selected by `toolCallPresentation()` in `src/features/conversation/tool-calls.ts`.
 
-Par défaut, l’en-tête de l’outil expose son titre complet au survol. Une fois l’appel résolu, son statut affiche les nombres de caractères de ses arguments JSON sérialisés (`↘`) et de sa sortie textuelle brute (`↗`) ; ces valeurs restent détaillées au survol et au lecteur d’écran. Sa sortie affiche toujours un aperçu de quatre lignes ; un clic affiche la sortie complète, puis le clic suivant la masque. Les fichiers Markdown et de code lus ou écrits sont rendus dans leur format adapté. Une lecture HTML ouvre le fichier dans le navigateur avec son chemin Windows converti depuis WSL.
+By default, the tool header exposes its full title on hover. Once the call is resolved, its status displays the character counts of its serialized JSON arguments (`↘`) and raw text output (`↗`); these values remain available to hover and screen readers. Its output always shows a four-line preview; a click shows the full output, and the next click hides it. Read and written Markdown and code files are rendered in their appropriate format. Reading an HTML file opens it in the browser with its Windows path converted from WSL.
 
-## Ajouter une présentation
+## Adding a presentation
 
-1. Ajoutez au registre `toolCallPresentations` une entrée dont la clé est le nom RPC exact de l’outil.
-2. Validez les arguments `unknown` dans sa fonction de présentation. Ne supposez jamais leur forme.
-3. Retournez un `ToolCallPresentation` :
-   - `headerDetail` affiche un détail compact dans l’en-tête ; fournissez le texte complet dans `title` pour le tooltip et le lecteur d’écran ;
-   - `pendingDetail` complète uniquement l’état `En cours…`.
-4. Ajoutez un test dans `test/tool-calls.test.ts` pour la présentation spécifique et pour son repli générique si les arguments sont invalides.
+1. Add an entry to `toolCallPresentations` using the exact RPC tool name as its key.
+2. Validate `unknown` arguments inside the presentation function. Never assume their shape.
+3. Return a `ToolCallPresentation`:
+   - `headerDetail` shows a compact detail in the header; provide the full text in `title` for the tooltip and screen reader;
+   - `pendingDetail` only supplements the `In progress…` state.
+4. Add a test to `test/tool-calls.test.ts` for the specific presentation and its generic fallback when arguments are invalid.
 
-N’ajoutez une présentation que lorsqu’un outil apporte réellement une information plus lisible sous une autre forme.
+Add a presentation only when a tool genuinely provides information that is easier to understand in another form.
 
-## Remplacer la carte dans un fork
+## Replacing the card in a fork
 
-Une extension frontend peut remplacer le rendu complet d’un outil depuis `src/custom/extensions.ts` :
+A frontend extension can replace an entire tool renderer from `src/custom/extensions.ts`:
 
-```ts
+```tsx
 import { MyToolCall } from './MyToolCall.tsx'
 import type { WorkbenchExtension } from '../extensions/frontend.ts'
 
@@ -29,6 +29,6 @@ export const customExtensions: readonly WorkbenchExtension[] = [{
 }]
 ```
 
-Le renderer reçoit une vue normalisée de l’appel ainsi que `renderDefault()`, qui permet d’encapsuler la carte officielle sans dépendre de ses propriétés internes. Si son rendu lève une erreur, le Workbench signale celle-ci puis affiche la carte officielle. Deux extensions ne peuvent pas déclarer le même outil.
+The renderer receives a normalized call view and `renderDefault()`, which lets it wrap the official card without depending on its internal properties. If its rendering throws, Workbench reports the error and displays the official card. Two extensions cannot declare the same tool.
 
-Préférez une présentation lorsque seul l’en-tête doit changer ; réservez le renderer à une structure ou une interaction réellement différente.
+Prefer a presentation when only the header needs to change; reserve a renderer for a genuinely different structure or interaction.

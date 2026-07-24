@@ -1,43 +1,43 @@
-# Personnaliser Pi Workbench dans un fork
+# Customizing Pi Workbench in a fork
 
-Pi Workbench suit un modèle **source-first** : les personnalisations sont écrites dans un fork, compilées avec l’application et rechargées par Vite en développement. Le code source reste toujours modifiable ; les points d’extension servent seulement à éviter des conflits upstream récurrents.
+Pi Workbench follows a **source-first** model: customizations are written in a fork, compiled with the application, and reloaded by Vite during development. The source code remains fully editable; extension points only exist to avoid recurring upstream conflicts.
 
-Ils ne constituent pas une plateforme de plugins ni une API maintenue séparément du projet. Une évolution upstream peut demander d’adapter le code du fork ; TypeScript et les tests rendent alors la rupture visible au build.
+They are not a plugin platform or an API maintained separately from the project. An upstream change may require adapting fork code; TypeScript and tests make such a break visible at build time.
 
-## Compromis retenu
+## The chosen trade-off
 
 ```text
-Dépôt upstream
-├── cœur et fonctionnalités officielles
-└── coutures de personnalisation réservées
+Upstream repository
+├── core and official features
+└── reserved customization seams
 
-Fork utilisateur
-├── contributions frontend et backend isolées
-└── modifications directes lorsque les coutures ne suffisent pas
+User fork
+├── isolated frontend and backend contributions
+└── direct changes when the seams are not enough
 ```
 
-Le chemin le plus simple prévaut : modifier directement un composant local est normal. Une contribution dédiée devient utile seulement lorsqu’elle évite de modifier un point central ou facilite la reprise des changements upstream.
+The simplest path wins: directly changing a local component is normal. A dedicated contribution is useful only when it avoids changing a central point or makes upstream changes easier to reapply.
 
-## Pourquoi ne pas charger des plugins à l’exécution
+## Why plugins are not loaded at runtime
 
-Le fork et `npm run dev` fournissent déjà TypeScript, React, le HMR et la résolution des imports. Pi Workbench n’ajoute donc pas :
+The fork and `npm run dev` already provide TypeScript, React, HMR, and import resolution. Pi Workbench therefore does not add:
 
-- de marketplace ou de gestionnaire de plugins ;
-- de chargement de JavaScript distant ;
-- de Module Federation ;
-- de sandbox ou de système de permissions ;
-- de protocole d’activation ou de versionnement dynamique.
+- a marketplace or plugin manager;
+- remote JavaScript loading;
+- Module Federation;
+- a sandbox or permission system;
+- a dynamic activation or versioning protocol.
 
-Le code personnalisé est privilégié au même titre que le reste du fork. Il doit être relu avant compilation et n’est pas isolé du système local.
+Custom code is treated like the rest of the fork. It must be reviewed before compilation and is not isolated from the local system.
 
-## Contributions frontend
+## Frontend contributions
 
-Les contributions frontend vivent dans `src/custom/extensions.ts`. Elles peuvent actuellement fournir :
+Frontend contributions live in `src/custom/extensions.ts`. They can currently provide:
 
-- des renderers d’appels d’outils ;
-- des renderers de messages Pi personnalisés visibles ;
-- un renderer d’activité ;
-- des widgets de sidebar droite.
+- tool call renderers;
+- renderers for visible custom Pi messages;
+- an activity renderer;
+- right sidebar widgets.
 
 ```ts
 interface WorkbenchExtension {
@@ -49,53 +49,53 @@ interface WorkbenchExtension {
 }
 ```
 
-Le registre refuse les identifiants ambigus et les contributions concurrentes. Une erreur de renderer est isolée et utilise le rendu officiel comme repli lorsqu’il existe.
+The registry rejects ambiguous identifiers and competing contributions. A renderer error is isolated and uses the official rendering as a fallback when one exists.
 
-Les messages Pi dont le rôle vaut `custom` et dont `display` vaut `true` peuvent être rendus par `messages[customType]`. Les messages cachés restent exclus du snapshot envoyé au navigateur afin de ne pas exposer implicitement du contexte interne à Pi.
+Pi messages whose role is `custom` and whose `display` is `true` can be rendered by `messages[customType]`. Hidden messages remain excluded from the snapshot sent to the browser so internal Pi context is not exposed implicitly.
 
-Ces types sont des coutures pratiques compilées avec le fork, pas une garantie de compatibilité entre versions. Un besoin qui ne correspond pas à ces contributions peut modifier directement le composant concerné.
+These types are practical seams compiled with the fork, not a compatibility guarantee between versions. A need that does not fit these contributions can modify the relevant component directly.
 
-## Contributions backend
+## Backend contributions
 
-Un widget nécessitant le système local peut déclarer une capacité Node.js dans `server/custom/extensions.ts` :
+A widget that needs local system access can declare a Node.js capability in `server/custom/extensions.ts`:
 
 ```text
-Widget React
+React widget
     │ /api/extensions/<extension-id>/*
     ▼
-Route backend namespacée
+Namespaced backend route
     │
     ▼
-API Node.js et système local
+Node.js API and local system
 ```
 
-Chaque contribution possède exclusivement son namespace `/api/extensions/<extension-id>/*` et ne peut pas remplacer une route du cœur. Son `handleRequest` reçoit la méthode, le chemin relatif, l’URL, les objets HTTP Node.js et les helpers `readJsonBody()` et `resolveWorkingDirectory()`.
+Each contribution exclusively owns its `/api/extensions/<extension-id>/*` namespace and cannot replace a core route. Its `handleRequest` receives the method, relative path, URL, Node.js HTTP objects, and the `readJsonBody()` and `resolveWorkingDirectory()` helpers.
 
-La valeur retournée est sérialisée en JSON avec un statut 200. Le handler peut aussi écrire directement dans `response` pour produire un autre statut, un fichier ou un flux, et lever `BackendExtensionHttpError` pour une erreur HTTP contrôlée.
+The returned value is serialized as JSON with status 200. The handler can also write directly to `response` to produce another status, a file, or a stream, and can throw `BackendExtensionHttpError` for a controlled HTTP error.
 
-Toutes les données HTTP restent non fiables. Le handler doit valider son corps, ses paramètres et son workspace. Le backend continue d’écouter uniquement sur `127.0.0.1`.
+All HTTP data is untrusted. The handler must validate its body, parameters, and workspace. The backend continues to listen only on `127.0.0.1`.
 
-## Hooks Pi
+## Pi hooks
 
-Les comportements exécutés dans `before_agent_start`, `tool_call`, `context` ou les autres hooks appartiennent à une extension Pi, pas à React. Un fork qui en a besoin utilise le mécanisme public d’extension de Pi et adapte explicitement son lancement dans le manager.
+Behavior executed in `before_agent_start`, `tool_call`, `context`, or other hooks belongs to a Pi extension, not React. A fork that needs it uses Pi's public extension mechanism and explicitly adapts its launch in the manager.
 
-`server/manager.ts` reste l’unique propriétaire des processus `pi --mode rpc`. Aucun point d’extension Workbench ne doit déplacer cette responsabilité ni faire dépendre la boucle agentique d’un onglet navigateur.
+`server/manager.ts` remains the sole owner of `pi --mode rpc` processes. No Workbench extension point should move that responsibility or make the agent loop depend on a browser tab.
 
-## Zones réservées aux forks
+## Areas reserved for forks
 
-Les manifestes livrés vides sont :
+The empty manifests are:
 
 ```text
 src/custom/extensions.ts
 server/custom/extensions.ts
 ```
 
-Le code propre au fork peut être colocalisé sous ces répertoires. Les styles personnalisés privilégient les variables existantes, les CSS Modules ou des classes préfixées afin de limiter les collisions.
+Fork-specific code can be colocated under these directories. Custom styles should prefer existing variables, CSS Modules, or prefixed classes to limit collisions.
 
-Les imports internes, les sélecteurs CSS visant l’implémentation et les modifications directes sont autorisés. Ils peuvent simplement demander une résolution manuelle lors d’une mise à jour upstream.
+Internal imports, selectors targeting implementation details, and direct changes are allowed. They may simply require manual resolution during an upstream update.
 
-## Limite volontaire
+## Intentional limit
 
-Un nouveau point d’extension n’est ajouté que pour un besoin concret qui traverse un fichier central ou provoque des conflits répétés. Pi Workbench ne cherche pas à rendre chaque composant remplaçable, à extraire un runtime headless ni à fournir un shell alternatif générique.
+Add a new extension point only for a concrete need that crosses a central file or causes repeated conflicts. Pi Workbench does not aim to make every component replaceable, extract a headless runtime, or provide a generic alternative shell.
 
-L’objectif est de garder quelques coutures utiles aux forks, pas de construire une usine à plugins.
+The goal is to keep a few useful seams for forks, not to build a plugin factory.

@@ -10,45 +10,45 @@
 
 <div align="center">
 
-> Pi Workbench est une interface web locale pour utiliser plusieurs sessions [Pi](https://github.com/earendil-works/pi) dans le même espace de travail. Elle conserve les sessions Pi indépendamment de l'interface : redémarrer le frontend ou le backend n'interrompt pas une session en cours.
+> Pi Workbench is a local web interface for using multiple [Pi](https://github.com/earendil-works/pi) sessions in the same workspace. It keeps Pi sessions independent from the interface: restarting the frontend or backend does not interrupt an active session.
 
 </div>
 
-L’application écoute uniquement sur `127.0.0.1` : elle n’est pas exposée au réseau.
+The application listens only on `127.0.0.1`: it is not exposed to the network.
 
-## Un projet à adapter
+## A project to adapt
 
-Pi Workbench n’a pas vocation à être une boîte noire ni une architecture figée. C’est un outil local que vous pouvez modifier pour l’adapter à votre façon de travailler, à votre environnement ou à vos propres extensions Pi.
+Pi Workbench is not intended to be a black box or a fixed architecture. It is a local tool that you can modify to fit your workflow, environment, or Pi extensions.
 
-Les forks sont les bienvenus : partez de ce dépôt, simplifiez-le, ajoutez vos idées ou faites-en une version très différente. Gardez simplement un œil sur les contrats existants et les changements de compatibilité. Le manager est notamment le lien avec les processus Pi : le modifier peut interrompre une connexion et une réponse en cours. Dans ce cas, la session peut généralement être reprise via l’historique de Pi.
+Forks are welcome: start from this repository, simplify it, add your ideas, or turn it into something very different. Keep an eye on existing contracts and compatibility changes. The manager is the link to Pi processes in particular; changing it can interrupt a connection and an active response. In that case, the session can usually be resumed through Pi history.
 
-L’objectif est de rester assez simple pour être compris, corrigé et transformé. Si votre adaptation répond mieux à un autre besoin, elle mérite d’exister comme fork plutôt que d’attendre de rentrer dans le projet principal.
+The goal is to remain simple enough to understand, fix, and transform. If your adaptation serves a different need better, it deserves to exist as a fork rather than waiting to be merged into the main project.
 
-## Ce que permet l’interface
+## What the interface provides
 
-- créer une session Pi ou rouvrir une session existante pour le dossier choisi ;
-- converser avec Pi, suivre ses réponses et ses appels d’outils en direct ;
-- utiliser les modèles, niveaux de réflexion et commandes disponibles dans Pi ;
-- répondre aux dialogues d’extensions pris en charge ;
-- consulter l’état Git, les diffs et les fichiers lus ou écrits par Pi ;
-- committer et pousser les changements depuis le panneau Git.
+- create a Pi session or reopen an existing session for the selected directory;
+- chat with Pi and follow its live responses and tool calls;
+- use the models, thinking levels, and commands available in Pi;
+- answer supported extension dialogs;
+- inspect Git status, diffs, and files read or written by Pi;
+- commit and push changes from the Git panel.
 
-> Pi peut lire, modifier et exécuter des commandes dans le dossier sélectionné. Utilisez un dépôt Git ou un autre mécanisme de sauvegarde avant de lui confier des changements importants.
+> Pi can read, modify, and execute commands in the selected directory. Use a Git repository or another backup mechanism before trusting it with important changes.
 
-## Fonctionnement
+## How it works
 
-Le navigateur communique avec un backend HTTP local. Ce backend transmet les demandes à un gestionnaire distinct, seul responsable des processus `pi --mode rpc`. Cette séparation permet de mettre à jour l’interface sans perdre les sessions Pi actives.
+The browser communicates with a local HTTP backend. This backend forwards requests to a separate manager, which is solely responsible for `pi --mode rpc` processes. This separation lets you update the interface without losing active Pi sessions.
 
-Les sessions sont enregistrées par Pi. Après un redémarrage du gestionnaire, Pi Workbench les relance avec leur historique ; une réponse en cours au moment du redémarrage reste toutefois interrompue.
+Pi stores the sessions. After the manager restarts, Pi Workbench relaunches them with their history; a response that was in progress when the manager restarted is nevertheless interrupted.
 
-## Prérequis
+## Requirements
 
-- [Node.js](https://nodejs.org/) 24 ou supérieur ;
-- npm ;
-- Pi installé, configuré et disponible dans le `PATH` ;
-- un compte connecté à un fournisseur de modèles ou une clé API configurée pour Pi.
+- [Node.js](https://nodejs.org/) 24 or newer;
+- npm;
+- Pi installed, configured, and available in `PATH`;
+- an account connected to a model provider or an API key configured for Pi.
 
-Vérifiez l’installation :
+Check the installation:
 
 ```bash
 node --version
@@ -56,19 +56,19 @@ npm --version
 pi --version
 ```
 
-### Installer et configurer Pi
+### Install and configure Pi
 
-Si Pi n’est pas encore installé :
+If Pi is not installed yet:
 
 ```bash
 npm install -g --ignore-scripts @earendil-works/pi-coding-agent
 ```
 
-Dans un terminal, lancez ensuite `pi`, puis utilisez `/login` pour vous connecter à un fournisseur. Consultez le [guide de démarrage de Pi](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/quickstart.md) pour les autres modes d’authentification et de configuration.
+Then start `pi` in a terminal and use `/login` to sign in to a provider. See the [Pi quickstart guide](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/quickstart.md) for other authentication and configuration modes.
 
-## Installation de Pi Workbench
+## Install Pi Workbench
 
-Clonez le dépôt, puis installez ses dépendances :
+Clone the repository, then install its dependencies:
 
 ```bash
 git clone <repository-url>
@@ -76,55 +76,55 @@ cd pi-workbench
 npm install
 ```
 
-## Démarrer l’application
+## Start the application
 
-Pour le développement, une seule commande démarre le gestionnaire Pi, le backend et le frontend :
+For development, one command starts the Pi manager, backend, and frontend:
 
 ```bash
 npm run dev
 ```
 
-Ouvrez ensuite [http://127.0.0.1:5173](http://127.0.0.1:5173). Utilisez `Ctrl+C` dans le terminal pour arrêter les trois services.
+Then open [http://127.0.0.1:5173](http://127.0.0.1:5173). Press `Ctrl+C` in the terminal to stop all three services.
 
-### Construire et lancer la version de production
+### Build and run the production version
 
-Une seule commande construit l’interface, puis démarre le gestionnaire et le backend. `Ctrl+C` arrête les deux services :
+One command builds the interface, then starts the manager and backend. `Ctrl+C` stops both services:
 
 ```bash
 npm start
 ```
 
-L’interface est disponible sur [http://127.0.0.1:43121](http://127.0.0.1:43121).
+The interface is available at [http://127.0.0.1:43121](http://127.0.0.1:43121).
 
-## Première utilisation
+## First use
 
-1. Ouvrez l’application dans votre navigateur.
-2. Cliquez sur **Dossier courant** et choisissez le dossier dans lequel Pi doit travailler.
-3. Cliquez sur **Nouvelle session**.
-4. Envoyez votre demande dans la zone de saisie, par exemple : « Analyse ce dépôt et indique comment exécuter ses contrôles. »
-5. Suivez les réponses et les appels d’outils dans la conversation.
+1. Open the application in your browser.
+2. Click **Current directory** and choose the directory where Pi should work.
+3. Click **New session**.
+4. Enter your request in the composer, for example: “Analyze this repository and explain how to run its checks.”
+5. Follow the responses and tool calls in the conversation.
 
-Les sessions récentes du dossier sélectionné s’affichent dans la barre latérale gauche. Cliquez sur l’une d’elles pour la reprendre. Le sélecteur d’agent apparaît seulement si votre installation Pi expose la commande correspondante.
+Recent sessions for the selected directory appear in the left sidebar. Click one to resume it. The agent selector appears only if your Pi installation exposes the corresponding command.
 
-## Git et aperçu de fichiers
+## Git and file previews
 
-Lorsqu’un dépôt Git est détecté dans le dossier courant, le panneau de droite affiche la branche, les fichiers modifiés, leurs diffs et les commits non poussés. Vous pouvez y saisir un message pour **committer et pousser** les changements.
+When a Git repository is detected in the current directory, the right panel displays the branch, changed files, diffs, and unpushed commits. You can enter a message there to **commit and push** changes.
 
-Cette action exécute réellement les opérations Git dans le dossier sélectionné. Vérifiez le diff et la destination distante avant de confirmer.
+This action really executes Git operations in the selected directory. Review the diff and remote destination before confirming.
 
-Après un appel `read` ou `write` de Pi, la conversation peut développer le contenu concerné. Le Markdown est rendu directement dans l’historique et un document HTML du workspace peut être ouvert dans un nouvel onglet local.
+After a Pi `read` or `write` call, the conversation can expand the relevant content. Markdown is rendered directly in the history, and an HTML document from the workspace can be opened in a new local tab.
 
-## Dépannage
+## Troubleshooting
 
-| Symptôme | Vérification |
+| Symptom | Check |
 | --- | --- |
-| `pi` est introuvable | Installez Pi, puis vérifiez que son répertoire d’installation est dans le `PATH` avec `pi --version`. |
-| Pi ne répond pas ou aucun modèle n’est disponible | Lancez `pi` dans un terminal et terminez la configuration avec `/login`, ou configurez votre clé API. |
-| La page ne s’ouvre pas | Vérifiez que `npm run dev` est toujours en cours et ouvrez exactement l’adresse affichée par Vite. |
-| Le port est déjà utilisé | Arrêtez le processus qui utilise le port ou choisissez un autre port avec `PI_WORKBENCH_MANAGER_PORT` et `PI_WORKBENCH_BACKEND_PORT` avant le démarrage. |
-| Une session ne se rouvre pas | Vérifiez que son dossier de travail existe toujours et que vous avez sélectionné ce même dossier dans l’interface. |
+| `pi` cannot be found | Install Pi, then check that its installation directory is in `PATH` with `pi --version`. |
+| Pi does not respond or no model is available | Start `pi` in a terminal and finish setup with `/login`, or configure your API key. |
+| The page does not open | Check that `npm run dev` is still running and open the exact address displayed by Vite. |
+| The port is already in use | Stop the process using it or choose another port with `PI_WORKBENCH_MANAGER_PORT` and `PI_WORKBENCH_BACKEND_PORT` before starting. |
+| A session does not reopen | Check that its working directory still exists and that you selected the same directory in the interface. |
 
-## Vérifications du projet
+## Project checks
 
 ```bash
 npm run typecheck
@@ -133,20 +133,20 @@ npm test
 npm run build
 ```
 
-Le test d’intégration nécessite une commande `pi` configurée. Pour l’exécuter seule :
+The integration test requires a configured `pi` command. To run it alone:
 
 ```bash
 npm test -- test/pi-rpc.integration.test.ts
 ```
 
-## Structure du projet
+## Project structure
 
-- `src/App.tsx` — orchestration de l’état transversal de l’interface ;
-- `src/features/` — composants, logique et styles regroupés par fonctionnalité ;
-- `src/styles/` — styles globaux et responsives ;
-- `server/manager.ts` — propriétaire des processus Pi ;
-- `server/backend.ts` — API locale et diffusion des événements ;
-- `shared/` — contrats échangés entre les couches ;
-- `test/` — tests automatisés.
+- `src/App.tsx` — cross-cutting interface state orchestration;
+- `src/features/` — components, logic, and styles grouped by feature;
+- `src/styles/` — global and responsive styles;
+- `server/manager.ts` — owner of Pi processes;
+- `server/backend.ts` — local API and event broadcasting;
+- `shared/` — contracts exchanged between layers;
+- `test/` — automated tests.
 
-Consultez [`docs/architecture.md`](docs/architecture.md) pour les frontières, les flux et l’emplacement recommandé des changements.
+See [`docs/architecture.md`](docs/architecture.md) for boundaries, flows, and recommended locations for changes.

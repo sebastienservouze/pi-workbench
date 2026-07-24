@@ -1,85 +1,85 @@
-# Widgets de la sidebar droite
+# Right sidebar widgets
 
-La sidebar droite s’affiche lorsqu’un dépôt Git est détecté ou lorsque des actions sont épinglées dans le rail. Elle est rendue par `RightSidebar` dans `src/features/git/RightSidebar.tsx` et reliée à l’état transversal par `src/App.tsx`.
+The right sidebar appears when a Git repository is detected or when actions are pinned to the rail. It is rendered by `RightSidebar` in `src/features/git/RightSidebar.tsx` and connected to cross-cutting state by `src/App.tsx`.
 
-## Composition et comportement
+## Composition and behavior
 
-La sidebar est composée de deux zones côte à côte :
+The sidebar has two side-by-side areas:
 
-- un **panneau** à gauche, qui affiche le widget actif (analyse de session, Git ou tâches) ;
-- un **rail** permanent de 48 px à droite, qui porte les icônes des widgets et des actions.
+- a **panel** on the left, displaying the active widget (session analysis, Git, or todos);
+- a permanent 48 px **rail** on the right, carrying widget and action icons.
 
-Le clic sur l’icône d’un widget à panneau ouvre son panneau sans masquer le rail. Un second clic sur l’icône active referme le panneau. Le rail reste alors disponible pour rouvrir ce widget ou en choisir un autre.
+Clicking a panel widget's icon opens its panel without hiding the rail. Clicking the active icon again closes the panel. The rail remains available to reopen that widget or choose another one.
 
-Le widget actif est conservé dans `pi-workbench.right-sidebar-widget` ; l’ancienne préférence `pi-workbench.git-sidebar-collapsed` reste lue pour migration. Chaque bouton renseigne `aria-expanded` et, lorsque son panneau est rendu, `aria-controls`.
+The active widget is stored in `pi-workbench.right-sidebar-widget`; the old `pi-workbench.git-sidebar-collapsed` preference is still read for migration. Each button sets `aria-expanded` and, when its panel is rendered, `aria-controls`.
 
-### Analyse de session
+### Session analysis
 
-Le widget d’analyse est disponible lorsqu’une session est sélectionnée. Son moteur pur, `src/features/session-analysis/session-analysis.ts`, parcourt les messages en `O(n)` et reconstruit les requêtes utilisateur, leurs appels modèle et leurs appels d’outils. Il utilise `get_session_stats` comme référence pour les totaux et présente la différence avec les coûts attribuables comme coût système non attribué.
+The analysis widget is available when a session is selected. Its pure engine, `src/features/session-analysis/session-analysis.ts`, walks messages in `O(n)` time and reconstructs user requests, model calls, and tool calls. It uses `get_session_stats` as the reference for totals and presents the difference from attributable costs as unattributed system cost.
 
-Les échecs reposent exclusivement sur `isError === true`. Les volumes d’outils sont exprimés en caractères ; aucun coût monétaire ou nombre de tokens n’est inventé par outil. Les durées observées depuis les événements SSE restent en mémoire pour l’ouverture courante du Workbench et ne sont pas persistées.
+Failures are based exclusively on `isError === true`. Tool volumes are expressed in characters; no monetary cost or token count is invented per tool. Durations observed from SSE events remain in memory for the current Workbench opening and are not persisted.
 
-Un clic sur une requête coûteuse positionne la conversation sur son message utilisateur. Un clic sur un appel d’outil active au besoin la vue détaillée, développe le résultat et positionne la conversation sur la carte correspondante.
+Clicking an expensive request positions the conversation on its user message. Clicking a tool call activates the detail view if needed, expands the result, and positions the conversation on its card.
 
-### Quotas fournisseurs
+### Provider quotas
 
-Le widget Quotas affiche les fenêtres 5 heures et 7 jours retournées par OpenAI Codex, puis les consommations mensuelles retournées par GitHub Copilot. Il ne déduit aucune limite absente des réponses fournisseurs. Chaque ligne précise la prochaine réinitialisation lorsqu’elle est disponible. Dans le rail, l’icône est remplacée par la fenêtre principale du fournisseur du modèle sélectionné : 5 heures pour Codex, première consommation disponible pour Copilot.
+The Quotas widget displays the 5-hour and 7-day windows returned by OpenAI Codex, followed by the monthly usage returned by GitHub Copilot. It does not infer limits absent from provider responses. Each row specifies the next reset when available. In the rail, the icon is replaced by the primary window for the provider of the selected model: 5 hours for Codex, or the first available usage for Copilot.
 
-Les credentials restent dans le processus Pi : l’extension `extensions/quotas.ts` résout l’OAuth via le registre de modèles, appelle les endpoints fournisseurs, normalise les réponses et publie uniquement un relevé non sensible avec `setStatus`. Le backend conserve le dernier relevé valide par fournisseur ; si une actualisation partielle échoue, les données précédentes restent visibles et sont marquées comme périmées. Les requêtes manuelles concurrentes sont dédupliquées.
+Credentials remain in the Pi process: `extensions/quotas.ts` resolves OAuth through the model registry, calls provider endpoints, normalizes responses, and publishes only a non-sensitive snapshot with `setStatus`. The backend keeps the last valid snapshot per provider; if a partial refresh fails, previous data remains visible and is marked stale. Concurrent manual requests are deduplicated.
 
-Un relevé est lancé au démarrage d’une session Pi puis à la fin de chaque tour pour le fournisseur du modèle actif. Les relevés automatiques sont espacés d’au moins 30 secondes par session ; le bouton du panneau contourne cette temporisation et nécessite une session ouverte. Après un redémarrage du backend, une session inactive existante peut restaurer le cache sans relancer Pi ni ajouter de message à la conversation.
+A snapshot is requested when a Pi session starts and after each turn for the active model provider. Automatic snapshots are spaced at least 30 seconds apart per session; the panel button bypasses this delay and requires an open session. After a backend restart, an existing inactive session can restore the cache without relaunching Pi or adding a message to the conversation.
 
-Les endpoints fournisseurs étant non documentés, leurs formats sont isolés dans `shared/quota-parsers.ts` et couverts par `test/quotas.test.ts`. Le credential OAuth GitHub brut nécessaire à l’endpoint de quota n’est pas exposé par l’API publique actuelle de `ModelRegistry` : l’extension le lit à travers le `CredentialStore` du runtime Pi, sans accéder au fichier de credentials, et garde cette compatibilité dans la seule fonction `readCredential`.
+Provider endpoints are undocumented, so their formats are isolated in `shared/quota-parsers.ts` and covered by `test/quotas.test.ts`. The raw GitHub OAuth credential needed by the quota endpoint is not exposed by the current public `ModelRegistry` API: the extension reads it through Pi runtime's `CredentialStore`, without accessing the credentials file, and keeps this compatibility in the single `readCredential` function.
 
-### Widgets d’action (sans panneau)
+### Action widgets (no panel)
 
-Un widget peut être une simple action, sans panneau associé : il rend une icône dans le rail et exécute un callback au clic. Il n’a pas d’état ouvert/fermé et n’interagit pas avec le panneau.
+A widget can be a simple action with no associated panel: it renders an icon in the rail and runs a callback on click. It has no open/closed state and does not interact with the panel.
 
-Les actions sont passées au composant `RightSidebar` via la prop `railActions`, un tableau d’objets `{ key, icon, label, disabled?, onClick }`. Chaque action est rendue comme un bouton dans le rail, avec `aria-label` et `title` issus de `label`.
+Actions are passed to `RightSidebar` through the `railActions` prop, an array of `{ key, icon, label, disabled?, onClick }` objects. Each action is rendered as a rail button, with `aria-label` and `title` derived from `label`.
 
-Exemple d’utilisation dans `App` :
+Example usage in `App`:
 
 ```tsx
 const railActions = useMemo(() => [
   {
     key: 'explorer',
     icon: <svg aria-hidden="true" …>…</svg>,
-    label: 'Ouvrir le dossier dans l\'Explorateur',
+    label: 'Open folder in Explorer',
     onClick: () => { void openExplorer(workspacePath).catch(…) },
   },
 ], [workspacePath])
 ```
 
-Le rail reste disponible pour les tâches et les actions épinglées, même lorsqu’aucun dépôt Git n’est détecté.
+The rail remains available for todos and pinned actions even when no Git repository is detected.
 
 ### Terminal
 
-Le widget Terminal exécute une commande isolée dans le workspace courant et conserve ses sorties dans le panneau tant qu’il reste monté. Chaque commande démarre depuis le cwd du workspace : l’état du shell, notamment `cd` et les variables exportées, n’est pas conservé. Le backend borne une commande à 10 minutes et sa sortie à 1 Mo.
+The Terminal widget runs an isolated command in the current workspace and keeps its output in the panel while it remains mounted. Each command starts from the workspace cwd: shell state, including `cd` and exported variables, is not preserved. The backend limits a command to 10 minutes and its output to 1 MB.
 
-Cette console légère repose sur l’API HTTP locale `/api/terminal`. Elle ne fournit volontairement ni pseudo-terminal, ni saisie interactive, ni programme plein écran.
+This lightweight console uses the local `/api/terminal` HTTP API. It intentionally provides no pseudo-terminal, interactive input, or full-screen program support.
 
-### Prévisualisation Markdown
+### Markdown preview
 
-Les fichiers `.md` et `.markdown` ouverts par les outils `read` ou `write` sont rendus directement dans l’historique de la conversation (expansion inline du tool call). Les fichiers `.html` sont ouverts dans un nouvel onglet local. Aucun widget ni panneau n’est nécessaire pour ces formats.
+`.md` and `.markdown` files opened by `read` or `write` tools are rendered directly in the conversation history (inline tool call expansion). `.html` files open in a new local tab. No widget or panel is needed for these formats.
 
-## Contrat de mise en page
+## Layout contract
 
-- Le panneau développé est redimensionnable entre 240 et 720 px. Sa valeur est locale au navigateur (`pi-workbench.git-sidebar-width`) et doit rester bornée avec `clampGitSidebarWidth` dans `src/features/git/git-sidebar.ts`.
-- La largeur totale de la colonne ouverte inclut le panneau et le rail : `largeur du panneau + 48 px`.
-- La poignée est un séparateur vertical accessible au pointeur et au clavier. Ne la rendez pas disponible quand le panneau est fermé. Les flèches gauche/droite, Début et Fin conservent leur sens et leurs bornes.
-- Sous 850 px, le panneau fait 260 px et le rail 48 px. Sous 700 px, la mise en page devient verticale : le panneau reste limité à `38dvh` et le rail reste visible à sa droite.
-- Le contenu défilant porte `min-height: 0`, `flex: 1` et `overflow: auto`. Les actions en bas de panneau restent hors de cette zone de défilement.
-- Réutilisez les variables de `src/styles/base.css` (`--surface`, `--line`, `--muted`, `--teal`, etc.) et les styles de `src/features/git/git.css`. N’ajoutez pas de bibliothèque UI.
+- The expanded panel can be resized between 240 and 720 px. Its value is local to the browser (`pi-workbench.git-sidebar-width`) and must remain bounded with `clampGitSidebarWidth` in `src/features/git/git-sidebar.ts`.
+- The total width of the open column includes the panel and the rail: `panel width + 48 px`.
+- The handle is a vertical separator accessible to pointer and keyboard users. Do not make it available when the panel is closed. Left/right arrows, Home, and End preserve their meaning and bounds.
+- Below 850 px, the panel is 260 px and the rail is 48 px. Below 700 px, the layout becomes vertical: the panel remains limited to `38dvh` and the rail remains visible to its right.
+- The scrollable content has `min-height: 0`, `flex: 1`, and `overflow: auto`. Actions at the bottom of the panel remain outside this scroll area.
+- Reuse variables from `src/styles/base.css` (`--surface`, `--line`, `--muted`, `--teal`, etc.) and styles from `src/features/git/git.css`. Do not add a UI library.
 
-La structure CSS actuelle est volontairement minimale : `.git-sidebar` aligne `.git-widget-panel` et `.git-rail`, tandis que `.git-panel` porte le contenu défilant. Préservez cette séparation : le rail ne doit jamais être un enfant du contenu défilant.
+The current CSS structure is intentionally minimal: `.git-sidebar` aligns `.git-widget-panel` and `.git-rail`, while `.git-panel` owns the scrollable content. Preserve this separation: the rail must never be a child of the scrollable content.
 
-## Ajouter un widget
+## Adding a widget
 
-Un widget officiel qui dépend fortement de l’état central peut encore étendre les rendus conditionnels existants. Un fork ajoute de préférence ses widgets isolés dans la zone réservée `src/custom/extensions.ts`, sans modifier `App.tsx` ni `RightSidebar.tsx` :
+An official widget that strongly depends on central state may still extend existing conditional rendering. A fork should preferably add isolated widgets in the reserved `src/custom/extensions.ts` area, without modifying `App.tsx` or `RightSidebar.tsx`:
 
 ```tsx
 const StatusWidget = ({ request, workspacePath }: RightSidebarWidgetProps) => {
-  // request('/status') cible toujours /api/extensions/my-workbench/status.
+  // request('/status') always targets /api/extensions/my-workbench/status.
   return <button onClick={() => void request('/status', { method: 'POST', body: JSON.stringify({ cwd: workspacePath }) })}>{workspacePath}</button>
 }
 
@@ -87,18 +87,18 @@ export const customExtensions: readonly WorkbenchExtension[] = [{
   id: 'my-workbench',
   rightSidebarWidgets: [{
     id: 'status',
-    label: 'Statut du workspace',
+    label: 'Workspace status',
     icon: <span aria-hidden="true">●</span>,
     render: StatusWidget,
   }],
 }]
 ```
 
-La clé persistée est dérivée de l’identifiant de l’extension et de celui du widget. Deux widgets portant le même identifiant dans une extension provoquent une erreur explicite. Une erreur de rendu est isolée : le panneau affiche un repli et le reste du shell demeure utilisable.
+The persisted key is derived from the extension and widget identifiers. Two widgets with the same identifier in one extension produce an explicit error. A rendering error is isolated: the panel displays a fallback and the rest of the shell remains usable.
 
-La prop `request()` appelle une réponse JSON dans le namespace backend de l’extension. Le chemin relatif ne peut pas sortir de ce namespace. Les valeurs de query string restent à encoder avec `URLSearchParams` ou `encodeURIComponent`. Pour une réponse non JSON, le widget peut utiliser `fetch` directement sur son namespace.
+The `request()` prop calls a JSON response in the extension's backend namespace. The relative path cannot leave that namespace. Query string values must still be encoded with `URLSearchParams` or `encodeURIComponent`. For a non-JSON response, the widget can use `fetch` directly on its namespace.
 
-La capacité Node.js correspondante se déclare séparément dans `server/custom/extensions.ts` :
+The corresponding Node.js capability is declared separately in `server/custom/extensions.ts`:
 
 ```ts
 export const customBackendExtensions: readonly WorkbenchBackendExtension[] = [{
@@ -112,35 +112,35 @@ export const customBackendExtensions: readonly WorkbenchBackendExtension[] = [{
 }]
 ```
 
-Le même `id` relie les deux contributions sans coupler leurs modules. Le handler doit valider toutes les données reçues. Il peut retourner du JSON ou écrire directement dans la réponse HTTP Node.js pour les usages avancés.
+The same `id` connects the two contributions without coupling their modules. The handler must validate all received data. It may return JSON or write directly to the Node.js HTTP response for advanced use cases.
 
-### Widget à panneau
+### Panel widget
 
-1. Vérifiez que l’information existe déjà dans le snapshot Git, une API HTTP existante ou le flux SSE. Sinon, ajoutez l’API minimale côté backend avant le composant React.
-2. Créez un composant local seulement si le widget a une responsabilité propre. Gardez ses identifiants, props et son code en anglais ; gardez la copie visible en français. Choisissez une icône simple et cohérente avec la responsabilité du widget, en privilégiant les glyphes Unicode déjà utilisés dans le rail. Utilisez une marque seulement si le widget représente réellement ce service ; si aucune icône ne s’impose, demandez la préférence de l’utilisateur.
-3. Ajoutez l’état dans `App` (un `useState` pour le widget actif) et passez-le à `RightSidebar` avec les props nécessaires. Le rail rend une icône par widget ; le panneau conditionnel affiche le widget actif.
-4. Gardez la largeur et la poignée sur le panneau, jamais sur le rail. Conservez les préférences locales Git tant que le widget Git les utilise.
-5. Prévoyez les états chargement, vide et erreur. Les actions sont des éléments natifs, nommés par `aria-label` si leur texte ne suffit pas, et atteignables au clavier. Chaque icône du rail doit avoir une cible d’au moins 44 × 44 px, `aria-expanded` et un libellé décrivant l’action.
-6. Préservez la lecture sur petits écrans : contenu tronqué avec ellipsis si nécessaire, pas de largeur minimale supérieure à celle du panneau et pas de scrollbar imbriquée inutile.
+1. Verify that the information already exists in the Git snapshot, an existing HTTP API, or the SSE stream. Otherwise, add the minimal backend API before the React component.
+2. Create a local component only when the widget has its own responsibility. Keep its identifiers, props, and code in English; keep visible copy in English as well. Choose a simple icon consistent with the rail's responsibility, preferably reusing Unicode glyphs already present in the rail. Use a brand mark only when the widget genuinely represents that service; if no icon is obvious, ask for a preference.
+3. Add state to `App` (a `useState` for the active widget) and pass it to `RightSidebar` with the required props. The rail renders one icon per widget; the conditional panel renders the active widget.
+4. Keep the width and handle on the panel, never on the rail. Preserve local Git preferences while the Git widget uses them.
+5. Provide loading, empty, and error states. Actions are native elements, named with `aria-label` when their text is insufficient, and reachable by keyboard. Each rail icon must have a target of at least 44 × 44 px, `aria-expanded`, and a label describing the action.
+6. Preserve readability on small screens: truncate content with ellipsis when necessary, avoid a minimum width larger than the panel, and avoid unnecessary nested scrollbars.
 
-### Widget d’action (sans panneau)
+### Action widget (no panel)
 
-1. Ajoutez une entrée dans le tableau `railActions` passé à `RightSidebar`. Chaque entrée est un objet `RailAction` :
+1. Add an entry to the `railActions` array passed to `RightSidebar`. Each entry is a `RailAction` object:
    ```ts
    interface RailAction {
-     key: string       // identifiant unique dans le rail
-     icon: ReactNode   // icône rendue dans le bouton (max ~20×20 px)
-     label: string     // libellé pour aria-label et title
-     disabled?: boolean // désactive le bouton si true
-     onClick: () => void // callback exécuté au clic
+     key: string       // unique identifier in the rail
+     icon: ReactNode   // icon rendered in the button (max ~20×20 px)
+     label: string     // label for aria-label and title
+     disabled?: boolean // disables the button when true
+     onClick: () => void // callback run on click
    }
    ```
-2. Si l’action dépend du `workspacePath` ou d’un état réactif, construisez le tableau avec `useMemo` pour éviter les re-rendus inutiles.
-3. L’action ne peut pas ouvrir de panneau. Si un panneau est nécessaire, créez un widget à panneau.
-4. Le bouton hérite des styles `.rail-tab` existants. Aucun CSS supplémentaire n’est requis, sauf si l’icône a besoin d’un ajustement mineur (ex. `letter-spacing` pour un glyphe texte).
+2. If the action depends on `workspacePath` or reactive state, build the array with `useMemo` to avoid unnecessary re-renders.
+3. The action cannot open a panel. If a panel is needed, create a panel widget.
+4. The button inherits the existing `.rail-tab` styles. No additional CSS is required unless the icon needs a minor adjustment (for example, `letter-spacing` for a text glyph).
 
 ## Validation
 
-- Ajoutez le plus petit test Node utile à toute logique non triviale, à côté des tests existants dans `test/`.
-- Exécutez `npm test`, `npm run lint` et `npm run build`.
-- Vérifiez manuellement l’ouverture et la fermeture depuis le rail, le changement entre widgets, la largeur mémorisée après rechargement, le glisser et le clavier de la poignée, ainsi que les deux breakpoints de la sidebar.
+- Add the smallest useful Node test for any non-trivial logic, next to the existing tests in `test/`.
+- Run `npm test`, `npm run lint`, and `npm run build`.
+- Manually verify opening and closing from the rail, switching between widgets, the persisted width after reload, pointer dragging and keyboard behavior on the handle, and both sidebar breakpoints.

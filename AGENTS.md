@@ -1,30 +1,30 @@
-# Instructions pour les agents
+# Agent instructions
 
-## Architecture et limites
+## Architecture and boundaries
 
-- Consultez [`docs/architecture.md`](docs/architecture.md) avant un changement transversal ou un déplacement de module.
-- Le frontend React communique uniquement avec le backend HTTP via `src/api.ts`.
-- `src/App.tsx` orchestre seulement l’état transversal ; placez le rendu et la logique propres à une zone dans `src/features/<feature>/`.
-- Colocalisez le CSS propre à une fonctionnalité avec celle-ci. Réservez `src/styles/` aux règles globales et responsives, et gardez `src/App.css` comme point d’entrée ordonné.
-- `server/backend.ts` porte l’API web et le flux SSE. Il peut redémarrer sans interrompre Pi.
-- `server/manager.ts` est le seul propriétaire des processus `pi --mode rpc`; ne déplacez pas cette responsabilité dans le backend.
-- Utilisez le protocole RPC public de Pi. Ne lisez pas ses fichiers internes pour reproduire une capacité déjà exposée en RPC.
-- L’application est locale et écoute uniquement sur `127.0.0.1`. N’élargissez pas cette exposition sans authentification et cadrage explicites.
-- N’ajoutez ni base de données, routeur frontend, gestionnaire d’état ou bibliothèque UI sans besoin démontré.
+- Read [`docs/architecture.md`](docs/architecture.md) before a cross-cutting change or moving a module.
+- The React frontend communicates with the backend only through `src/api.ts`.
+- `src/App.tsx` only orchestrates cross-cutting state; put area-specific rendering and logic in `src/features/<feature>/`.
+- Colocate feature-specific CSS with its feature. Reserve `src/styles/` for global and responsive rules, and keep `src/App.css` as the ordered entry point.
+- `server/backend.ts` owns the web API and SSE stream. It can restart without interrupting Pi.
+- `server/manager.ts` is the sole owner of `pi --mode rpc` processes; do not move that responsibility into the backend.
+- Use Pi's public RPC protocol. Do not read its internal files to reproduce a capability already exposed through RPC.
+- The application is local and listens only on `127.0.0.1`. Do not broaden this exposure without explicit authentication and scoping.
+- Do not add a database, frontend router, state manager, or UI library without a demonstrated need.
 
-## Auto-modification du projet
+## Self-modification
 
-Pi Workbench est conçu pour être modifié par les agents qui l’utilisent. Avant d’éditer, analysez le flux existant, réutilisez les conventions du dépôt et cherchez la cause racine plutôt que de contourner un symptôme.
+Pi Workbench is designed to be modified by the agents using it. Before editing, analyze the existing flow, reuse repository conventions, and look for the root cause rather than working around a symptom.
 
-- Préférez le changement le plus petit qui répond au besoin, sans nouvelle dépendance ni abstraction spéculative.
-- Préservez les contrats existants, les API, les formats de données et les comportements attendus lorsque c’est possible.
-- Examinez les appelants, les tests et les composants voisins avant de modifier une fonction partagée.
-- Validez les changements avec les contrôles pertinents et ne mélangez pas vos modifications avec celles déjà présentes dans le dépôt.
-- Si une modification introduit une rupture de compatibilité, signalez-la clairement avant de l’appliquer : décrivez le comportement supprimé ou modifié, l’impact attendu et la manière de reprendre ou de migrer.
-- `server/manager.ts` est le propriétaire des processus `pi --mode rpc`. Il peut être modifié si le besoin le justifie, mais demandez d’abord l’accord de l’utilisateur : un changement ou un redémarrage du manager peut interrompre la connexion avec Pi et la réponse en cours. La session reste normalement récupérable via l’historique de Pi et doit alors être reprise avec Pi.
-- Ne déplacez pas la gestion des processus Pi dans une autre couche et ne modifiez pas le protocole RPC sans nécessité démontrée.
+- Prefer the smallest change that solves the need, without a new dependency or speculative abstraction.
+- Preserve existing contracts, APIs, data formats, and expected behavior whenever possible.
+- Inspect callers, tests, and neighboring components before changing a shared function.
+- Validate changes with relevant checks and do not mix them with pre-existing repository changes.
+- If a change introduces a compatibility break, clearly report it before applying it: describe the removed or changed behavior, the expected impact, and how to migrate.
+- `server/manager.ts` owns the `pi --mode rpc` processes. It may be changed when necessary, but ask for approval first: changing or restarting the manager can interrupt the Pi connection and current response. The session can normally be recovered through Pi history and resumed.
+- Do not move Pi process management elsewhere or modify the RPC protocol without demonstrated necessity.
 
-## Commandes
+## Commands
 
 ```bash
 npm install
@@ -36,38 +36,38 @@ npm run lint
 npm run build
 ```
 
-Tests :
+Tests:
 
 ```bash
-# Un test précis
+# A specific test
 npm test -- --test-name-pattern="exposes current Pi commands over RPC" test/pi-rpc.integration.test.ts
 
-# Un fichier
+# A file
 npm test -- test/pi-rpc.integration.test.ts
 
-# Toute la suite
+# The full suite
 npm test
 ```
 
-Le test d’intégration attend une commande `pi` configurée et l’extension `/agent` disponible.
+The integration test expects a configured `pi` command and the `/agent` extension to be available.
 
-## Documentation Pi
+## Pi documentation
 
-La documentation de Pi est disponible localement dans `$(npm root -g)/@earendil-works/pi-coding-agent/docs/`.
+Pi documentation is available locally at `$(npm root -g)/@earendil-works/pi-coding-agent/docs/`.
 
-## Présentations des appels d’outils
+## Tool call presentations
 
-Consultez [`docs/tool-call-presentations.md`](docs/tool-call-presentations.md) avant de créer ou modifier l’affichage d’un appel d’outil.
+Read [`docs/tool-call-presentations.md`](docs/tool-call-presentations.md) before creating or changing a tool call display.
 
-## Widgets de la sidebar droite
+## Right sidebar widgets
 
-Consultez [`docs/right-sidebar-widgets.md`](docs/right-sidebar-widgets.md) avant de créer ou modifier un widget de la sidebar droite.
+Read [`docs/right-sidebar-widgets.md`](docs/right-sidebar-widgets.md) before creating or changing a right sidebar widget.
 
 ## Conventions
 
-- Écrivez les identifiants, noms de fichiers et le code en anglais.
-- Gardez le code aéré, simple et lisible; donnez aux variables des noms explicites.
-- Documentez en JSDoc français toute fonction applicative de plus de 4 lignes, sauf les fonctions utilitaires évidentes (garde de type, conversion, formatage ou parsing local). Décrivez son rôle, son contrat, son invariant, son effet de bord ou une raison non évidente ; ne paraphrasez jamais le code.
-- Respectez TypeScript strict et Oxlint avant de proposer un changement.
-- Utilisez des commits au format `<gitmoji> sujet impératif concis`, sans préfixe conventionnel tel que `feat:`.
-- Ne revendiquez jamais un test ou un contrôle qui n’a pas été réellement exécuté.
+- Write identifiers, filenames, and code in English.
+- Keep code spacious, simple, and readable; give variables explicit names.
+- Document every application function longer than four lines with English JSDoc, except obvious utility functions (type guards, conversions, formatting, or local parsing). Describe its purpose, contract, invariant, side effect, or non-obvious rationale; never paraphrase the code.
+- Keep TypeScript strict and run Oxlint before proposing a change.
+- Use commits in the `<gitmoji> concise imperative subject` format, without a conventional prefix such as `feat:`.
+- Never claim a test or check that was not actually run.
