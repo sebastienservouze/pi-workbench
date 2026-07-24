@@ -55,6 +55,10 @@ export function WorkspaceSidebar({ recentSessions, sessions, selectedId, workspa
               setOpeningSessionPath(recentSession.sessionPath)
               void onOpenSession(recentSession).catch(onError).finally(() => setOpeningSessionPath(''))
             }}
+            onMouseEnter={(event) => {
+              const name = event.currentTarget.querySelector('strong')
+              event.currentTarget.title = name && name.scrollWidth > name.clientWidth ? recentSession.name : ''
+            }}
             type="button"
           >
             {activeSession?.status === 'running' && <span aria-label="Pi is active" className="status-dot" role="img" />}
