@@ -644,7 +644,7 @@ function App() {
   return (
     <div
       className={`app-shell ${rightPanelVisible ? 'right-sidebar-visible' : 'right-sidebar-collapsed'}`}
-      style={{ '--right-sidebar-width': `${rightSidebarWidth}px` } as CSSProperties}
+      style={{ '--right-sidebar-width': `${rightSidebarWidth}px`, height: `${100 / Number(interfaceScale)}dvh` } as CSSProperties}
     >
       <WorkspaceSidebar
         completedSessionIds={completedSessionIds}
