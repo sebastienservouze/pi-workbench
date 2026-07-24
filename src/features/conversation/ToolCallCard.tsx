@@ -196,7 +196,6 @@ function ToolCallContent({ call, content, darkMode, onCollapse, renderingCode, s
 
   const display = call.name === 'read' || call.name === 'write' ? readContentDisplay(call.args) : { kind: 'text' as const }
   if (display.kind === 'markdown') return <section className="tool-call-content tool-call-markdown" onClick={onCollapse}><Markdown>{content}</Markdown></section>
-  if (display.kind === 'svg') return <section className="tool-call-content tool-call-svg" onClick={onCollapse}><img alt={`Rendered SVG: ${toolFilePath(call.args) ?? 'file'}`} src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(content)}`} /></section>
   if (display.kind === 'code' && canHighlightFile(content)) return <section className="tool-call-content" onClick={onCollapse}><SyntaxHighlighter className="tool-call-syntax" customStyle={{ background: 'transparent', margin: 0, padding: '9px 10px' }} language={display.language} PreTag="div" style={darkMode ? oneDark : oneLight} wrapLongLines>{content}</SyntaxHighlighter></section>
   if (display.kind === 'code') return <section className="tool-call-content" onClick={onCollapse}><p className="tool-call-notice">Highlighting disabled beyond 50,000 characters.</p><pre>{content}</pre></section>
   return <section className="tool-call-content" onClick={onCollapse}><pre>{content}</pre></section>
