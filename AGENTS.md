@@ -41,6 +41,7 @@ The integration test requires a configured `pi` command and the `/agent` extensi
 
 ## Focused documentation
 
+- [Shared components](src/components/README.md)
 - [Frontend feature map](src/features/README.md)
 - [Tool call presentations](src/features/conversation/README.md)
 - [Commands and shortcuts](src/features/commands/README.md)

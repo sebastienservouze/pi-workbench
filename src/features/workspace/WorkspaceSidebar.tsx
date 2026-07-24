@@ -47,10 +47,9 @@ export function WorkspaceSidebar({ completedSessionIds, recentSessions, sessions
         const activeSession = sessions.find((session) => session.sessionPath === recentSession.sessionPath && session.status !== 'exited')
         const indicator = sessionIndicator(activeSession, selectedId, completedSessionIds)
         return (
-          <Tooltip label={recentSession.name}><button
+          <Tooltip key={recentSession.sessionPath} label={recentSession.name}><button
             className={activeSession?.id === selectedId ? 'session-item selected' : 'session-item'}
             disabled={openingSessionPath === recentSession.sessionPath}
-            key={recentSession.sessionPath}
             onClick={() => {
               if (activeSession) {
                 onSelectSession(activeSession.id)

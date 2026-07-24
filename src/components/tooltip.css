@@ -1,3 +1,4 @@
 .tooltip-host { display: contents; }
-.tooltip-content { position: fixed; z-index: 50; width: max-content; max-width: min(560px, calc(100vw - 16px)); border-radius: 6px; padding: 7px 9px; background: #173b34; color: white; font: 11px/1.45 ui-monospace, monospace; pointer-events: none; white-space: pre-wrap; box-shadow: var(--shadow-soft); }
+.tooltip-content { position: fixed; z-index: 50; width: max-content; max-width: min(560px, calc(100vw - 16px)); border-radius: 6px; padding: 7px 9px; background: #173b34; color: white; font: 11px/1.45 ui-monospace, monospace; pointer-events: none; white-space: pre-wrap; box-shadow: var(--shadow-soft); opacity: 0; transform: translateY(3px); transition: opacity 150ms ease-out, transform 150ms ease-out; }
+.tooltip-content[data-entered] { opacity: 1; transform: translateY(0); }
 [data-theme='dark'] .tooltip-content { background: #0e1e1a; }

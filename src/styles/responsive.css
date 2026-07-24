@@ -1,6 +1,7 @@
 @media (prefers-reduced-motion: reduce) {
   .composer-session .status-dot, .session-status-indicator, .session-status-indicator.working svg { animation: none; }
   .rail-tab { transition: none; }
+  .tooltip-content { transition: none; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes activity-pulse { 50% { opacity: .58; } }
