@@ -333,7 +333,7 @@ function App() {
         }).finally(() => {
           if (sessionId === selectedIdRef.current) setLiveThinking('')
         })
-        setFocusComposerRequest((current) => current + 1)
+        if (event.type === 'agent_settled') setFocusComposerRequest((current) => current + 1)
       }
 
       /** Remplace une exécution existante afin de conserver un seul état par appel d'outil. */
