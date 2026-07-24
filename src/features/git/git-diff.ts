@@ -1,21 +1,8 @@
-export const defaultGitSidebarWidth = 300
-export const minGitSidebarWidth = 240
-export const maxGitSidebarWidth = 720
-
 export interface GitDiffLine {
   content: string
   kind: 'added' | 'context' | 'hunk' | 'removed'
   newLine: number | null
   oldLine: number | null
-}
-
-export function clampGitSidebarWidth(width: number): number {
-  if (!Number.isFinite(width)) return defaultGitSidebarWidth
-  return Math.min(maxGitSidebarWidth, Math.max(minGitSidebarWidth, Math.round(width)))
-}
-
-export function readGitSidebarWidth(value: string | null): number {
-  return value === null ? defaultGitSidebarWidth : clampGitSidebarWidth(Number(value))
 }
 
 /** Turns a unified diff into colorable lines with source and destination line numbers. */

@@ -63,8 +63,8 @@ button:disabled, select:disabled { cursor: not-allowed; }
   background: var(--canvas);
   color: var(--ink);
 }
-.app-shell.git-sidebar-visible { grid-template-columns: 296px minmax(0, 1fr) calc(var(--git-sidebar-width, 300px) + 48px); }
-.app-shell.git-sidebar-collapsed { grid-template-columns: 296px minmax(0, 1fr) 48px; }
+.app-shell.right-sidebar-visible { grid-template-columns: 296px minmax(0, 1fr) calc(var(--right-sidebar-width, 300px) + 48px); }
+.app-shell.right-sidebar-collapsed { grid-template-columns: 296px minmax(0, 1fr) 48px; }
 
 .workspace { position: relative; display: grid; grid-template-rows: minmax(0, 1fr) auto; min-width: 0; min-height: 0; background: var(--surface-raised); }
 

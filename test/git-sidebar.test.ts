@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { clampGitSidebarWidth, defaultGitSidebarWidth, maxGitSidebarWidth, minGitSidebarWidth, parseGitDiff, readGitSidebarWidth } from '../src/features/git/git-sidebar.ts'
+import { parseGitDiff } from '../src/features/git/git-diff.ts'
+import { clampRightSidebarWidth, defaultRightSidebarWidth, maxRightSidebarWidth, minRightSidebarWidth, readRightSidebarWidth } from '../src/features/right-sidebar/right-sidebar.ts'
 
-test('borne et restaure la largeur de la sidebar Git', () => {
-  assert.equal(maxGitSidebarWidth, 720)
-  assert.equal(clampGitSidebarWidth(100), minGitSidebarWidth)
-  assert.equal(clampGitSidebarWidth(999), maxGitSidebarWidth)
-  assert.equal(clampGitSidebarWidth(320.6), 321)
-  assert.equal(readGitSidebarWidth(null), defaultGitSidebarWidth)
-  assert.equal(readGitSidebarWidth('invalid'), defaultGitSidebarWidth)
+test('borne et restaure la largeur de la sidebar droite', () => {
+  assert.equal(maxRightSidebarWidth, 720)
+  assert.equal(clampRightSidebarWidth(100), minRightSidebarWidth)
+  assert.equal(clampRightSidebarWidth(999), maxRightSidebarWidth)
+  assert.equal(clampRightSidebarWidth(320.6), 321)
+  assert.equal(readRightSidebarWidth(null), defaultRightSidebarWidth)
+  assert.equal(readRightSidebarWidth('invalid'), defaultRightSidebarWidth)
 })
 
 test('parse un diff unifié sans ses métadonnées Git', () => {

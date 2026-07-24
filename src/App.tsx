@@ -10,8 +10,8 @@ import { Conversation } from './features/conversation/Conversation.tsx'
 import { applyToolCallUpdate, interruptToolCallGeneration, toolCallInUpdate, type ToolExecution, type ToolResult } from './features/conversation/tool-calls.ts'
 import { AskUserQuestionDialog, ExtensionDialog } from './features/dialogs/Dialogs.tsx'
 import { isAgentSelector, isAskUserQuestionDialog, isBlockingDialog, type UiDialog } from './features/dialogs/dialog-protocol.ts'
-import { clampGitSidebarWidth, readGitSidebarWidth } from './features/git/git-sidebar.ts'
-import { RightSidebar, type RightWidget } from './features/git/RightSidebar.tsx'
+import { clampRightSidebarWidth, readRightSidebarWidth } from './features/right-sidebar/right-sidebar.ts'
+import { RightSidebar, type RightWidget } from './features/right-sidebar/RightSidebar.tsx'
 import { quotaProviderForModel } from './features/quotas/quota-display.ts'
 import { DirectoryPicker } from './features/workspace/DirectoryPicker.tsx'
 import { recentWorkspaces } from './features/workspace/recent-workspaces.ts'
@@ -58,7 +58,7 @@ function App() {
   const [gitSnapshot, setGitSnapshot] = useState<GitSnapshot | null>(null)
   const [quotas, setQuotas] = useState<QuotaSnapshot | null>(null)
   const [activeRightWidget, setActiveRightWidget] = useState<RightWidget | null>(readActiveRightWidget)
-  const [gitSidebarWidth, setGitSidebarWidth] = useState(() => readGitSidebarWidth(window.localStorage.getItem('pi-workbench.git-sidebar-width')))
+  const [rightSidebarWidth, setRightSidebarWidth] = useState(() => readRightSidebarWidth(window.localStorage.getItem('pi-workbench.right-sidebar-width') ?? window.localStorage.getItem('pi-workbench.git-sidebar-width')))
   const [theme, setTheme] = useState(() => window.localStorage.getItem('pi-workbench.theme') ?? 'light')
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -101,10 +101,10 @@ function App() {
 
   const visibleToasts = toasts.filter((toast) => toast.sessionId === null || toast.sessionId === selectedId)
 
-  const updateGitSidebarWidth = useCallback((width: number) => {
-    const nextWidth = clampGitSidebarWidth(width)
-    window.localStorage.setItem('pi-workbench.git-sidebar-width', String(nextWidth))
-    setGitSidebarWidth(nextWidth)
+  const updateRightSidebarWidth = useCallback((width: number) => {
+    const nextWidth = clampRightSidebarWidth(width)
+    window.localStorage.setItem('pi-workbench.right-sidebar-width', String(nextWidth))
+    setRightSidebarWidth(nextWidth)
   }, [])
 
   /** Toggles light/dark theme and persists the choice in local storage. */
@@ -481,8 +481,8 @@ function App() {
 
   return (
     <div
-      className={`app-shell ${rightPanelVisible ? 'git-sidebar-visible' : 'git-sidebar-collapsed'}`}
-      style={{ '--git-sidebar-width': `${gitSidebarWidth}px` } as CSSProperties}
+      className={`app-shell ${rightPanelVisible ? 'right-sidebar-visible' : 'right-sidebar-collapsed'}`}
+      style={{ '--right-sidebar-width': `${rightSidebarWidth}px` } as CSSProperties}
     >
       <WorkspaceSidebar
         recentSessions={recentSessions}
@@ -574,10 +574,10 @@ function App() {
         analysis={sessionAnalysis}
         currentQuotaProvider={currentQuotaProvider}
         onAnalysisNavigate={navigateToAnalysisTarget}
-        onResize={updateGitSidebarWidth}
+        onResize={updateRightSidebarWidth}
         snapshot={gitSnapshot?.repository ? gitSnapshot : null}
         quotas={quotas}
-        width={gitSidebarWidth}
+        width={rightSidebarWidth}
         workspacePath={workspacePath}
         railActions={railActions}
         onAction={async (message) => {

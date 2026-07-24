@@ -1,5 +1,6 @@
 @import './styles/base.css';
 @import './features/workspace/workspace.css';
+@import './features/right-sidebar/right-sidebar.css';
 @import './features/git/git.css';
 @import './features/quotas/quotas.css';
 @import './features/todo/todo.css';

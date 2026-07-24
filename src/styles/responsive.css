@@ -13,9 +13,9 @@
 
 @media (max-width: 850px) {
   .app-shell { grid-template-columns: 238px minmax(0, 1fr); }
-  .app-shell.git-sidebar-visible { grid-template-columns: 238px minmax(0, 1fr) 308px; }
-  .app-shell.git-sidebar-collapsed { grid-template-columns: 238px minmax(0, 1fr) 48px; }
-  .git-resize-handle { display: none; }
+  .app-shell.right-sidebar-visible { grid-template-columns: 238px minmax(0, 1fr) 308px; }
+  .app-shell.right-sidebar-collapsed { grid-template-columns: 238px minmax(0, 1fr) 48px; }
+  .right-sidebar-resize-handle { display: none; }
   .conversation { padding: 28px 20px; }
   .composer, .ask-user-question { width: calc(100% - 32px); }
 }
@@ -28,8 +28,8 @@
   .session-list { grid-column: 1 / -1; display: flex; flex-direction: row; overflow-x: auto; }
   .session-item { min-width: 220px; }
   .workspace { flex: 1; }
-  .git-sidebar { max-height: 38dvh; border-top: 1px solid var(--line); }
-  .git-widget-panel { border-left: 0; }
+  .right-sidebar { max-height: 38dvh; border-top: 1px solid var(--line); }
+  .right-sidebar-panel { border-left: 0; }
   .message.user { max-width: 92%; }
 }
 
