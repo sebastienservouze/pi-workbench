@@ -118,23 +118,26 @@
 .session-item strong { font-size: 13px; letter-spacing: -.01em; }
 .session-item small { margin-top: 4px; color: var(--muted); font: 11px ui-monospace, monospace; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #2f8f5b; box-shadow: 0 0 0 4px rgb(47 143 91 / 16%); }
-.turn-complete-indicator {
+.composer-session .status-dot { animation: status-pulse 1.8s ease-out infinite; }
+.session-status-indicator {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
-  border: 1px solid currentColor;
-  border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--success);
-  font-size: 10px;
-  font-weight: 800;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
 }
-.session-item .status-dot, .composer-session .status-dot { animation: status-pulse 1.8s ease-out infinite; }
+.session-status-indicator svg { width: 15px; height: 15px; overflow: visible; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.5; }
+.session-status-indicator.working { background: var(--accent-soft); color: var(--accent); }
+.session-status-indicator.working circle { opacity: .25; }
+.session-status-indicator.working svg { animation: session-status-spin 1.1s linear infinite; }
+.session-status-indicator.waiting { background: color-mix(in srgb, var(--warning) 14%, var(--surface)); color: var(--warning-strong); animation: session-status-attention 1.8s ease-in-out infinite; }
+.session-status-indicator.complete { background: color-mix(in srgb, var(--success) 13%, var(--surface)); color: var(--success); }
 @keyframes status-pulse {
   50% { box-shadow: 0 0 0 7px rgb(35 119 109 / 0%); transform: scale(1.08); }
 }
+@keyframes session-status-spin { to { transform: rotate(360deg); } }
+@keyframes session-status-attention { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--warning) 12%, transparent); } }
 .empty-sidebar { padding: 14px; color: var(--muted); font-size: 13px; line-height: 1.5; text-align: center; }
 
 .directory-picker { display: flex; flex-direction: column; }

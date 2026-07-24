@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { RecentSession, SessionSummary } from '../../../shared/types.ts'
+import { sessionIndicator, type SessionIndicator } from './session-indicator.ts'
 import { sidebarSessions } from './sidebar-sessions.ts'
 
 interface WorkspaceSidebarProps {
@@ -43,6 +44,7 @@ export function WorkspaceSidebar({ completedSessionIds, recentSessions, sessions
     <nav className="session-list" aria-label="Recent Pi sessions">
       {visibleSessions.map((recentSession) => {
         const activeSession = sessions.find((session) => session.sessionPath === recentSession.sessionPath && session.status !== 'exited')
+        const indicator = sessionIndicator(activeSession, selectedId, completedSessionIds)
         return (
           <button
             className={activeSession?.id === selectedId ? 'session-item selected' : 'session-item'}
@@ -59,8 +61,7 @@ export function WorkspaceSidebar({ completedSessionIds, recentSessions, sessions
             }}
             type="button"
           >
-            {activeSession?.status === 'running' && <span aria-label="Pi is active" className="status-dot" role="img" />}
-            {activeSession?.status === 'idle' && activeSession.id !== selectedId && completedSessionIds.has(activeSession.id) && <span aria-label="Pi finished its turn" className="turn-complete-indicator" role="img">✓</span>}
+            {indicator && <SessionStatusIndicator status={indicator} />}
             <span><strong>{openingSessionPath === recentSession.sessionPath ? 'Opening…' : recentSession.name}</strong><small>{new Date(recentSession.updatedAt).toLocaleString('en-US')}</small></span>
           </button>
         )
@@ -68,6 +69,21 @@ export function WorkspaceSidebar({ completedSessionIds, recentSessions, sessions
       {visibleSessions.length === 0 && <p className="empty-sidebar">No Pi sessions in this directory.</p>}
     </nav>
   </aside>
+}
+
+const indicatorLabels: Record<SessionIndicator, string> = {
+  working: 'Pi is working',
+  waiting: 'Pi is waiting for your response',
+  complete: 'Pi finished its turn',
+}
+
+/** Uses one visual vocabulary for active, attention, and completed session states. */
+function SessionStatusIndicator({ status }: { status: SessionIndicator }) {
+  return <span aria-label={indicatorLabels[status]} className={`session-status-indicator ${status}`} role="img" title={indicatorLabels[status]}>
+    {status === 'working' && <svg aria-hidden="true" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" /><path d="M8 2.5a5.5 5.5 0 0 1 5.5 5.5" /></svg>}
+    {status === 'waiting' && <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M3 3.5h10v7H8l-3 2v-2H3z" /><path d="M6.6 6a1.5 1.5 0 0 1 2.8.7c0 1-1.4 1-1.4 2" /><path d="M8 9.5h.01" /></svg>}
+    {status === 'complete' && <svg aria-hidden="true" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5" /><path d="m5.5 8 1.6 1.6 3.5-3.5" /></svg>}
+  </span>
 }
 
 /** Prevents duplicate session creation and reports errors to the container. */

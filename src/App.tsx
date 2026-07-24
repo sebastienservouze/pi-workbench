@@ -186,6 +186,18 @@ function App() {
     }
   }, [showToast, workspacePath])
 
+  /** Clears an answered request immediately, then reconciles all pending requests with the manager. */
+  const closeDialog = useCallback((closedDialog: UiDialog) => {
+    const requestId = closedDialog.request.id
+    setDialog((current) => current?.sessionId === closedDialog.sessionId && current.request.id === requestId ? null : current)
+    if (typeof requestId === 'string') {
+      setSessions((current) => current.map((session) => session.id === closedDialog.sessionId
+        ? { ...session, pendingUi: session.pendingUi.filter((request) => request.id !== requestId) }
+        : session))
+    }
+    void refreshSessions()
+  }, [refreshSessions])
+
   /** Refreshes Git state for the current directory without showing silent refresh errors. */
   const refreshGit = useCallback(async (cwd = workspacePath, notifyOnError = false) => {
     const version = ++gitRefreshVersionRef.current
@@ -313,8 +325,13 @@ function App() {
         void getQuotas().then(setQuotas).catch(() => undefined)
       }
 
-      if (sessionId === selectedIdRef.current && event.type === 'extension_ui_request' && isBlockingDialog(event) && !isAgentSelector(event)) {
-        setActivity(null)
+      if (event.type === 'extension_ui_request' && isBlockingDialog(event) && !isAgentSelector(event)) {
+        if (typeof event.id === 'string') {
+          setSessions((current) => current.map((session) => session.id === sessionId
+            ? { ...session, pendingUi: [...session.pendingUi.filter((request) => request.id !== event.id), event] }
+            : session))
+        }
+        if (sessionId === selectedIdRef.current) setActivity(null)
       }
 
       if (event.type === 'extension_ui_request') {
@@ -627,7 +644,7 @@ function App() {
               <span aria-hidden="true" className="chat-detail-toggle-icon">⌘</span>
               <span className="chat-detail-toggle-copy"><strong>{conversationViewDetail.label}</strong><small>{conversationViewDetail.description}</small></span>
             </button>
-            {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
+            {questionnaire && <AskUserQuestionDialog key={String(questionnaire.request.id)} dialog={questionnaire} onClose={() => closeDialog(questionnaire)} onError={(cause) => showToast('error', messageOf(cause))} />}
             <div className="composer-area">
               <ToastStack onDismiss={dismissToast} toasts={visibleToasts} />
               <Composer
@@ -731,7 +748,7 @@ function App() {
           void refreshSessions(path)
         }}
       />}
-      {dialog && !questionnaire && <ExtensionDialog dialog={dialog} onClose={() => { setDialog(null); void refreshSessions() }} onError={(cause) => showToast('error', messageOf(cause))} />}
+      {dialog && !questionnaire && <ExtensionDialog dialog={dialog} onClose={() => closeDialog(dialog)} onError={(cause) => showToast('error', messageOf(cause))} />}
       {commandPaletteOpen && <CommandPalette commands={paletteCommands} onClose={() => setCommandPaletteOpen(false)} />}
       {settingsOpen && <SettingsPanel definitions={commandDefinitions} shortcuts={shortcuts} onChange={(id, shortcut) => { const next = { ...shortcuts, [id]: shortcut }; setShortcuts(next); window.localStorage.setItem('pi-workbench.shortcuts', JSON.stringify(next)) }} onReset={() => { setShortcuts(defaultShortcuts); window.localStorage.setItem('pi-workbench.shortcuts', JSON.stringify(defaultShortcuts)) }} onClose={() => setSettingsOpen(false)} />}
     </div>
