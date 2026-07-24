@@ -45,6 +45,7 @@ function App() {
   const [snapshotSessionId, setSnapshotSessionId] = useState('')
   const [liveText, setLiveText] = useState('')
   const [liveThinking, setLiveThinking] = useState('')
+  const [pendingSteering, setPendingSteering] = useState<string[]>([])
   const [activity, setActivity] = useState<Activity | null>(null)
   const [piConnection, setPiConnection] = useState<PiConnection>('connecting')
   const [toolExecutions, setToolExecutions] = useState<ToolExecution[]>([])
@@ -82,6 +83,7 @@ function App() {
   const agentIntentsRef = useRef(new Map<string, AgentIntent>())
   const toolStartedAtRef = useRef(new Map<string, number>())
   const requestStartedAtRef = useRef<number | undefined>(undefined)
+  const queueUpdateVersionRef = useRef(0)
   const pendingLiveUpdatesRef = useRef({ text: '', thinking: '' })
   const liveUpdateFrameRef = useRef<number | undefined>(undefined)
   const quotaAutoRefreshAtRef = useRef(new Map<string, number>())
@@ -249,6 +251,8 @@ function App() {
     setSnapshotSessionId('')
     setLiveText('')
     setLiveThinking('')
+    setPendingSteering([])
+    queueUpdateVersionRef.current += 1
     setActivity(null)
     setToolExecutions([])
     setConversationNavigation(undefined)
@@ -329,6 +333,14 @@ function App() {
       }
 
       if (sessionId !== selectedIdRef.current) return
+      if (event.type === 'queue_update' && Array.isArray(event.steering)) {
+        const steering = event.steering.filter((message): message is string => typeof message === 'string')
+        const version = ++queueUpdateVersionRef.current
+        setPendingSteering((current) => steering.length > current.length ? steering : current)
+        void refreshSnapshot(sessionId).finally(() => {
+          if (version === queueUpdateVersionRef.current && sessionId === selectedIdRef.current) setPendingSteering(steering)
+        })
+      }
       if (event.type === 'agent_start') requestStartedAtRef.current = performance.now()
       const streamedToolCall = toolCallInUpdate(event)
       if (streamedToolCall) {
@@ -429,15 +441,25 @@ function App() {
   /** Sends the current draft with the behavior supported by the active session. */
   const handleComposerSend = useCallback(async (message: string, images: JsonObject[], behavior: 'steer' | 'followUp') => {
     const command: JsonObject = { type: 'prompt', message, images }
+    const isSteering = selectedSessionStatus === 'running' && behavior === 'steer'
     if (selectedSessionStatus === 'running') command.streamingBehavior = behavior
+    if (isSteering) setPendingSteering((current) => [...current, message])
     if (selectedSession?.name === 'Nouvelle session' && !snapshot.messages.some((entry) => entry.role === 'user')) {
       setSessions((current) => current.map((session) => session.id === selectedId
         ? { ...session, name: promptSessionTitle(message) }
         : session))
     }
-    await sendPiCommand(selectedId, command)
-    await refreshSessions()
-    setScrollToBottomRequest((current) => current + 1)
+    try {
+      await sendPiCommand(selectedId, command)
+      await refreshSessions()
+      setScrollToBottomRequest((current) => current + 1)
+    } catch (cause) {
+      if (isSteering) setPendingSteering((current) => {
+        const index = current.lastIndexOf(message)
+        return index < 0 ? current : current.toSpliced(index, 1)
+      })
+      throw cause
+    }
   }, [refreshSessions, selectedId, selectedSession?.name, selectedSessionStatus, snapshot.messages])
   const handleComposerAbort = useCallback(() => sendPiCommand(selectedId, { type: 'abort' }), [selectedId])
   const handleComposerSelectOpened = useCallback(() => setRequestedSelect(null), [])
@@ -605,7 +627,7 @@ function App() {
           </>
         ) : selectedSession ? (
           <>
-            <Conversation activity={displayedActivity} agentName={selectedSession.activeAgent} darkMode={theme === 'dark'} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} navigationRequest={conversationNavigation} onError={handleConversationError} onStartSession={handleContextSessionStart} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
+            <Conversation activity={displayedActivity} agentName={selectedSession.activeAgent} darkMode={theme === 'dark'} detailedView={conversationView === 'detailed'} key={selectedSession.id} liveText={liveText} liveThinking={liveThinking} messages={snapshot.messages} navigationRequest={conversationNavigation} onError={handleConversationError} onStartSession={handleContextSessionStart} pendingSteering={pendingSteering} repositoryRoot={gitSnapshot?.root} scrollToBottomRequest={scrollToBottomRequest} toolExecutions={toolExecutions} workspacePath={workspacePath} />
             <button aria-label={`${conversationViewDetail.label}. ${conversationViewDetail.description}. Click to toggle view.`} className={`chat-detail-toggle ${conversationView}`} onClick={() => setConversationView((current) => {
                 const next = current === 'simple' ? 'detailed' : 'simple'
                 window.localStorage.setItem('pi-workbench.conversation-view', next)

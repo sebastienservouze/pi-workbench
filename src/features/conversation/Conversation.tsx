@@ -8,7 +8,7 @@ import { outputContextDraft } from './context-session.ts'
 import { ContextSessionButton, Markdown, ToolCallCard } from './ToolCallCard.tsx'
 
 /** Assembles history, the live stream, and tool executions according to the selected detail level. */
-export function Conversation({ activity, agentName, messages, liveText, liveThinking, darkMode, detailedView, navigationRequest, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath, onError, onStartSession }: {
+export function Conversation({ activity, agentName, messages, liveText, liveThinking, darkMode, detailedView, navigationRequest, pendingSteering, repositoryRoot, scrollToBottomRequest, toolExecutions, workspacePath, onError, onStartSession }: {
   activity: Activity | null
   agentName?: string
   messages: JsonObject[]
@@ -17,6 +17,7 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
   darkMode: boolean
   detailedView: boolean
   navigationRequest?: { id: number; target: SessionAnalysisTarget }
+  pendingSteering: string[]
   repositoryRoot?: string | null
   scrollToBottomRequest: number
   toolExecutions: ToolExecution[]
@@ -66,7 +67,7 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
     return () => observer.disconnect()
   }, [scheduleAutoScroll])
 
-  useEffect(scheduleAutoScroll, [activity, liveText, liveThinking, scheduleAutoScroll, toolExecutions, visibleMessages.length])
+  useEffect(scheduleAutoScroll, [activity, liveText, liveThinking, pendingSteering.length, scheduleAutoScroll, toolExecutions, visibleMessages.length])
 
   useEffect(() => () => {
     if (scrollFrameRef.current !== undefined) window.cancelAnimationFrame(scrollFrameRef.current)
@@ -154,7 +155,11 @@ export function Conversation({ activity, agentName, messages, liveText, liveThin
       {liveThinking && <ReasoningBlock live>{liveThinking}</ReasoningBlock>}
       {detailedView && toolExecutions.filter((execution) => !toolCallIds.has(execution.id)).map((execution) => <ToolCallCard animateLiveChanges args={execution.args} darkMode={darkMode} hasResult={execution.result !== undefined} id={execution.id} interrupted={execution.status === 'interrupted'} key={execution.id} name={execution.name} onError={onError} onStartSession={onStartSession} rawArgs={execution.rawArgs} rawArgsLength={execution.rawArgsLength} rawArgsTruncated={execution.rawArgsTruncated} repositoryRoot={repositoryRoot} resultContent={execution.result?.content} resultError={execution.result?.isError} revealRequest={navigationRequest?.target.kind === 'tool' && navigationRequest.target.id === execution.id ? navigationRequest.id : undefined} streaming={execution.status === 'generating'} targeted={highlightedTarget === `tool:${execution.id}`} workspacePath={workspacePath} />)}
       {liveText && <article className="message assistant streaming conversation-entry"><div className="content"><Markdown>{liveText}</Markdown></div></article>}
-      {visibleMessages.length === 0 && !liveText && !liveThinking && <div className="empty-conversation"><h2>Session ready</h2><p>Send a message or use a command from your Pi installation.</p></div>}
+      {pendingSteering.map((message, index) => <article className="message user pending-steering conversation-entry" key={`${message}-${index}`}>
+        <div className="content"><Markdown>{message || 'Image attached'}</Markdown></div>
+        <span className="pending-steering-status" role="status"><i aria-hidden="true" />Waiting to steer…</span>
+      </article>)}
+      {visibleMessages.length === 0 && !liveText && !liveThinking && pendingSteering.length === 0 && <div className="empty-conversation"><h2>Session ready</h2><p>Send a message or use a command from your Pi installation.</p></div>}
       {activity && <div className="conversation-activity"><ActivityIndicator activity={activity} agentName={agentName} /></div>}
       </div>
       <button
